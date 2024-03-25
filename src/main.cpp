@@ -10,8 +10,11 @@ auto main() -> int {
         return -1;
     }
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    constexpr auto opengl_version_major = 4;
+    constexpr auto opengl_version_minor = 6;
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, opengl_version_major);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, opengl_version_minor);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     constexpr auto width = 640;

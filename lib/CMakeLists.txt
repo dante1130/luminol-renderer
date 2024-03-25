@@ -5,7 +5,7 @@ set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(glfw)
 
 add_subdirectory(glad/cmake)
-glad_add_library(glad STATIC API gl:core=4.1)
+glad_add_library(glad STATIC API gl:core=4.6)
 
 set(GLM_ENABLE_CXX_20 ON CACHE BOOL "" FORCE)
 add_subdirectory(glm)
