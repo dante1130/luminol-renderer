@@ -1,0 +1,19 @@
+---
+Checks: '-*,
+bugprone-*,
+-bugprone-easily-swappable-parameters
+clang-analyzer-*,
+cppcoreguidelines-*,
+-cppcoreguidelines-macro-usage,
+-cppcoreguidelines-pro-type-reinterpret-cast,
+clang-diagnostic-*,
+misc-*,
+modernize-*,
+-modernize-pass-by-value,
+performance-*,
+-performance-no-int-to-ptr,
+readability-*,
+-readability-uppercase-literal-suffix'
+WarningsAsErrors:  '*'
+HeaderFilterRegex: '.*'
+FormatStyle:       'file'
