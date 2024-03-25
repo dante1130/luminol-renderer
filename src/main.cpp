@@ -4,7 +4,7 @@
 #include <GLFW/glfw3.h>
 
 auto main() -> int {
-    if (!glfwInit()) {
+    if (glfwInit() == GLFW_FALSE) {
         std::cerr << "Failed to initialize GLFW\n";
         return -1;
     }
@@ -13,9 +13,13 @@ auto main() -> int {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    auto* window = glfwCreateWindow(640, 480, "Application", nullptr, nullptr);
+    constexpr auto width = 640;
+    constexpr auto height = 480;
 
-    if (!window) {
+    auto* window =
+        glfwCreateWindow(width, height, "Application", nullptr, nullptr);
+
+    if (window == nullptr) {
         std::cerr << "Failed to create GLFW window\n";
         glfwTerminate();
         return -1;
@@ -32,10 +36,19 @@ auto main() -> int {
     std::cout << "OpenGL Version " << GLAD_VERSION_MAJOR(version) << "."
               << GLAD_VERSION_MINOR(version) << " loaded\n";
 
-    while (!glfwWindowShouldClose(window)) {
+    while (glfwWindowShouldClose(window) == GLFW_FALSE) {
         glfwPollEvents();
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        struct Color {
+            float r = 0.0f;
+            float g = 0.0f;
+            float b = 0.0f;
+            float a = 0.0f;
+        };
+
+        constexpr Color color{0.2f, 0.3f, 0.3f, 1.0f};
+
+        glClearColor(color.r, color.g, color.b, color.a);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glfwSwapBuffers(window);
