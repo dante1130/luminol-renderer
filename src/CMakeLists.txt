@@ -1,7 +1,7 @@
 add_executable(Application)
 
 set_target_properties(Application PROPERTIES
-    CXX_STANDARD 17
+    CXX_STANDARD 20
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
 )
@@ -13,11 +13,16 @@ target_compile_options(Application PRIVATE
 
 target_sources(Application PRIVATE
     main.cpp
+    Window.cpp
 )
 
 target_link_libraries(Application PRIVATE
     glfw
     glad
     glm
+)
+
+target_include_directories(Application PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
