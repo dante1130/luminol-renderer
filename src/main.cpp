@@ -2,6 +2,7 @@
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 
 auto main() -> int {
     if (glfwInit() == GLFW_FALSE) {
@@ -39,14 +40,7 @@ auto main() -> int {
     while (glfwWindowShouldClose(window) == GLFW_FALSE) {
         glfwPollEvents();
 
-        struct Color {
-            float r = 0.0f;
-            float g = 0.0f;
-            float b = 0.0f;
-            float a = 0.0f;
-        };
-
-        constexpr Color color{0.2f, 0.3f, 0.3f, 1.0f};
+        constexpr auto color = glm::vec4(0.2f, 0.3f, 0.3f, 1.0f);
 
         glClearColor(color.r, color.g, color.b, color.a);
         glClear(GL_COLOR_BUFFER_BIT);
