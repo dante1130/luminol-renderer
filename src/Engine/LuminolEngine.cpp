@@ -31,6 +31,8 @@ Engine::Engine(const Properties& properties)
       renderer(this->graphics_factory->create_renderer(this->window)) {}
 
 void Engine::run() {
+    auto drawable = this->renderer->test_draw();
+
     while (!this->window.should_close()) {
         this->window.poll_events();
 
@@ -38,6 +40,8 @@ void Engine::run() {
 
         this->renderer->clear_color(color);
         this->renderer->clear(Luminol::Graphics::BufferBit::Color);
+
+        this->renderer->draw(drawable);
 
         this->window.swap_buffers();
     }

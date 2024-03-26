@@ -7,6 +7,11 @@
 
 namespace Luminol::Graphics {
 
+struct Drawable {
+    uint32_t vertex_array_id = {0};
+    uint32_t shader_program_id = {0};
+};
+
 class Renderer {
 public:
     Renderer() = default;
@@ -18,6 +23,8 @@ public:
 
     virtual auto clear_color(const glm::vec4& color) const -> void = 0;
     virtual auto clear(BufferBit buffer_bit) const -> void = 0;
+    virtual auto draw(const Drawable& drawable) const -> void = 0;
+    [[nodiscard]] virtual auto test_draw() const -> Drawable = 0;
 };
 
 }  // namespace Luminol::Graphics
