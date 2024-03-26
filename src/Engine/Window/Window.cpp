@@ -1,5 +1,7 @@
 #include "Window.hpp"
 
+#include <cassert>
+
 #include <GLFW/glfw3.h>
 
 namespace {
@@ -19,8 +21,7 @@ Window::Window(
     const std::string& title,
     const WindowHints& hints
 ) {
-    if (glfwInit() == GLFW_FALSE) {
-    }
+    assert(glfwInit() == GLFW_FALSE && "Failed to initialize GLFW");
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, hints.context_version_major);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, hints.context_version_minor);
