@@ -21,7 +21,7 @@ Window::Window(
     const std::string& title,
     const WindowHints& hints
 ) {
-    assert(glfwInit() == GLFW_FALSE && "Failed to initialize GLFW");
+    assert(glfwInit() == GLFW_TRUE && "Failed to initialize GLFW");
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, hints.context_version_major);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, hints.context_version_minor);
