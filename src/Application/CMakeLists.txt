@@ -5,9 +5,7 @@ target_sources(Application PRIVATE
 )
 
 target_link_libraries(Application PRIVATE
-    glm
-    Luminol.Window
-    Luminol.Graphics
+    LuminolEngine
 )
 
 target_include_directories(Application PRIVATE

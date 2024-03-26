@@ -3,8 +3,6 @@
 #include <cstdint>
 #include <string>
 
-#include <glm/glm.hpp>
-
 namespace Luminol {
 
 class Window {
