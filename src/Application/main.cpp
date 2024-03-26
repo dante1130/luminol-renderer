@@ -1,9 +1,9 @@
 #include <iostream>
 
 #include <glad/gl.h>
-#include <glm/glm.hpp>
 
 #include <Engine/Window/Window.hpp>
+#include <Engine/Graphics/OpenGL/OpenGLRenderer.hpp>
 
 auto main() -> int {
     constexpr auto width = 640;
@@ -21,22 +21,15 @@ auto main() -> int {
         }
     );
 
-    const auto version = gladLoadGL(window.get_proc_address());
-    if (version == 0) {
-        std::cerr << "Failed to initialize GLAD\n";
-        return -1;
-    }
-
-    std::cout << "OpenGL Version " << GLAD_VERSION_MAJOR(version) << "."
-              << GLAD_VERSION_MINOR(version) << " loaded\n";
+    const auto renderer = Luminol::Graphics::OpenGLRenderer(window);
 
     while (!window.should_close()) {
         window.poll_events();
 
         constexpr auto color = glm::vec4(0.2f, 0.3f, 0.3f, 1.0f);
 
-        glClearColor(color.r, color.g, color.b, color.a);
-        glClear(GL_COLOR_BUFFER_BIT);
+        renderer.clear_color(color);
+        renderer.clear(Luminol::Graphics::BufferBit::Color);
 
         window.swap_buffers();
     }
