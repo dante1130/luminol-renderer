@@ -38,11 +38,13 @@ Window::Window(
 
 Window::~Window() { glfwTerminate(); }
 
-auto Window::get_proc_address() -> Window::WindowProc {
+// NOLINTBEGIN(readability-convert-member-functions-to-static)
+auto Window::get_proc_address() const -> Window::WindowProc {
     return glfwGetProcAddress;
 }
 
-auto Window::poll_events() -> void { glfwPollEvents(); }
+auto Window::poll_events() const -> void { glfwPollEvents(); }
+// NOLINTEND(readability-convert-member-functions-to-static)
 
 auto Window::should_close() const -> bool {
     return glfwWindowShouldClose(window_handle_to_glfw_window(window_handle)) ==

@@ -21,7 +21,7 @@ auto main() -> int {
         }
     );
 
-    const auto version = gladLoadGL(Luminol::Window::get_proc_address());
+    const auto version = gladLoadGL(window.get_proc_address());
     if (version == 0) {
         std::cerr << "Failed to initialize GLAD\n";
         return -1;
@@ -31,7 +31,7 @@ auto main() -> int {
               << GLAD_VERSION_MINOR(version) << " loaded\n";
 
     while (!window.should_close()) {
-        Luminol::Window::poll_events();
+        window.poll_events();
 
         constexpr auto color = glm::vec4(0.2f, 0.3f, 0.3f, 1.0f);
 

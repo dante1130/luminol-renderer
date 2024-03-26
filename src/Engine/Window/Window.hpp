@@ -30,8 +30,8 @@ public:
     auto operator=(Window&&) -> Window& = default;
     ~Window();
 
-    [[nodiscard]] static auto get_proc_address() -> WindowProc;
-    static auto poll_events() -> void;
+    [[nodiscard]] auto get_proc_address() const -> WindowProc;
+    auto poll_events() const -> void;
 
     [[nodiscard]] auto should_close() const -> bool;
     auto swap_buffers() const -> void;
