@@ -1,7 +1,3 @@
-#include <iostream>
-
-#include <glad/gl.h>
-
 #include <Engine/Window/Window.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLRenderer.hpp>
 
