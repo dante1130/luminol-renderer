@@ -3,7 +3,7 @@
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 
-#include <Window.hpp>
+#include <Engine/Window/Window.hpp>
 
 auto main() -> int {
     constexpr auto width = 640;
