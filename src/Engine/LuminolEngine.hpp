@@ -6,6 +6,7 @@
 
 #include <Engine/Window/Window.hpp>
 #include <Engine/Graphics/Renderer.hpp>
+#include <Engine/Graphics/GraphicsFactory.hpp>
 
 namespace Luminol {
 
@@ -25,6 +26,7 @@ public:
 
 private:
     Window window;
+    std::unique_ptr<Graphics::GraphicsFactory> graphics_factory = nullptr;
     std::unique_ptr<Graphics::Renderer> renderer = nullptr;
 };
 

@@ -1,5 +1,6 @@
 add_library(Luminol.Graphics
     OpenGL/OpenGLRenderer.cpp
+    OpenGL/OpenGLFactory.cpp
 )
 
 target_link_libraries(Luminol.Graphics PRIVATE

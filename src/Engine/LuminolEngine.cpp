@@ -1,6 +1,7 @@
 #include "LuminolEngine.hpp"
 
 #include <Engine/Graphics/OpenGL/OpenGLRenderer.hpp>
+#include <Engine/Graphics/OpenGL/OpenGLFactory.hpp>
 
 namespace {
 
@@ -25,9 +26,9 @@ Engine::Engine(const Properties& properties)
           properties.height,
           properties.title,
           make_window_hints()
-      ) {
-    this->renderer = std::make_unique<Graphics::OpenGLRenderer>(this->window);
-}
+      ),
+      graphics_factory(std::make_unique<Graphics::OpenGLFactory>()),
+      renderer(this->graphics_factory->create_renderer(this->window)) {}
 
 void Engine::run() {
     while (!this->window.should_close()) {
