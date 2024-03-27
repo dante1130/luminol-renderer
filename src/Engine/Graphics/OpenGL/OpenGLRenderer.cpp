@@ -4,9 +4,10 @@
 #include <array>
 #include <filesystem>
 
-#include <Engine/Graphics/OpenGL/OpenGLShader.hpp>
-
+#include <gsl/gsl>
 #include <glad/gl.h>
+
+#include <Engine/Graphics/OpenGL/OpenGLShader.hpp>
 
 namespace {
 
@@ -57,7 +58,7 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
 auto OpenGLRenderer::draw(const Drawable& drawable) const -> void {
     drawable.shader->bind();
     glBindVertexArray(drawable.vertex_array_id);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawArrays(GL_TRIANGLES, 0, drawable.vertex_count);
 }
 
 auto OpenGLRenderer::test_draw() const -> Drawable {
@@ -73,15 +74,9 @@ auto OpenGLRenderer::test_draw() const -> Drawable {
     };
 
     constexpr auto vertices = std::array{
-        -0.5f,
-        -0.5f,
-        0.0f,  // bottom left
-        0.5f,
-        -0.5f,
-        0.0f,  // bottom right
-        0.0f,
-        0.5f,
-        0.0f,  // top
+        glm::vec3(-0.5f, -0.5f, 0.0f),  // bottom left
+        glm::vec3(0.5f, -0.5f, 0.0f),   // bottom right
+        glm::vec3(0.0f, 0.5f, 0.0f)     // top
     };
 
     uint32_t vertex_buffer_id = {0};
@@ -98,7 +93,11 @@ auto OpenGLRenderer::test_draw() const -> Drawable {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
 
-    return {vertex_array_id, std::move(shader)};
+    return Drawable{
+        .vertex_array_id = vertex_array_id,
+        .shader = std::move(shader),
+        .vertex_count = gsl::narrow_cast<int32_t>(vertices.size())
+    };
 }
 
 }  // namespace Luminol::Graphics

@@ -11,6 +11,7 @@ namespace Luminol::Graphics {
 struct Drawable {
     uint32_t vertex_array_id = {0};
     std::unique_ptr<Shader> shader = {nullptr};
+    int32_t vertex_count = {0};
 };
 
 class Renderer {
