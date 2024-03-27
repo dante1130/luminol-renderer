@@ -3,13 +3,14 @@
 #include <glm/glm.hpp>
 
 #include <Engine/Window/Window.hpp>
+#include <Engine/Graphics/Shader.hpp>
 #include <Engine/Graphics/BufferBit.hpp>
 
 namespace Luminol::Graphics {
 
 struct Drawable {
     uint32_t vertex_array_id = {0};
-    uint32_t shader_program_id = {0};
+    std::unique_ptr<Shader> shader = {nullptr};
 };
 
 class Renderer {
