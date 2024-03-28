@@ -17,10 +17,10 @@ class Shader {
 public:
     Shader(const ShaderPaths& paths);
     virtual ~Shader() = default;
-    Shader(const Shader&) = default;
-    Shader(Shader&&) = delete;
-    auto operator=(const Shader&) -> Shader& = default;
-    auto operator=(Shader&&) -> Shader& = delete;
+    Shader(const Shader&) = delete;
+    Shader(Shader&&) = default;
+    auto operator=(const Shader&) -> Shader& = delete;
+    auto operator=(Shader&&) -> Shader& = default;
 
     virtual auto bind() const -> void = 0;
     virtual auto unbind() const -> void = 0;

@@ -6,12 +6,12 @@ namespace Luminol::Graphics {
 
 class OpenGLShader : public Shader {
 public:
-    OpenGLShader(const OpenGLShader &) = default;
-    ~OpenGLShader() override;
-    OpenGLShader(OpenGLShader &&) = delete;
-    auto operator=(const OpenGLShader &) -> OpenGLShader & = default;
-    auto operator=(OpenGLShader &&) -> OpenGLShader & = delete;
     OpenGLShader(const ShaderPaths &paths);
+    ~OpenGLShader() override;
+    OpenGLShader(const OpenGLShader &) = delete;
+    OpenGLShader(OpenGLShader &&) = default;
+    auto operator=(const OpenGLShader &) -> OpenGLShader & = delete;
+    auto operator=(OpenGLShader &&) -> OpenGLShader & = default;
 
     auto bind() const -> void override;
     auto unbind() const -> void override;
