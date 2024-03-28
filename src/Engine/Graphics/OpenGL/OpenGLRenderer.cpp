@@ -77,9 +77,7 @@ auto OpenGLRenderer::test_draw() const -> Drawable {
     constexpr auto vertices =
         std::array{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f};
 
-    auto vertex_buffer = std::unique_ptr<VertexBuffer>{
-        std::make_unique<OpenGLVertexBuffer>(vertices)
-    };
+    auto vertex_buffer = std::make_unique<OpenGLVertexBuffer>(vertices);
 
     uint32_t vertex_array_id = {0};
     glGenVertexArrays(1, &vertex_array_id);

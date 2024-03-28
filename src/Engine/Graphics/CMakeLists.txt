@@ -1,6 +1,5 @@
 add_library(Luminol.Graphics
     Shader.cpp
-    VertexBuffer.cpp
     OpenGL/OpenGLRenderer.cpp
     OpenGL/OpenGLFactory.cpp
     OpenGL/OpenGLShader.cpp
