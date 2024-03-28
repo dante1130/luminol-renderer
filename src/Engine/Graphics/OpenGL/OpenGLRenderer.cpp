@@ -8,6 +8,7 @@
 #include <glad/gl.h>
 
 #include <Engine/Graphics/OpenGL/OpenGLShader.hpp>
+#include <Engine/Graphics/OpenGL/OpenGLVertexBuffer.hpp>
 
 namespace {
 
@@ -73,18 +74,12 @@ auto OpenGLRenderer::test_draw() const -> Drawable {
         std::make_unique<OpenGLShader>(shader_source_paths)
     };
 
-    constexpr auto vertices = std::array{
-        glm::vec3(-0.5f, -0.5f, 0.0f),  // bottom left
-        glm::vec3(0.5f, -0.5f, 0.0f),   // bottom right
-        glm::vec3(0.0f, 0.5f, 0.0f)     // top
-    };
+    constexpr auto vertices =
+        std::array{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f};
 
-    uint32_t vertex_buffer_id = {0};
-    glGenBuffers(1, &vertex_buffer_id);
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id);
-    glNamedBufferData(
-        vertex_buffer_id, sizeof(vertices), vertices.data(), GL_STATIC_DRAW
-    );
+    auto vertex_buffer = std::unique_ptr<VertexBuffer>{
+        std::make_unique<OpenGLVertexBuffer>(vertices)
+    };
 
     uint32_t vertex_array_id = {0};
     glGenVertexArrays(1, &vertex_array_id);
@@ -94,9 +89,10 @@ auto OpenGLRenderer::test_draw() const -> Drawable {
     glEnableVertexAttribArray(0);
 
     return Drawable{
+        .vertex_buffer = std::move(vertex_buffer),
         .vertex_array_id = vertex_array_id,
         .shader = std::move(shader),
-        .vertex_count = gsl::narrow_cast<int32_t>(vertices.size())
+        .vertex_count = gsl::narrow_cast<int32_t>(vertices.size() * 3)
     };
 }
 

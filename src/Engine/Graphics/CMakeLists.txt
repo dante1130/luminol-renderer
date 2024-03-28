@@ -1,11 +1,13 @@
 add_library(Luminol.Graphics
     Shader.cpp
+    VertexBuffer.cpp
     OpenGL/OpenGLRenderer.cpp
     OpenGL/OpenGLFactory.cpp
     OpenGL/OpenGLShader.cpp
+    OpenGL/OpenGLVertexBuffer.cpp
 )
 
-target_link_libraries(Luminol.Graphics PRIVATE
+target_link_libraries(Luminol.Graphics PUBLIC
     glad
     glm
     GSL
