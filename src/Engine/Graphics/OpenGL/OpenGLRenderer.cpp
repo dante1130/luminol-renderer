@@ -8,7 +8,7 @@
 #include <glad/gl.h>
 
 #include <Engine/Graphics/OpenGL/OpenGLShader.hpp>
-#include <Engine/Graphics/OpenGL/OpenGLVertexBuffer.hpp>
+#include <Engine/Graphics/OpenGL/OpenGLVertexArrayObject.hpp>
 
 namespace {
 
@@ -58,7 +58,7 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
 
 auto OpenGLRenderer::draw(const Drawable& drawable) const -> void {
     drawable.shader->bind();
-    glBindVertexArray(drawable.vertex_array_id);
+    drawable.vertex_array_object->bind();
     glDrawArrays(GL_TRIANGLES, 0, drawable.vertex_count);
 }
 
@@ -77,20 +77,19 @@ auto OpenGLRenderer::test_draw() const -> Drawable {
     constexpr auto vertices =
         std::array{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f};
 
-    auto vertex_buffer = std::make_unique<OpenGLVertexBuffer>(vertices);
+    constexpr auto vertex_attributes = std::array{VertexAttribute{
+        .component_count = gsl::narrow<int32_t>(vertices.size() / 3),
+        .normalized = false,
+        .relative_offset = 0
+    }};
 
-    uint32_t vertex_array_id = {0};
-    glGenVertexArrays(1, &vertex_array_id);
-    glBindVertexArray(vertex_array_id);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
-    glEnableVertexAttribArray(0);
+    auto vertex_array_object =
+        std::make_unique<OpenGLVertexArrayObject>(vertices, vertex_attributes);
 
     return Drawable{
-        .vertex_buffer = std::move(vertex_buffer),
-        .vertex_array_id = vertex_array_id,
+        .vertex_array_object = std::move(vertex_array_object),
         .shader = std::move(shader),
-        .vertex_count = gsl::narrow_cast<int32_t>(vertices.size() * 3)
+        .vertex_count = gsl::narrow_cast<int32_t>(vertices.size() / 3)
     };
 }
 

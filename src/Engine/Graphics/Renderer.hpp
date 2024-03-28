@@ -5,13 +5,12 @@
 #include <Engine/Window/Window.hpp>
 #include <Engine/Graphics/Shader.hpp>
 #include <Engine/Graphics/BufferBit.hpp>
-#include <Engine/Graphics/OpenGL/OpenGLVertexBuffer.hpp>
+#include <Engine/Graphics/OpenGL/OpenGLVertexArrayObject.hpp>
 
 namespace Luminol::Graphics {
 
 struct Drawable {
-    std::unique_ptr<OpenGLVertexBuffer> vertex_buffer = {nullptr};
-    uint32_t vertex_array_id = {0};
+    std::unique_ptr<OpenGLVertexArrayObject> vertex_array_object = {nullptr};
     std::unique_ptr<Shader> shader = {nullptr};
     int32_t vertex_count = {0};
 };
