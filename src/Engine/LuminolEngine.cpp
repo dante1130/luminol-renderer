@@ -33,7 +33,7 @@ void Engine::run() {
     constexpr auto vertices =
         std::array{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f};
 
-    const auto mesh = graphics_factory->create_mesh(vertices);
+    const auto mesh = this->graphics_factory->create_mesh(vertices);
 
     while (!this->window.should_close()) {
         this->window.poll_events();
