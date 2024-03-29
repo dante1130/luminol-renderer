@@ -3,9 +3,7 @@
 #include <glm/glm.hpp>
 
 #include <Engine/Window/Window.hpp>
-#include <Engine/Graphics/Shader.hpp>
 #include <Engine/Graphics/BufferBit.hpp>
-#include <Engine/Graphics/OpenGL/OpenGLVertexArrayObject.hpp>
 
 namespace Luminol::Graphics {
 

@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include <gsl/gsl>
+
 #include <Engine/Graphics/GraphicsApi.hpp>
 #include <Engine/Graphics/Renderer.hpp>
 #include <Engine/Graphics/Shader.hpp>
