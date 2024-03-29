@@ -5,9 +5,9 @@
 namespace Luminol::Graphics {
 
 OpenGLVertexArrayObject::OpenGLVertexArrayObject(
-    gsl::span<const float> vertices, gsl::span<const VertexAttribute> attributes
+    gsl::span<const float> buffer, gsl::span<const VertexAttribute> attributes
 )
-    : vertex_buffer(vertices) {
+    : vertex_buffer(buffer) {
     glCreateVertexArrays(1, &this->vertex_array_id);
 
     for (size_t i = 0; i < attributes.size(); ++i) {

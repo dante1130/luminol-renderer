@@ -5,12 +5,12 @@
 
 namespace Luminol::Graphics {
 
-OpenGLVertexBuffer::OpenGLVertexBuffer(gsl::span<const float> vertices) {
+OpenGLVertexBuffer::OpenGLVertexBuffer(gsl::span<const float> buffer) {
     glCreateBuffers(1, &this->vertex_buffer_id);
     glNamedBufferStorage(
         this->vertex_buffer_id,
-        gsl::narrow<GLsizeiptr>(vertices.size_bytes()),
-        vertices.data(),
+        gsl::narrow<GLsizeiptr>(buffer.size_bytes()),
+        buffer.data(),
         0
     );
 }

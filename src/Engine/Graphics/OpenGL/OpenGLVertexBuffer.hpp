@@ -6,7 +6,7 @@ namespace Luminol::Graphics {
 
 class OpenGLVertexBuffer {
 public:
-    OpenGLVertexBuffer(gsl::span<const float> vertices);
+    OpenGLVertexBuffer(gsl::span<const float> buffer);
     ~OpenGLVertexBuffer();
     OpenGLVertexBuffer(const OpenGLVertexBuffer&) = delete;
     OpenGLVertexBuffer(OpenGLVertexBuffer&&) = default;

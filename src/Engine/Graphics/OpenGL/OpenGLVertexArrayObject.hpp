@@ -15,7 +15,7 @@ struct VertexAttribute {
 class OpenGLVertexArrayObject {
 public:
     OpenGLVertexArrayObject(
-        gsl::span<const float> vertices,
+        gsl::span<const float> buffer,
         gsl::span<const VertexAttribute> attributes
     );
     ~OpenGLVertexArrayObject();
