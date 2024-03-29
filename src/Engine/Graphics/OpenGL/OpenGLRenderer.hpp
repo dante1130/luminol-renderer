@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Engine/Graphics/Renderer.hpp>
-#include <Engine/Graphics/Shader.hpp>
+#include <Engine/Graphics/OpenGL/OpenGLShader.hpp>
 
 namespace Luminol::Graphics {
 
@@ -14,7 +14,7 @@ public:
     auto draw(const RenderCommand& render_command) const -> void override;
 
 private:
-    std::unique_ptr<Shader> shader = {nullptr};
+    std::unique_ptr<OpenGLShader> shader = {nullptr};
 };
 
 }  // namespace Luminol::Graphics

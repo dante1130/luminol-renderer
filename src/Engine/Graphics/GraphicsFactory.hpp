@@ -26,7 +26,9 @@ public:
     [[nodiscard]] virtual auto create_shader(const ShaderPaths& paths)
         -> std::unique_ptr<Shader> = 0;
     [[nodiscard]] virtual auto create_mesh(
-        gsl::span<const float> vertices, gsl::span<const uint32_t> indices
+        gsl::span<const float> vertices,
+        gsl::span<const uint32_t> indices,
+        const std::filesystem::path& texture_path
     ) -> std::unique_ptr<Mesh> = 0;
     [[nodiscard]] virtual auto get_graphics_api() const -> GraphicsApi = 0;
 };

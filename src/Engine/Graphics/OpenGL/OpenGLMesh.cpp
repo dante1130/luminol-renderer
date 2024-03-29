@@ -15,6 +15,11 @@ constexpr auto create_vertex_attributes() {
             .normalized = false,
             .relative_offset = 0,
         },
+        VertexAttribute{
+            .component_count = 2,
+            .normalized = false,
+            .relative_offset = 3 * sizeof(float),
+        },
     };
 }
 
@@ -23,13 +28,17 @@ constexpr auto create_vertex_attributes() {
 namespace Luminol::Graphics {
 
 OpenGLMesh::OpenGLMesh(
-    gsl::span<const float> vertices, gsl::span<const uint32_t> indices
+    gsl::span<const float> vertices,
+    gsl::span<const uint32_t> indices,
+    const std::filesystem::path& texture_path
 )
-    : vertex_array_object(vertices, indices, create_vertex_attributes()) {}
+    : vertex_array_object(vertices, indices, create_vertex_attributes()),
+      texture(texture_path) {}
 
 auto OpenGLMesh::get_render_command(const Renderer& /*renderer*/) const
     -> RenderCommand {
     return [this](const Renderer& /*renderer*/) {
+        this->texture.bind();
         this->vertex_array_object.bind();
         glDrawElements(
             GL_TRIANGLES,
@@ -37,7 +46,6 @@ auto OpenGLMesh::get_render_command(const Renderer& /*renderer*/) const
             GL_UNSIGNED_INT,
             nullptr
         );
-        this->vertex_array_object.unbind();
     };
 }
 

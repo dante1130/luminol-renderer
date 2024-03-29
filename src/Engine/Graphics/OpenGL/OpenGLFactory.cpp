@@ -17,9 +17,11 @@ auto OpenGLFactory::create_shader(const ShaderPaths& paths)
 }
 
 auto OpenGLFactory::create_mesh(
-    gsl::span<const float> vertices, gsl::span<const uint32_t> indices
+    gsl::span<const float> vertices,
+    gsl::span<const uint32_t> indices,
+    const std::filesystem::path& texture_path
 ) -> std::unique_ptr<Mesh> {
-    return std::make_unique<OpenGLMesh>(vertices, indices);
+    return std::make_unique<OpenGLMesh>(vertices, indices, texture_path);
 }
 
 auto OpenGLFactory::get_graphics_api() const -> GraphicsApi {

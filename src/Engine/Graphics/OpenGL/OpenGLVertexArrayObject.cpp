@@ -1,5 +1,7 @@
 #include "OpenGLVertexArrayObject.hpp"
 
+#include <numeric>
+
 #include <glad/gl.h>
 
 namespace Luminol::Graphics {
@@ -16,27 +18,26 @@ OpenGLVertexArrayObject::OpenGLVertexArrayObject(
         this->vertex_array_id, this->index_buffer.get_index_buffer_id()
     );
 
+    const auto components = std::accumulate(
+        attributes.begin(),
+        attributes.end(),
+        0,
+        [](auto sum, const auto& attribute) {
+            return sum + attribute.component_count;
+        }
+    );
+
     glVertexArrayVertexBuffer(
         this->vertex_array_id,
         0,
         this->vertex_buffer.get_vertex_buffer_id(),
         0,
-        sizeof(buffer)
+        gsl::narrow_cast<GLsizei>(components * sizeof(float))
     );
 
     for (size_t i = 0; i < attributes.size(); ++i) {
         glEnableVertexArrayAttrib(
             this->vertex_array_id, gsl::narrow_cast<uint32_t>(i)
-        );
-
-        glVertexArrayVertexBuffer(
-            this->vertex_array_id,
-            0,
-            this->vertex_buffer.get_vertex_buffer_id(),
-            0,
-            gsl::narrow_cast<GLsizei>(
-                attributes[i].component_count * sizeof(float)
-            )
         );
 
         glVertexArrayAttribFormat(

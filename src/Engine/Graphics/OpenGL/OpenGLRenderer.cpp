@@ -6,6 +6,7 @@
 #include <gsl/gsl>
 #include <glad/gl.h>
 
+#include <Engine/Graphics/OpenGL/OpenGLError.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLShader.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLVertexArrayObject.hpp>
 
@@ -55,6 +56,10 @@ OpenGLRenderer::OpenGLRenderer(const Window& window) {
     std::cout << "OpenGL Version " << GLAD_VERSION_MAJOR(version) << "."
               << GLAD_VERSION_MINOR(version) << " loaded\n";
 
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(gl_debug_message_callback, nullptr);
+
     this->shader = std::make_unique<OpenGLShader>(get_default_shader_paths());
 }
 
@@ -68,6 +73,7 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
 
 auto OpenGLRenderer::draw(const RenderCommand& render_command) const -> void {
     this->shader->bind();
+    this->shader->set_uniform("texture_diffuse", 0);
     render_command(*this);
 }
 

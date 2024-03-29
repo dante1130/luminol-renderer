@@ -31,18 +31,8 @@ Engine::Engine(const Properties& properties)
 
 void Engine::run() {
     constexpr auto vertices = std::array{
-        0.5f,
-        0.5f,
-        0.0f,  // top right
-        0.5f,
-        -0.5f,
-        0.0f,  // bottom right
-        -0.5f,
-        -0.5f,
-        0.0f,  // bottom left
-        -0.5f,
-        0.5f,
-        0.0f  // top left
+        0.5f,  0.5f,  0.0f, 1.0f, 1.0f, 0.5f,  -0.5f, 0.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, -0.5f, 0.5f,  0.0f, 0.0f, 1.0f,
     };
 
     constexpr auto indices = std::array{
@@ -54,7 +44,9 @@ void Engine::run() {
         3u  // second triangle
     };
 
-    const auto mesh = this->graphics_factory->create_mesh(vertices, indices);
+    const auto mesh = this->graphics_factory->create_mesh(
+        vertices, indices, "res/textures/reflex.png"
+    );
 
     while (!this->window.should_close()) {
         this->window.poll_events();
