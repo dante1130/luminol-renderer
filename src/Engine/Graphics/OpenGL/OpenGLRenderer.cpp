@@ -50,7 +50,7 @@ namespace Luminol::Graphics {
 
 OpenGLRenderer::OpenGLRenderer(const Window& window) {
     const auto version = gladLoadGL(window.get_proc_address());
-    assert(version != 0);
+    Ensures(version != 0);
 
     std::cout << "OpenGL Version " << GLAD_VERSION_MAJOR(version) << "."
               << GLAD_VERSION_MINOR(version) << " loaded\n";
