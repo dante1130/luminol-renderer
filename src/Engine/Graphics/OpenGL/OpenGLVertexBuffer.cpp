@@ -19,7 +19,7 @@ OpenGLVertexBuffer::~OpenGLVertexBuffer() {
     glDeleteBuffers(1, &this->vertex_buffer_id);
 }
 
-auto OpenGLVertexBuffer::get_id() const -> uint32_t {
+auto OpenGLVertexBuffer::get_vertex_buffer_id() const -> uint32_t {
     return this->vertex_buffer_id;
 }
 

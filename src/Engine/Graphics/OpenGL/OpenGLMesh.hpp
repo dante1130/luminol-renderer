@@ -7,7 +7,9 @@ namespace Luminol::Graphics {
 
 class OpenGLMesh : public Mesh {
 public:
-    OpenGLMesh(gsl::span<const float> vertices);
+    OpenGLMesh(
+        gsl::span<const float> vertices, gsl::span<const uint32_t> indices
+    );
 
     [[nodiscard]] auto get_render_command(const Renderer& renderer) const
         -> RenderCommand override;

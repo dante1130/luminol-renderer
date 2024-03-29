@@ -3,6 +3,7 @@ add_library(Luminol.Graphics
     OpenGL/OpenGLFactory.cpp
     OpenGL/OpenGLShader.cpp
     OpenGL/OpenGLVertexBuffer.cpp
+    OpenGL/OpenGLIndexBuffer.cpp
     OpenGL/OpenGLVertexArrayObject.cpp
     OpenGL/OpenGLMesh.cpp
 )

@@ -30,10 +30,31 @@ Engine::Engine(const Properties& properties)
       renderer(this->graphics_factory->create_renderer(this->window)) {}
 
 void Engine::run() {
-    constexpr auto vertices =
-        std::array{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f};
+    constexpr auto vertices = std::array{
+        0.5f,
+        0.5f,
+        0.0f,  // top right
+        0.5f,
+        -0.5f,
+        0.0f,  // bottom right
+        -0.5f,
+        -0.5f,
+        0.0f,  // bottom left
+        -0.5f,
+        0.5f,
+        0.0f  // top left
+    };
 
-    const auto mesh = this->graphics_factory->create_mesh(vertices);
+    constexpr auto indices = std::array{
+        0u,
+        1u,
+        3u,  // first triangle
+        1u,
+        2u,
+        3u  // second triangle
+    };
+
+    const auto mesh = this->graphics_factory->create_mesh(vertices, indices);
 
     while (!this->window.should_close()) {
         this->window.poll_events();

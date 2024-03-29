@@ -5,10 +5,24 @@
 namespace Luminol::Graphics {
 
 OpenGLVertexArrayObject::OpenGLVertexArrayObject(
-    gsl::span<const float> buffer, gsl::span<const VertexAttribute> attributes
+    gsl::span<const float> buffer,
+    gsl::span<const uint32_t> indices,
+    gsl::span<const VertexAttribute> attributes
 )
-    : vertex_buffer(buffer) {
+    : vertex_buffer(buffer), index_buffer(indices) {
     glCreateVertexArrays(1, &this->vertex_array_id);
+
+    glVertexArrayElementBuffer(
+        this->vertex_array_id, this->index_buffer.get_index_buffer_id()
+    );
+
+    glVertexArrayVertexBuffer(
+        this->vertex_array_id,
+        0,
+        this->vertex_buffer.get_vertex_buffer_id(),
+        0,
+        sizeof(buffer)
+    );
 
     for (size_t i = 0; i < attributes.size(); ++i) {
         glEnableVertexArrayAttrib(
@@ -18,7 +32,7 @@ OpenGLVertexArrayObject::OpenGLVertexArrayObject(
         glVertexArrayVertexBuffer(
             this->vertex_array_id,
             0,
-            this->vertex_buffer.get_id(),
+            this->vertex_buffer.get_vertex_buffer_id(),
             0,
             gsl::narrow_cast<GLsizei>(
                 attributes[i].component_count * sizeof(float)
@@ -42,6 +56,10 @@ OpenGLVertexArrayObject::OpenGLVertexArrayObject(
 
 OpenGLVertexArrayObject::~OpenGLVertexArrayObject() {
     glDeleteVertexArrays(1, &this->vertex_array_id);
+}
+
+auto OpenGLVertexArrayObject::get_index_count() const -> int32_t {
+    return this->index_buffer.get_index_count();
 }
 
 auto OpenGLVertexArrayObject::bind() const -> void {
