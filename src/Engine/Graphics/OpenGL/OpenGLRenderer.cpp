@@ -1,7 +1,6 @@
 #include "OpenGLRenderer.hpp"
 
 #include <iostream>
-#include <array>
 #include <filesystem>
 
 #include <gsl/gsl>
