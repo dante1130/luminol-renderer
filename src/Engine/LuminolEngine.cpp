@@ -1,6 +1,5 @@
 #include "LuminolEngine.hpp"
 
-#include <Engine/Graphics/OpenGL/OpenGLRenderer.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLFactory.hpp>
 
 namespace {
@@ -31,7 +30,10 @@ Engine::Engine(const Properties& properties)
       renderer(this->graphics_factory->create_renderer(this->window)) {}
 
 void Engine::run() {
-    auto drawable = this->renderer->test_draw();
+    constexpr auto vertices =
+        std::array{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f};
+
+    const auto mesh = graphics_factory->create_mesh(vertices);
 
     while (!this->window.should_close()) {
         this->window.poll_events();
@@ -41,7 +43,7 @@ void Engine::run() {
         this->renderer->clear_color(color);
         this->renderer->clear(Luminol::Graphics::BufferBit::Color);
 
-        this->renderer->draw(drawable);
+        this->renderer->draw(mesh->get_render_command(*this->renderer));
 
         this->window.swap_buffers();
     }

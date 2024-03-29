@@ -91,7 +91,7 @@ auto validate_program(uint32_t program_id) -> void {
 namespace Luminol::Graphics {
 
 OpenGLShader::OpenGLShader(const ShaderPaths& paths)
-    : Shader(paths), shader_program_id(glCreateProgram()) {
+    : shader_program_id(glCreateProgram()) {
     Expects(this->shader_program_id != 0);
 
     if (paths.vertex_shader_path.has_value()) {

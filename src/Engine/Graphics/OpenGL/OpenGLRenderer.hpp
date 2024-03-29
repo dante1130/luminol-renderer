@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Engine/Graphics/Renderer.hpp>
+#include <Engine/Graphics/Shader.hpp>
 
 namespace Luminol::Graphics {
 
@@ -10,8 +11,10 @@ public:
 
     auto clear_color(const glm::vec4& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
-    auto draw(const Drawable& drawable) const -> void override;
-    [[nodiscard]] auto test_draw() const -> Drawable override;
+    auto draw(const RenderCommand& render_command) const -> void override;
+
+private:
+    std::unique_ptr<Shader> shader = {nullptr};
 };
 
 }  // namespace Luminol::Graphics

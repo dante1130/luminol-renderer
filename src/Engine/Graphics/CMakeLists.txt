@@ -1,10 +1,10 @@
 add_library(Luminol.Graphics
-    Shader.cpp
     OpenGL/OpenGLRenderer.cpp
     OpenGL/OpenGLFactory.cpp
     OpenGL/OpenGLShader.cpp
     OpenGL/OpenGLVertexBuffer.cpp
     OpenGL/OpenGLVertexArrayObject.cpp
+    OpenGL/OpenGLMesh.cpp
 )
 
 target_link_libraries(Luminol.Graphics PUBLIC

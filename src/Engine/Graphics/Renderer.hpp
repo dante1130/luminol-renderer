@@ -9,11 +9,9 @@
 
 namespace Luminol::Graphics {
 
-struct Drawable {
-    std::unique_ptr<OpenGLVertexArrayObject> vertex_array_object = {nullptr};
-    std::unique_ptr<Shader> shader = {nullptr};
-    int32_t vertex_count = {0};
-};
+class Renderer;
+
+using RenderCommand = std::function<void(const Renderer&)>;
 
 class Renderer {
 public:
@@ -26,8 +24,7 @@ public:
 
     virtual auto clear_color(const glm::vec4& color) const -> void = 0;
     virtual auto clear(BufferBit buffer_bit) const -> void = 0;
-    virtual auto draw(const Drawable& drawable) const -> void = 0;
-    [[nodiscard]] virtual auto test_draw() const -> Drawable = 0;
+    virtual auto draw(const RenderCommand& render_command) const -> void = 0;
 };
 
 }  // namespace Luminol::Graphics

@@ -15,7 +15,7 @@ struct ShaderPaths {
 
 class Shader {
 public:
-    Shader(const ShaderPaths& paths);
+    Shader() = default;
     virtual ~Shader() = default;
     Shader(const Shader&) = delete;
     Shader(Shader&&) = default;

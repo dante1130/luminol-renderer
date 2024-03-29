@@ -6,6 +6,7 @@ namespace Luminol::Graphics {
 
 class OpenGLShader : public Shader {
 public:
+    OpenGLShader() = default;
     OpenGLShader(const ShaderPaths &paths);
     ~OpenGLShader() override;
     OpenGLShader(const OpenGLShader &) = delete;

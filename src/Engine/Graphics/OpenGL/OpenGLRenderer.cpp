@@ -36,6 +36,15 @@ constexpr auto buffer_bit_to_gl(BufferBit buffer_bit) -> GLenum {
     return 0;
 }
 
+auto get_default_shader_paths() -> ShaderPaths {
+    return ShaderPaths{
+        .vertex_shader_path =
+            std::filesystem::path{"res/Shaders/default_vert.glsl"},
+        .fragment_shader_path =
+            std::filesystem::path{"res/Shaders/default_frag.glsl"}
+    };
+}
+
 }  // namespace
 
 namespace Luminol::Graphics {
@@ -46,6 +55,8 @@ OpenGLRenderer::OpenGLRenderer(const Window& window) {
 
     std::cout << "OpenGL Version " << GLAD_VERSION_MAJOR(version) << "."
               << GLAD_VERSION_MINOR(version) << " loaded\n";
+
+    this->shader = std::make_unique<OpenGLShader>(get_default_shader_paths());
 }
 
 auto OpenGLRenderer::clear_color(const glm::vec4& color) const -> void {
@@ -56,41 +67,9 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
     glClear(buffer_bit_to_gl(buffer_bit));
 }
 
-auto OpenGLRenderer::draw(const Drawable& drawable) const -> void {
-    drawable.shader->bind();
-    drawable.vertex_array_object->bind();
-    glDrawArrays(GL_TRIANGLES, 0, drawable.vertex_count);
-}
-
-auto OpenGLRenderer::test_draw() const -> Drawable {
-    const auto shader_source_paths = ShaderPaths{
-        .vertex_shader_path =
-            std::filesystem::path{"res/Shaders/default_vert.glsl"},
-        .fragment_shader_path =
-            std::filesystem::path{"res/Shaders/default_frag.glsl"}
-    };
-
-    auto shader = std::unique_ptr<Shader>{
-        std::make_unique<OpenGLShader>(shader_source_paths)
-    };
-
-    constexpr auto vertices =
-        std::array{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f};
-
-    constexpr auto vertex_attributes = std::array{VertexAttribute{
-        .component_count = gsl::narrow<int32_t>(vertices.size() / 3),
-        .normalized = false,
-        .relative_offset = 0
-    }};
-
-    auto vertex_array_object =
-        std::make_unique<OpenGLVertexArrayObject>(vertices, vertex_attributes);
-
-    return Drawable{
-        .vertex_array_object = std::move(vertex_array_object),
-        .shader = std::move(shader),
-        .vertex_count = gsl::narrow_cast<int32_t>(vertices.size() / 3)
-    };
+auto OpenGLRenderer::draw(const RenderCommand& render_command) const -> void {
+    this->shader->bind();
+    render_command(*this);
 }
 
 }  // namespace Luminol::Graphics
