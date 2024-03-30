@@ -1,4 +1,5 @@
 add_library(Luminol.Graphics
+    GraphicsFactory.cpp
     OpenGL/OpenGLRenderer.cpp
     OpenGL/OpenGLFactory.cpp
     OpenGL/OpenGLShader.cpp

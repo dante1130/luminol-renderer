@@ -16,7 +16,8 @@ constexpr static auto default_height = 480;
 struct Properties {
     int32_t width = {default_width};
     int32_t height = {default_height};
-    std::string title = "Luminol Engine";
+    std::string title = {"Luminol Engine"};
+    Graphics::GraphicsApi graphics_api = {Graphics::GraphicsApi::OpenGL};
 };
 
 class Engine {

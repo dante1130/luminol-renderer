@@ -15,17 +15,8 @@ constexpr auto window_handle_to_glfw_window(Luminol::Window::WindowHandle handle
 
 namespace Luminol {
 
-Window::Window(
-    int32_t width,
-    int32_t height,
-    const std::string& title,
-    const WindowHints& hints
-) {
+Window::Window(int32_t width, int32_t height, const std::string& title) {
     assert(glfwInit() == GLFW_TRUE && "Failed to initialize GLFW");
-
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, hints.context_version_major);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, hints.context_version_minor);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     this->window_handle =
         glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);

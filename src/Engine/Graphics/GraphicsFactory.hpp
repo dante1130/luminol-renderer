@@ -21,6 +21,7 @@ public:
     auto operator=(const GraphicsFactory&) -> GraphicsFactory& = default;
     auto operator=(GraphicsFactory&&) -> GraphicsFactory& = delete;
 
+    [[nodiscard]] static auto create(GraphicsApi api) -> std::unique_ptr<GraphicsFactory>;
     [[nodiscard]] virtual auto create_renderer(const Window& window)
         -> std::unique_ptr<Renderer> = 0;
     [[nodiscard]] virtual auto create_mesh(
