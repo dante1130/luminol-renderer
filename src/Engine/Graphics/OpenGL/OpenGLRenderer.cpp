@@ -51,7 +51,7 @@ auto get_view_matrix() -> glm::mat4 {
     constexpr auto camera_up = glm::vec3{0.0f, 1.0f, 0.0f};
 
     return glm::lookAt(
-        camera_position, camera_position + camera_target, camera_up
+        camera_position, camera_target, camera_up
     );
 }
 
@@ -88,6 +88,9 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageCallback(gl_debug_message_callback, nullptr);
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
 
     this->shader = std::make_unique<OpenGLShader>(get_default_shader_paths());
     this->shader->bind();
