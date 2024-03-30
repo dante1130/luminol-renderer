@@ -8,8 +8,6 @@ class OpenGLFactory : public GraphicsFactory {
 public:
     [[nodiscard]] auto create_renderer(const Window& window)
         -> std::unique_ptr<Renderer> override;
-    [[nodiscard]] auto create_shader(const ShaderPaths& paths)
-        -> std::unique_ptr<Shader> override;
     [[nodiscard]] auto create_mesh(
         gsl::span<const float> vertices,
         gsl::span<const uint32_t> indices,

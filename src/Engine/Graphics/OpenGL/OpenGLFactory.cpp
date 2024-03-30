@@ -11,11 +11,6 @@ auto OpenGLFactory::create_renderer(const Window& window)
     return std::make_unique<OpenGLRenderer>(window);
 }
 
-auto OpenGLFactory::create_shader(const ShaderPaths& paths)
-    -> std::unique_ptr<Shader> {
-    return std::make_unique<OpenGLShader>(paths);
-}
-
 auto OpenGLFactory::create_mesh(
     gsl::span<const float> vertices,
     gsl::span<const uint32_t> indices,

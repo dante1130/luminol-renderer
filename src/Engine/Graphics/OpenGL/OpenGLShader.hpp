@@ -1,23 +1,32 @@
 #pragma once
 
-#include <glm/glm.hpp>
+#include <filesystem>
+#include <optional>
 
-#include <Engine/Graphics/Shader.hpp>
+#include <glm/glm.hpp>
 
 namespace Luminol::Graphics {
 
-class OpenGLShader : public Shader {
+struct ShaderPaths {
+    std::optional<std::filesystem::path> vertex_shader_path;
+    std::optional<std::filesystem::path> fragment_shader_path;
+    std::optional<std::filesystem::path> geometry_shader_path;
+    std::optional<std::filesystem::path> tessellation_control_shader_path;
+    std::optional<std::filesystem::path> tessellation_evaluation_shader_path;
+    std::optional<std::filesystem::path> compute_shader_path;
+};
+
+class OpenGLShader {
 public:
-    OpenGLShader() = default;
     OpenGLShader(const ShaderPaths &paths);
-    ~OpenGLShader() override;
+    ~OpenGLShader();
     OpenGLShader(const OpenGLShader &) = delete;
     OpenGLShader(OpenGLShader &&) = default;
     auto operator=(const OpenGLShader &) -> OpenGLShader & = delete;
     auto operator=(OpenGLShader &&) -> OpenGLShader & = default;
 
-    auto bind() const -> void override;
-    auto unbind() const -> void override;
+    auto bind() const -> void;
+    auto unbind() const -> void;
 
     auto set_uniform(const std::string &name, const glm::mat4 &matrix) const
         -> void;

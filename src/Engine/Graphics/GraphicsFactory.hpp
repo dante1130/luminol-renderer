@@ -1,12 +1,12 @@
 #pragma once
 
 #include <memory>
+#include <filesystem>
 
 #include <gsl/gsl>
 
 #include <Engine/Graphics/GraphicsApi.hpp>
 #include <Engine/Graphics/Renderer.hpp>
-#include <Engine/Graphics/Shader.hpp>
 #include <Engine/Graphics/Mesh.hpp>
 #include <Engine/Window/Window.hpp>
 
@@ -23,8 +23,6 @@ public:
 
     [[nodiscard]] virtual auto create_renderer(const Window& window)
         -> std::unique_ptr<Renderer> = 0;
-    [[nodiscard]] virtual auto create_shader(const ShaderPaths& paths)
-        -> std::unique_ptr<Shader> = 0;
     [[nodiscard]] virtual auto create_mesh(
         gsl::span<const float> vertices,
         gsl::span<const uint32_t> indices,
