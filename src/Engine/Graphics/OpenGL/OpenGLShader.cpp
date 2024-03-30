@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <gsl/gsl>
+#include "Engine/Graphics/OpenGL/OpenGLUniformBindingPoints.hpp"
 #include <glad/gl.h>
 
 namespace {
@@ -160,12 +161,22 @@ auto OpenGLShader::bind() const -> void {
 auto OpenGLShader::unbind() const -> void { glUseProgram(0); }
 // NOLINTEND(readability-convert-member-functions-to-static)
 
+auto OpenGLShader::set_sampler_binding_point(
+    const std::string& sampler_name, SamplerBindingPoint binding_point
+) const -> void {
+    this->set_uniform(sampler_name, static_cast<int>(binding_point));
+}
+
 auto OpenGLShader::set_uniform_block_binding_point(
-    const std::string& block_name, uint32_t binding_point
+    const std::string& block_name, UniformBufferBindingPoint binding_point
 ) const -> void {
     const auto block_index =
         glGetUniformBlockIndex(this->shader_program_id, block_name.c_str());
-    glUniformBlockBinding(this->shader_program_id, block_index, binding_point);
+    glUniformBlockBinding(
+        this->shader_program_id,
+        block_index,
+        static_cast<uint32_t>(binding_point)
+    );
 }
 
 auto OpenGLShader::set_uniform(const std::string& name, const glm::mat4& matrix)

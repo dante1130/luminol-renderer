@@ -5,6 +5,8 @@
 
 #include <glm/glm.hpp>
 
+#include <Engine/Graphics/OpenGL/OpenGLUniformBindingPoints.hpp>
+
 namespace Luminol::Graphics {
 
 struct ShaderPaths {
@@ -28,8 +30,13 @@ public:
     auto bind() const -> void;
     auto unbind() const -> void;
 
+    auto set_sampler_binding_point(
+        const std::string& sampler_name, SamplerBindingPoint binding_point
+    ) const -> void;
+
     auto set_uniform_block_binding_point(
-        const std::string& uniform_block_name, uint32_t binding_point
+        const std::string& uniform_block_name,
+        UniformBufferBindingPoint binding_point
     ) const -> void;
 
     auto set_uniform(const std::string& name, const glm::mat4& matrix) const

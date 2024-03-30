@@ -61,14 +61,19 @@ OpenGLRenderer::OpenGLRenderer(const Window& window) {
 
     this->shader = std::make_unique<OpenGLShader>(get_default_shader_paths());
     this->shader->bind();
-    this->shader->set_uniform("texture_diffuse", 0);
-    this->shader->set_uniform_block_binding_point("Transform", 0);
+    this->shader->set_sampler_binding_point(
+        "texture_diffuse", SamplerBindingPoint::TextureDiffuse
+    );
+    this->shader->set_uniform_block_binding_point(
+        "Transform", UniformBufferBindingPoint::Transform
+    );
     this->shader->unbind();
 
     this->transform_uniform_buffer =
-        std::make_unique<OpenGLUniformBuffer<Transform>>(Transform{
-            .model = glm::mat4{1.0f},
-        });
+        std::make_unique<OpenGLUniformBuffer<Transform>>(
+            Transform{.model = glm::mat4{1.0f}},
+            UniformBufferBindingPoint::Transform
+        );
 }
 
 auto OpenGLRenderer::clear_color(const glm::vec4& color) const -> void {

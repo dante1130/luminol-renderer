@@ -4,16 +4,18 @@
 
 #include <glad/gl.h>
 
+#include <Engine/Graphics/OpenGL/OpenGLUniformBindingPoints.hpp>
+
 namespace Luminol::Graphics {
 
 template <typename T>
 class OpenGLUniformBuffer {
 public:
-    OpenGLUniformBuffer(const T& data) {
+    OpenGLUniformBuffer(const T& data, UniformBufferBindingPoint binding_point) {
         glCreateBuffers(1, &uniform_buffer_id);
         glNamedBufferData(uniform_buffer_id, sizeof(T), &data, GL_DYNAMIC_DRAW);
         glBindBufferRange(
-            GL_UNIFORM_BUFFER, 0, uniform_buffer_id, 0, sizeof(T)
+            GL_UNIFORM_BUFFER, static_cast<uint32_t>(binding_point), uniform_buffer_id, 0, sizeof(T)
         );
     }
 
