@@ -37,9 +37,15 @@ void Engine::run() {
         this->renderer->clear_color(color);
         this->renderer->clear(Graphics::BufferBit::Color);
 
+        constexpr auto rotation_degrees_x = 20.0f;
         constexpr auto scale = glm::vec3(2.0f, 2.0f, 2.0f);
 
         auto model_matrix = glm::mat4(1.0f);
+        model_matrix = glm::rotate(
+            model_matrix,
+            glm::radians(rotation_degrees_x),
+            glm::vec3(1.0f, 0.0f, 0.0f)
+        );
         model_matrix = glm::scale(model_matrix, scale);
 
         this->renderer->draw(
