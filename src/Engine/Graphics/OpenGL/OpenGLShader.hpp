@@ -18,26 +18,26 @@ struct ShaderPaths {
 
 class OpenGLShader {
 public:
-    OpenGLShader(const ShaderPaths &paths);
+    OpenGLShader(const ShaderPaths& paths);
     ~OpenGLShader();
-    OpenGLShader(const OpenGLShader &) = delete;
-    OpenGLShader(OpenGLShader &&) = default;
-    auto operator=(const OpenGLShader &) -> OpenGLShader & = delete;
-    auto operator=(OpenGLShader &&) -> OpenGLShader & = default;
+    OpenGLShader(const OpenGLShader&) = delete;
+    OpenGLShader(OpenGLShader&&) = default;
+    auto operator=(const OpenGLShader&) -> OpenGLShader& = delete;
+    auto operator=(OpenGLShader&&) -> OpenGLShader& = default;
 
     auto bind() const -> void;
     auto unbind() const -> void;
 
-    auto set_uniform(const std::string &name, const glm::mat4 &matrix) const
+    auto set_uniform(const std::string& name, const glm::mat4& matrix) const
         -> void;
-    auto set_uniform(const std::string &name, const glm::vec4 &vector) const
+    auto set_uniform(const std::string& name, const glm::vec4& vector) const
         -> void;
-    auto set_uniform(const std::string &name, const glm::vec3 &vector) const
+    auto set_uniform(const std::string& name, const glm::vec3& vector) const
         -> void;
-    auto set_uniform(const std::string &name, const glm::vec2 &vector) const
+    auto set_uniform(const std::string& name, const glm::vec2& vector) const
         -> void;
-    auto set_uniform(const std::string &name, float value) const -> void;
-    auto set_uniform(const std::string &name, int value) const -> void;
+    auto set_uniform(const std::string& name, float value) const -> void;
+    auto set_uniform(const std::string& name, int value) const -> void;
 
 private:
     uint32_t shader_program_id = 0;
