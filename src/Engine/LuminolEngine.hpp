@@ -5,6 +5,7 @@
 #include <memory>
 
 #include <Engine/Window/Window.hpp>
+#include <Engine/Graphics/Camera.hpp>
 #include <Engine/Graphics/Renderer.hpp>
 #include <Engine/Graphics/GraphicsFactory.hpp>
 
@@ -27,6 +28,7 @@ public:
 
 private:
     Window window;
+    Graphics::Camera camera;
     std::unique_ptr<Graphics::GraphicsFactory> graphics_factory = nullptr;
     std::unique_ptr<Graphics::Renderer> renderer = nullptr;
 };

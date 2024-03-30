@@ -2,10 +2,21 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+namespace {
+
+constexpr auto camera_initial_position = glm::vec3(0.0f, 0.0f, -3.0f);
+constexpr auto camera_initial_forward = glm::vec3(0.0f, 0.0f, 1.0f);
+
+}  // namespace
+
 namespace Luminol {
 
 Engine::Engine(const Properties& properties)
     : window(properties.width, properties.height, properties.title),
+      camera(Graphics::CameraProperties{
+          .position = camera_initial_position,
+          .forward = camera_initial_forward,
+      }),
       graphics_factory(Graphics::GraphicsFactory::create(properties.graphics_api
       )),
       renderer(this->graphics_factory->create_renderer(this->window)) {}
@@ -29,13 +40,6 @@ void Engine::run() {
         vertices, indices, "res/textures/reflex.png"
     );
 
-    constexpr auto camera_position = glm::vec3{0.0f, 0.0f, -3.0f};
-    constexpr auto camera_target = glm::vec3{0.0f, 0.0f, 1.0f};
-    constexpr auto camera_up = glm::vec3{0.0f, 1.0f, 0.0f};
-
-    const auto view_matrix =
-        glm::lookAt(camera_position, camera_target, camera_up);
-
     while (!this->window.should_close()) {
         this->window.poll_events();
 
@@ -44,23 +48,17 @@ void Engine::run() {
         this->renderer->clear_color(color);
         this->renderer->clear(Graphics::BufferBit::Color);
 
-        constexpr auto fov_degrees = 45.0f;
-        constexpr auto near_plane = 0.1f;
-        constexpr auto far_plane = 100.0f;
-
-        const auto perspective_matrix = glm::perspective(
-            glm::radians(fov_degrees),
+        this->camera.set_aspect_ratio(
             static_cast<float>(this->window.get_width()) /
-                static_cast<float>(this->window.get_height()),
-            near_plane,
-            far_plane
+            static_cast<float>(this->window.get_height())
         );
 
-        this->renderer->set_view_matrix(view_matrix);
-        this->renderer->set_projection_matrix(perspective_matrix);
+        this->renderer->set_view_matrix(this->camera.get_view_matrix());
+        this->renderer->set_projection_matrix(
+            this->camera.get_projection_matrix()
+        );
 
         constexpr auto rotation_degrees_x = 20.0f;
-        constexpr auto scale = glm::vec3(2.0f, 2.0f, 2.0f);
 
         auto model_matrix = glm::mat4(1.0f);
         model_matrix = glm::rotate(
@@ -68,7 +66,6 @@ void Engine::run() {
             glm::radians(rotation_degrees_x),
             glm::vec3(1.0f, 0.0f, 0.0f)
         );
-        model_matrix = glm::scale(model_matrix, scale);
 
         this->renderer->draw(
             mesh->get_render_command(*this->renderer), model_matrix

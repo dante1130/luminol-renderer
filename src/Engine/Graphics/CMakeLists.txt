@@ -1,4 +1,5 @@
 add_library(Luminol.Graphics
+    Camera.cpp
     GraphicsFactory.cpp
     OpenGL/OpenGLRenderer.cpp
     OpenGL/OpenGLFactory.cpp
