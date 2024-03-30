@@ -20,6 +20,10 @@ public:
     auto operator=(const Renderer&) -> Renderer& = default;
     auto operator=(Renderer&&) -> Renderer& = delete;
 
+    virtual auto set_view_matrix(const glm::mat4& view_matrix) -> void = 0;
+    virtual auto set_projection_matrix(const glm::mat4& projection_matrix)
+        -> void = 0;
+
     virtual auto clear_color(const glm::vec4& color) const -> void = 0;
     virtual auto clear(BufferBit buffer_bit) const -> void = 0;
     virtual auto draw(

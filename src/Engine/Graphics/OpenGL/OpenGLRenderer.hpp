@@ -16,6 +16,10 @@ class OpenGLRenderer : public Renderer {
 public:
     OpenGLRenderer(Window& window);
 
+    auto set_view_matrix(const glm::mat4& view_matrix) -> void override;
+    auto set_projection_matrix(const glm::mat4& projection_matrix)
+        -> void override;
+
     auto clear_color(const glm::vec4& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
     auto draw(
@@ -28,8 +32,8 @@ private:
         nullptr
     };
 
-    std::function<int32_t()> get_window_width;
-    std::function<int32_t()> get_window_height;
+    glm::mat4 view_matrix = {1.0f};
+    glm::mat4 projection_matrix = {1.0f};
 };
 
 }  // namespace Luminol::Graphics

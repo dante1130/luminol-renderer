@@ -45,36 +45,11 @@ auto get_default_shader_paths() -> ShaderPaths {
     };
 }
 
-auto get_view_matrix() -> glm::mat4 {
-    constexpr auto camera_position = glm::vec3{0.0f, 0.0f, -3.0f};
-    constexpr auto camera_target = glm::vec3{0.0f, 0.0f, 1.0f};
-    constexpr auto camera_up = glm::vec3{0.0f, 1.0f, 0.0f};
-
-    return glm::lookAt(
-        camera_position, camera_target, camera_up
-    );
-}
-
-auto get_projection_matrix(int32_t width, int32_t height) -> glm::mat4 {
-    constexpr auto fov_degrees = 45.0f;
-    constexpr auto near_plane = 0.1f;
-    constexpr auto far_plane = 100.0f;
-
-    return glm::perspective(
-        glm::radians(fov_degrees),
-        static_cast<float>(width) / static_cast<float>(height),
-        near_plane,
-        far_plane
-    );
-}
-
 }  // namespace
 
 namespace Luminol::Graphics {
 
-OpenGLRenderer::OpenGLRenderer(Window& window)
-    : get_window_width{[&window]() { return window.get_width(); }},
-      get_window_height{[&window]() { return window.get_height(); }} {
+OpenGLRenderer::OpenGLRenderer(Window& window) {
     const auto version = gladLoadGL(window.get_proc_address());
     Ensures(version != 0);
 
@@ -108,6 +83,15 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
         );
 }
 
+auto OpenGLRenderer::set_view_matrix(const glm::mat4& view_matrix) -> void {
+    this->view_matrix = view_matrix;
+}
+
+auto OpenGLRenderer::set_projection_matrix(const glm::mat4& projection_matrix)
+    -> void {
+    this->projection_matrix = projection_matrix;
+}
+
 auto OpenGLRenderer::clear_color(const glm::vec4& color) const -> void {
     glClearColor(color.r, color.g, color.b, color.a);
 }
@@ -121,10 +105,8 @@ auto OpenGLRenderer::draw(
 ) const -> void {
     this->transform_uniform_buffer->set_data(Transform{
         .model_matrix = model_matrix,
-        .view_matrix = get_view_matrix(),
-        .projection_matrix = get_projection_matrix(
-            this->get_window_width(), this->get_window_height()
-        )
+        .view_matrix = this->view_matrix,
+        .projection_matrix = this->projection_matrix
     });
 
     this->shader->bind();
