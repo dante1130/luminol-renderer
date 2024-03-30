@@ -22,7 +22,9 @@ public:
 
     virtual auto clear_color(const glm::vec4& color) const -> void = 0;
     virtual auto clear(BufferBit buffer_bit) const -> void = 0;
-    virtual auto draw(const RenderCommand& render_command) const -> void = 0;
+    virtual auto draw(
+        const RenderCommand& render_command, const glm::mat4& model_matrix
+    ) const -> void = 0;
 };
 
 }  // namespace Luminol::Graphics

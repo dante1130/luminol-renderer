@@ -8,7 +8,6 @@
 
 #include <Engine/Graphics/OpenGL/OpenGLError.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLShader.hpp>
-#include <Engine/Graphics/OpenGL/OpenGLVertexArrayObject.hpp>
 
 namespace {
 
@@ -61,6 +60,15 @@ OpenGLRenderer::OpenGLRenderer(const Window& window) {
     glDebugMessageCallback(gl_debug_message_callback, nullptr);
 
     this->shader = std::make_unique<OpenGLShader>(get_default_shader_paths());
+    this->shader->bind();
+    this->shader->set_uniform("texture_diffuse", 0);
+    this->shader->set_uniform_block_binding_point("Transform", 0);
+    this->shader->unbind();
+
+    this->transform_uniform_buffer =
+        std::make_unique<OpenGLUniformBuffer<Transform>>(Transform{
+            .model = glm::mat4{1.0f},
+        });
 }
 
 auto OpenGLRenderer::clear_color(const glm::vec4& color) const -> void {
@@ -71,9 +79,11 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
     glClear(buffer_bit_to_gl(buffer_bit));
 }
 
-auto OpenGLRenderer::draw(const RenderCommand& render_command) const -> void {
+auto OpenGLRenderer::draw(
+    const RenderCommand& render_command, const glm::mat4& model_matrix
+) const -> void {
+    this->transform_uniform_buffer->set_data(Transform{.model = model_matrix});
     this->shader->bind();
-    this->shader->set_uniform("texture_diffuse", 0);
     render_command(*this);
 }
 

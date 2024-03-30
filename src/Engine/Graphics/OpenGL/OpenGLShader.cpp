@@ -160,6 +160,14 @@ auto OpenGLShader::bind() const -> void {
 auto OpenGLShader::unbind() const -> void { glUseProgram(0); }
 // NOLINTEND(readability-convert-member-functions-to-static)
 
+auto OpenGLShader::set_uniform_block_binding_point(
+    const std::string& block_name, uint32_t binding_point
+) const -> void {
+    const auto block_index =
+        glGetUniformBlockIndex(this->shader_program_id, block_name.c_str());
+    glUniformBlockBinding(this->shader_program_id, block_index, binding_point);
+}
+
 auto OpenGLShader::set_uniform(const std::string& name, const glm::mat4& matrix)
     const -> void {
     const auto location =

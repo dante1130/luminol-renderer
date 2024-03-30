@@ -28,6 +28,10 @@ public:
     auto bind() const -> void;
     auto unbind() const -> void;
 
+    auto set_uniform_block_binding_point(
+        const std::string& uniform_block_name, uint32_t binding_point
+    ) const -> void;
+
     auto set_uniform(const std::string& name, const glm::mat4& matrix) const
         -> void;
     auto set_uniform(const std::string& name, const glm::vec4& vector) const
