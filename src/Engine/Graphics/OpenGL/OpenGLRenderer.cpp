@@ -72,7 +72,7 @@ auto get_projection_matrix(int32_t width, int32_t height) -> glm::mat4 {
 
 namespace Luminol::Graphics {
 
-OpenGLRenderer::OpenGLRenderer(const Window& window)
+OpenGLRenderer::OpenGLRenderer(Window& window)
     : get_window_width{[&window]() { return window.get_width(); }},
       get_window_height{[&window]() { return window.get_height(); }} {
     const auto version = gladLoadGL(window.get_proc_address());
@@ -80,6 +80,10 @@ OpenGLRenderer::OpenGLRenderer(const Window& window)
 
     std::cout << "OpenGL Version " << GLAD_VERSION_MAJOR(version) << "."
               << GLAD_VERSION_MINOR(version) << " loaded\n";
+
+    window.framebuffer_size_callback = [](int32_t width, int32_t height) {
+        glViewport(0, 0, width, height);
+    };
 
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);

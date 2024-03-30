@@ -23,7 +23,7 @@ public:
 
     [[nodiscard]] static auto create(GraphicsApi api)
         -> std::unique_ptr<GraphicsFactory>;
-    [[nodiscard]] virtual auto create_renderer(const Window& window)
+    [[nodiscard]] virtual auto create_renderer(Window& window)
         -> std::unique_ptr<Renderer> = 0;
     [[nodiscard]] virtual auto create_mesh(
         gsl::span<const float> vertices,

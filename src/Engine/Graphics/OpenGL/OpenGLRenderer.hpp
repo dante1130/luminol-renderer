@@ -14,7 +14,7 @@ struct Transform {
 
 class OpenGLRenderer : public Renderer {
 public:
-    OpenGLRenderer(const Window& window);
+    OpenGLRenderer(Window& window);
 
     auto clear_color(const glm::vec4& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;

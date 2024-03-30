@@ -1,6 +1,7 @@
 #include "Window.hpp"
 
 #include <cassert>
+#include <bit>
 
 #include <GLFW/glfw3.h>
 
@@ -9,6 +10,17 @@ namespace {
 constexpr auto window_handle_to_glfw_window(Luminol::Window::WindowHandle handle
 ) -> GLFWwindow* {
     return static_cast<GLFWwindow*>(handle);
+}
+
+auto framebuffer_size_callback_function(
+    GLFWwindow* window, int32_t width, int32_t height
+) -> void {
+    auto* user_data = glfwGetWindowUserPointer(window);
+    auto* luminol_window = std::bit_cast<Luminol::Window*>(user_data);
+
+    if (luminol_window->framebuffer_size_callback.has_value()) {
+        luminol_window->framebuffer_size_callback.value()(width, height);
+    }
 }
 
 }  // namespace
@@ -26,6 +38,11 @@ Window::Window(int32_t width, int32_t height, const std::string& title) {
     }
 
     glfwMakeContextCurrent(window_handle_to_glfw_window(window_handle));
+    glfwSetWindowUserPointer(window_handle_to_glfw_window(window_handle), this);
+    glfwSetFramebufferSizeCallback(
+        window_handle_to_glfw_window(window_handle),
+        framebuffer_size_callback_function
+    );
 }
 
 Window::~Window() { glfwTerminate(); }

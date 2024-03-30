@@ -6,7 +6,7 @@ namespace Luminol::Graphics {
 
 class OpenGLFactory : public GraphicsFactory {
 public:
-    [[nodiscard]] auto create_renderer(const Window& window)
+    [[nodiscard]] auto create_renderer(Window& window)
         -> std::unique_ptr<Renderer> override;
     [[nodiscard]] auto create_mesh(
         gsl::span<const float> vertices,
