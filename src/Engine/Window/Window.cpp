@@ -30,6 +30,26 @@ Window::Window(int32_t width, int32_t height, const std::string& title) {
 
 Window::~Window() { glfwTerminate(); }
 
+auto Window::get_width() const -> int32_t {
+    int32_t width = 0;
+    int32_t height = 0;
+    glfwGetWindowSize(
+        window_handle_to_glfw_window(window_handle), &width, &height
+    );
+
+    return width;
+}
+
+auto Window::get_height() const -> int32_t {
+    int32_t width = 0;
+    int32_t height = 0;
+    glfwGetWindowSize(
+        window_handle_to_glfw_window(window_handle), &width, &height
+    );
+
+    return height;
+}
+
 // NOLINTBEGIN(readability-convert-member-functions-to-static)
 auto Window::get_proc_address() const -> Window::WindowProc {
     return glfwGetProcAddress;

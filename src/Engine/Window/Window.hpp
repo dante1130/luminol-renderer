@@ -18,6 +18,9 @@ public:
     auto operator=(Window&&) -> Window& = default;
     ~Window();
 
+    [[nodiscard]] auto get_width() const -> int32_t;
+    [[nodiscard]] auto get_height() const -> int32_t;
+
     [[nodiscard]] auto get_proc_address() const -> WindowProc;
     auto poll_events() const -> void;
 
