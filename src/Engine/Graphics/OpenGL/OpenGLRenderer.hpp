@@ -8,6 +8,7 @@ namespace Luminol::Graphics {
 
 struct Transform {
     glm::mat4 model_matrix = {1.0f};
+    glm::mat4 view_matrix = {1.0f};
     glm::mat4 projection_matrix = {1.0f};
 };
 

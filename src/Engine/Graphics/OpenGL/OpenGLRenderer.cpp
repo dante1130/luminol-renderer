@@ -45,6 +45,16 @@ auto get_default_shader_paths() -> ShaderPaths {
     };
 }
 
+auto get_view_matrix() -> glm::mat4 {
+    constexpr auto camera_position = glm::vec3{0.0f, 0.0f, -3.0f};
+    constexpr auto camera_target = glm::vec3{0.0f, 0.0f, 1.0f};
+    constexpr auto camera_up = glm::vec3{0.0f, 1.0f, 0.0f};
+
+    return glm::lookAt(
+        camera_position, camera_position + camera_target, camera_up
+    );
+}
+
 auto get_projection_matrix(int32_t width, int32_t height) -> glm::mat4 {
     constexpr auto fov_degrees = 45.0f;
     constexpr auto near_plane = 0.1f;
@@ -87,13 +97,7 @@ OpenGLRenderer::OpenGLRenderer(const Window& window)
 
     this->transform_uniform_buffer =
         std::make_unique<OpenGLUniformBuffer<Transform>>(
-            Transform{
-                .model_matrix = glm::mat4{1.0f},
-                .projection_matrix = get_projection_matrix(
-                    this->get_window_width(), this->get_window_height()
-                )
-            },
-            UniformBufferBindingPoint::Transform
+            Transform{}, UniformBufferBindingPoint::Transform
         );
 }
 
@@ -110,6 +114,7 @@ auto OpenGLRenderer::draw(
 ) const -> void {
     this->transform_uniform_buffer->set_data(Transform{
         .model_matrix = model_matrix,
+        .view_matrix = get_view_matrix(),
         .projection_matrix = get_projection_matrix(
             this->get_window_width(), this->get_window_height()
         )

@@ -8,11 +8,12 @@ out vec2 tex_coords_out;
 layout(std140, binding = 0) uniform Transform
 {
     mat4 model_matrix;
+    mat4 view_matrix;
     mat4 projection_matrix;
 };
 
 void main()
 {
-    gl_Position = projection_matrix * model_matrix * vec4(position, 1.0);
+    gl_Position = projection_matrix * view_matrix * model_matrix * vec4(position, 1.0);
     tex_coords_out = tex_coords;
 }
