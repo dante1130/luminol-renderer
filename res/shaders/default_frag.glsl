@@ -2,7 +2,6 @@
 
 out vec4 frag_color;
 
-in vec3 frag_pos;
 in vec2 tex_coords_out;
 
 uniform sampler2D texture_diffuse;
