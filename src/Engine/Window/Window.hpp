@@ -7,10 +7,11 @@
 
 namespace Luminol {
 
-enum class KeyEvent {
-    Press = 0,
-    Release = 1,
-    Repeat = 2
+enum class KeyEvent { Press = 0, Release = 1, Repeat = 2 };
+
+struct MouseDelta {
+    double delta_x = {0.0};
+    double delta_y = {0.0};
 };
 
 class Window {
@@ -33,6 +34,7 @@ public:
     [[nodiscard]] auto get_proc_address() const -> WindowProc;
 
     [[nodiscard]] auto is_key_event(int32_t key, KeyEvent event) const -> bool;
+    [[nodiscard]] auto get_mouse_delta() -> MouseDelta;
 
     auto poll_events() const -> void;
 
@@ -42,12 +44,19 @@ public:
         -> void;
 
     [[nodiscard]] auto should_close() const -> bool;
+    auto close() const -> void;
+
     auto swap_buffers() const -> void;
 
 private:
     std::optional<FramebufferSizeCallback> framebuffer_size_callback =
         std::nullopt;
     WindowHandle window_handle = nullptr;
+
+    double last_mouse_x = {0.0};
+    double last_mouse_y = {0.0};
+
+    bool first_mouse = {true};
 };
 
 }  // namespace Luminol

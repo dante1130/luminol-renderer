@@ -6,6 +6,7 @@ namespace {
 
 constexpr auto camera_initial_position = glm::vec3(0.0f, 0.0f, -3.0f);
 constexpr auto camera_initial_forward = glm::vec3(0.0f, 0.0f, 1.0f);
+constexpr auto camera_rotation_speed = 0.1f;
 
 }  // namespace
 
@@ -16,6 +17,7 @@ Engine::Engine(const Properties& properties)
       camera(Graphics::CameraProperties{
           .position = camera_initial_position,
           .forward = camera_initial_forward,
+          .rotation_speed = camera_rotation_speed
       }),
       graphics_factory(Graphics::GraphicsFactory::create(properties.graphics_api
       )),
@@ -49,6 +51,12 @@ void Engine::run() {
         this->window.poll_events();
 
         this->handle_key_events();
+
+        const auto mouse_delta = this->window.get_mouse_delta();
+        this->camera.rotate(
+            gsl::narrow_cast<float>(mouse_delta.delta_x),
+            gsl::narrow_cast<float>(mouse_delta.delta_y)
+        );
 
         constexpr auto color = glm::vec4(0.2f, 0.3f, 0.3f, 1.0f);
 
@@ -106,6 +114,10 @@ auto Engine::handle_key_events() -> void {
         this->camera.move(
             Graphics::CameraMovement::Right, delta_time_seconds_f
         );
+    }
+
+    if (this->window.is_key_event('Q', KeyEvent::Press)) {
+        this->window.close();
     }
 }
 

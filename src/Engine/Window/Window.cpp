@@ -58,6 +58,20 @@ Window::Window(int32_t width, int32_t height, const std::string& title) {
         window_handle_to_glfw_window(window_handle),
         framebuffer_size_callback_function
     );
+
+    glfwSetInputMode(
+        window_handle_to_glfw_window(window_handle),
+        GLFW_CURSOR,
+        GLFW_CURSOR_DISABLED
+    );
+
+    if (glfwRawMouseMotionSupported() == GLFW_TRUE) {
+        glfwSetInputMode(
+            window_handle_to_glfw_window(window_handle),
+            GLFW_RAW_MOUSE_MOTION,
+            GLFW_TRUE
+        );
+    }
 }
 
 Window::~Window() { glfwTerminate(); }
@@ -93,6 +107,30 @@ auto Window::is_key_event(int32_t key, KeyEvent event) const -> bool {
            key_event_to_glfw_key_event(event);
 }
 
+auto Window::get_mouse_delta() -> MouseDelta {
+    double mouse_x = 0.0;
+    double mouse_y = 0.0;
+    glfwGetCursorPos(
+        window_handle_to_glfw_window(window_handle), &mouse_x, &mouse_y
+    );
+
+    if (first_mouse) {
+        last_mouse_x = mouse_x;
+        last_mouse_y = mouse_y;
+        first_mouse = false;
+
+        return {0.0, 0.0};
+    }
+
+    const auto delta_x = mouse_x - last_mouse_x;
+    const auto delta_y = last_mouse_y - mouse_y;
+
+    last_mouse_x = mouse_x;
+    last_mouse_y = mouse_y;
+
+    return {delta_x, delta_y};
+}
+
 // NOLINTBEGIN(readability-convert-member-functions-to-static)
 auto Window::poll_events() const -> void { glfwPollEvents(); }
 // NOLINTEND(readability-convert-member-functions-to-static)
@@ -111,6 +149,12 @@ auto Window::set_framebuffer_size_callback(
 auto Window::should_close() const -> bool {
     return glfwWindowShouldClose(window_handle_to_glfw_window(window_handle)) ==
            GLFW_TRUE;
+}
+
+auto Window::close() const -> void {
+    glfwSetWindowShouldClose(
+        window_handle_to_glfw_window(window_handle), GLFW_TRUE
+    );
 }
 
 auto Window::swap_buffers() const -> void {

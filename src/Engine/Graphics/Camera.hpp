@@ -35,6 +35,7 @@ public:
     Camera(const CameraProperties& properties);
 
     auto move(CameraMovement direction, float delta_time) -> void;
+    auto rotate(float yaw_degrees, float pitch_degrees) -> void;
 
     [[nodiscard]] auto get_view_matrix() const -> glm::mat4;
     [[nodiscard]] auto get_projection_matrix() const -> glm::mat4;

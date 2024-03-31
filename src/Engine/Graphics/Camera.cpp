@@ -1,5 +1,7 @@
 #include "Camera.hpp"
 
+#include <algorithm>
+
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Luminol::Graphics {
@@ -25,6 +27,33 @@ auto Camera::move(CameraMovement direction, float delta_time_in_seconds)
             this->properties.position += this->right_vector * velocity;
             break;
     }
+}
+
+auto Camera::rotate(float yaw_degrees, float pitch_degrees) -> void {
+    this->yaw_degrees += yaw_degrees * this->properties.rotation_speed;
+    this->pitch_degrees += pitch_degrees * this->properties.rotation_speed;
+
+    constexpr auto max_pitch_degrees = 89.0f;
+    constexpr auto min_pitch_degrees = -89.0f;
+
+    this->pitch_degrees =
+        std::clamp(this->pitch_degrees, min_pitch_degrees, max_pitch_degrees);
+
+    const auto yaw_radians = glm::radians(this->yaw_degrees);
+    const auto pitch_radians = glm::radians(this->pitch_degrees);
+
+    this->properties.forward.x = sin(yaw_radians) * cos(pitch_radians);
+    this->properties.forward.y = sin(pitch_radians);
+    this->properties.forward.z = cos(yaw_radians) * cos(pitch_radians);
+
+    this->properties.forward = glm::normalize(this->properties.forward);
+
+    this->right_vector = glm::normalize(
+        glm::cross(this->properties.forward, this->properties.up_vector)
+    );
+    this->properties.up_vector =
+        glm::normalize(glm::cross(this->right_vector, this->properties.forward)
+        );
 }
 
 auto Camera::get_view_matrix() const -> glm::mat4 {
