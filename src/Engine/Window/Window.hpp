@@ -7,6 +7,12 @@
 
 namespace Luminol {
 
+enum class KeyEvent {
+    Press = 0,
+    Release = 1,
+    Repeat = 2
+};
+
 class Window {
 public:
     using WindowHandle = void*;
@@ -25,6 +31,8 @@ public:
     [[nodiscard]] auto get_height() const -> int32_t;
 
     [[nodiscard]] auto get_proc_address() const -> WindowProc;
+
+    [[nodiscard]] auto is_key_event(int32_t key, KeyEvent event) const -> bool;
 
     auto poll_events() const -> void;
 

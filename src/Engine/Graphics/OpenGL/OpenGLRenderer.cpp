@@ -66,6 +66,7 @@ OpenGLRenderer::OpenGLRenderer(Window& window) {
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
+    glFrontFace(GL_CW);
 
     this->shader = std::make_unique<OpenGLShader>(get_default_shader_paths());
     this->shader->bind();

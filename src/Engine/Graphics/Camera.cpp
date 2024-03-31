@@ -6,16 +6,39 @@ namespace Luminol::Graphics {
 
 Camera::Camera(const CameraProperties& properties) : properties(properties) {}
 
+auto Camera::move(CameraMovement direction, float delta_time_in_seconds)
+    -> void {
+    const auto velocity =
+        this->properties.translation_speed * delta_time_in_seconds;
+
+    switch (direction) {
+        case CameraMovement::Forward:
+            this->properties.position += this->properties.forward * velocity;
+            break;
+        case CameraMovement::Backward:
+            this->properties.position -= this->properties.forward * velocity;
+            break;
+        case CameraMovement::Left:
+            this->properties.position -= this->right_vector * velocity;
+            break;
+        case CameraMovement::Right:
+            this->properties.position += this->right_vector * velocity;
+            break;
+    }
+}
+
 auto Camera::get_view_matrix() const -> glm::mat4 {
-    return glm::lookAt(
+    constexpr auto up_vector = glm::vec3{0.0f, 1.0f, 0.0f};
+
+    return glm::lookAtLH(
         this->properties.position,
-        this->properties.forward,
-        this->properties.up_vector
+        this->properties.position + this->properties.forward,
+        up_vector
     );
 }
 
 auto Camera::get_projection_matrix() const -> glm::mat4 {
-    return glm::perspective(
+    return glm::perspectiveLH(
         glm::radians(this->properties.fov_degrees),
         this->properties.aspect_ratio,
         this->properties.near_plane,

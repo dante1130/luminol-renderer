@@ -25,6 +25,19 @@ auto framebuffer_size_callback_function(
     }
 }
 
+constexpr auto key_event_to_glfw_key_event(Luminol::KeyEvent event) -> int32_t {
+    switch (event) {
+        case Luminol::KeyEvent::Press:
+            return GLFW_PRESS;
+        case Luminol::KeyEvent::Release:
+            return GLFW_RELEASE;
+        case Luminol::KeyEvent::Repeat:
+            return GLFW_REPEAT;
+        default:
+            return GLFW_RELEASE;
+    }
+}
+
 }  // namespace
 
 namespace Luminol {
@@ -73,7 +86,14 @@ auto Window::get_height() const -> int32_t {
 auto Window::get_proc_address() const -> Window::WindowProc {
     return glfwGetProcAddress;
 }
+// NOLINTEND(readability-convert-member-functions-to-static)
 
+auto Window::is_key_event(int32_t key, KeyEvent event) const -> bool {
+    return glfwGetKey(window_handle_to_glfw_window(window_handle), key) ==
+           key_event_to_glfw_key_event(event);
+}
+
+// NOLINTBEGIN(readability-convert-member-functions-to-static)
 auto Window::poll_events() const -> void { glfwPollEvents(); }
 // NOLINTEND(readability-convert-member-functions-to-static)
 

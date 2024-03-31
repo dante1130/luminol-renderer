@@ -4,6 +4,13 @@
 
 namespace Luminol::Graphics {
 
+enum class CameraMovement {
+    Forward,
+    Backward,
+    Left,
+    Right,
+};
+
 constexpr static auto default_fov_degrees = 45.0f;
 constexpr static auto default_aspect_ratio = 1.0f;
 constexpr static auto default_near_plane = 0.1f;
@@ -26,6 +33,8 @@ struct CameraProperties {
 class Camera {
 public:
     Camera(const CameraProperties& properties);
+
+    auto move(CameraMovement direction, float delta_time) -> void;
 
     [[nodiscard]] auto get_view_matrix() const -> glm::mat4;
     [[nodiscard]] auto get_projection_matrix() const -> glm::mat4;

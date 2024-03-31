@@ -43,6 +43,8 @@ void Engine::run() {
     while (!this->window.should_close()) {
         this->window.poll_events();
 
+        this->handle_key_events();
+
         constexpr auto color = glm::vec4(0.2f, 0.3f, 0.3f, 1.0f);
 
         this->renderer->clear_color(color);
@@ -72,6 +74,34 @@ void Engine::run() {
         );
 
         this->window.swap_buffers();
+    }
+}
+
+auto Engine::handle_key_events() -> void {
+    constexpr auto delta_time_in_seconds = 0.1f;
+
+    if (this->window.is_key_event('W', KeyEvent::Press)) {
+        this->camera.move(
+            Graphics::CameraMovement::Forward, delta_time_in_seconds
+        );
+    }
+
+    if (this->window.is_key_event('S', KeyEvent::Press)) {
+        this->camera.move(
+            Graphics::CameraMovement::Backward, delta_time_in_seconds
+        );
+    }
+
+    if (this->window.is_key_event('A', KeyEvent::Press)) {
+        this->camera.move(
+            Graphics::CameraMovement::Left, delta_time_in_seconds
+        );
+    }
+
+    if (this->window.is_key_event('D', KeyEvent::Press)) {
+        this->camera.move(
+            Graphics::CameraMovement::Right, delta_time_in_seconds
+        );
     }
 }
 

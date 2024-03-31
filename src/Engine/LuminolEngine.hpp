@@ -27,6 +27,8 @@ public:
     void run();
 
 private:
+    auto handle_key_events() -> void;
+
     Window window;
     Graphics::Camera camera;
     std::unique_ptr<Graphics::GraphicsFactory> graphics_factory = nullptr;
