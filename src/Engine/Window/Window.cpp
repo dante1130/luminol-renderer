@@ -18,8 +18,11 @@ auto framebuffer_size_callback_function(
     auto* user_data = glfwGetWindowUserPointer(window);
     auto* luminol_window = std::bit_cast<Luminol::Window*>(user_data);
 
-    if (luminol_window->framebuffer_size_callback.has_value()) {
-        luminol_window->framebuffer_size_callback.value()(width, height);
+    const auto& framebuffer_size_callback =
+        luminol_window->get_framebuffer_size_callback();
+
+    if (framebuffer_size_callback.has_value()) {
+        framebuffer_size_callback.value()(width, height);
     }
 }
 
@@ -74,6 +77,17 @@ auto Window::get_proc_address() const -> Window::WindowProc {
 
 auto Window::poll_events() const -> void { glfwPollEvents(); }
 // NOLINTEND(readability-convert-member-functions-to-static)
+
+auto Window::get_framebuffer_size_callback() const
+    -> const std::optional<FramebufferSizeCallback>& {
+    return this->framebuffer_size_callback;
+}
+
+auto Window::set_framebuffer_size_callback(
+    const FramebufferSizeCallback& callback
+) -> void {
+    this->framebuffer_size_callback = callback;
+}
 
 auto Window::should_close() const -> bool {
     return glfwWindowShouldClose(window_handle_to_glfw_window(window_handle)) ==

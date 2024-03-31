@@ -28,13 +28,17 @@ public:
 
     auto poll_events() const -> void;
 
+    [[nodiscard]] auto get_framebuffer_size_callback() const
+        -> const std::optional<FramebufferSizeCallback>&;
+    auto set_framebuffer_size_callback(const FramebufferSizeCallback& callback)
+        -> void;
+
     [[nodiscard]] auto should_close() const -> bool;
     auto swap_buffers() const -> void;
 
+private:
     std::optional<FramebufferSizeCallback> framebuffer_size_callback =
         std::nullopt;
-
-private:
     WindowHandle window_handle = nullptr;
 };
 

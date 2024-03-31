@@ -56,9 +56,9 @@ OpenGLRenderer::OpenGLRenderer(Window& window) {
     std::cout << "OpenGL Version " << GLAD_VERSION_MAJOR(version) << "."
               << GLAD_VERSION_MINOR(version) << " loaded\n";
 
-    window.framebuffer_size_callback = [](int32_t width, int32_t height) {
+    window.set_framebuffer_size_callback([](int32_t width, int32_t height) {
         glViewport(0, 0, width, height);
-    };
+    });
 
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
