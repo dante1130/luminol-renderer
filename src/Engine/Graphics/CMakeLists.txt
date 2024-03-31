@@ -16,7 +16,7 @@ target_link_libraries(Luminol.Graphics PUBLIC
     glad
     glm
     GSL
-    Luminol.Utilities.ImageLoader
+    Luminol.Utilities
 )
 
 target_include_directories(Luminol.Graphics PUBLIC

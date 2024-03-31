@@ -10,6 +10,7 @@ target_link_libraries(LuminolEngine PUBLIC
     glm
     Luminol.Window
     Luminol.Graphics
+    Luminol.Utilities
 )
 
 target_include_directories(LuminolEngine PRIVATE

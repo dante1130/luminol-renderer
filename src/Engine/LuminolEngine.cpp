@@ -41,6 +41,11 @@ void Engine::run() {
     );
 
     while (!this->window.should_close()) {
+        const double current_frame_time_seconds = this->timer.elapsed_seconds();
+        this->delta_time_seconds =
+            current_frame_time_seconds - this->last_frame_time_seconds;
+        this->last_frame_time_seconds = current_frame_time_seconds;
+
         this->window.poll_events();
 
         this->handle_key_events();
@@ -78,29 +83,28 @@ void Engine::run() {
 }
 
 auto Engine::handle_key_events() -> void {
-    constexpr auto delta_time_in_seconds = 0.1f;
+    const auto delta_time_seconds_f =
+        gsl::narrow_cast<float>(this->delta_time_seconds);
 
     if (this->window.is_key_event('W', KeyEvent::Press)) {
         this->camera.move(
-            Graphics::CameraMovement::Forward, delta_time_in_seconds
+            Graphics::CameraMovement::Forward, delta_time_seconds_f
         );
     }
 
     if (this->window.is_key_event('S', KeyEvent::Press)) {
         this->camera.move(
-            Graphics::CameraMovement::Backward, delta_time_in_seconds
+            Graphics::CameraMovement::Backward, delta_time_seconds_f
         );
     }
 
     if (this->window.is_key_event('A', KeyEvent::Press)) {
-        this->camera.move(
-            Graphics::CameraMovement::Left, delta_time_in_seconds
-        );
+        this->camera.move(Graphics::CameraMovement::Left, delta_time_seconds_f);
     }
 
     if (this->window.is_key_event('D', KeyEvent::Press)) {
         this->camera.move(
-            Graphics::CameraMovement::Right, delta_time_in_seconds
+            Graphics::CameraMovement::Right, delta_time_seconds_f
         );
     }
 }

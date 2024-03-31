@@ -1,4 +1,7 @@
-add_library(Luminol.Utilities.ImageLoader ImageLoader.cpp)
+add_library(Luminol.Utilities
+    ImageLoader.cpp
+    Timer.cpp
+)
 
-target_link_libraries(Luminol.Utilities.ImageLoader PRIVATE stb)
+target_link_libraries(Luminol.Utilities PRIVATE stb)
 
