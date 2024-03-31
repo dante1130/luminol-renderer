@@ -39,9 +39,11 @@ auto Camera::rotate(float yaw_degrees, float pitch_degrees) -> void {
     this->yaw_degrees += yaw_degrees * this->properties.rotation_speed;
     this->pitch_degrees += pitch_degrees * this->properties.rotation_speed;
 
+    constexpr auto max_yaw_degrees = 360.0f;
     constexpr auto max_pitch_degrees = 89.0f;
     constexpr auto min_pitch_degrees = -89.0f;
 
+    this->yaw_degrees = std::fmod(this->yaw_degrees, max_yaw_degrees);
     this->pitch_degrees =
         std::clamp(this->pitch_degrees, min_pitch_degrees, max_pitch_degrees);
 
