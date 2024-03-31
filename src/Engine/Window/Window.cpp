@@ -1,7 +1,6 @@
 #include "Window.hpp"
 
 #include <cassert>
-#include <bit>
 
 #include <GLFW/glfw3.h>
 
@@ -16,7 +15,7 @@ auto framebuffer_size_callback_function(
     GLFWwindow* window, int32_t width, int32_t height
 ) -> void {
     auto* user_data = glfwGetWindowUserPointer(window);
-    auto* luminol_window = std::bit_cast<Luminol::Window*>(user_data);
+    auto* luminol_window = reinterpret_cast<Luminol::Window*>(user_data);
 
     const auto& framebuffer_size_callback =
         luminol_window->get_framebuffer_size_callback();
