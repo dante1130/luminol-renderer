@@ -4,6 +4,12 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+namespace {
+
+constexpr auto up_vector_world = glm::vec3{0.0f, 1.0f, 0.0f};
+
+}
+
 namespace Luminol::Graphics {
 
 Camera::Camera(const CameraProperties& properties) : properties(properties) {}
@@ -48,21 +54,19 @@ auto Camera::rotate(float yaw_degrees, float pitch_degrees) -> void {
 
     this->properties.forward = glm::normalize(this->properties.forward);
 
-    this->right_vector = glm::normalize(
-        glm::cross(this->properties.forward, this->properties.up_vector)
-    );
+    this->right_vector =
+        glm::normalize(glm::cross(up_vector_world, this->properties.forward));
+
     this->properties.up_vector =
-        glm::normalize(glm::cross(this->right_vector, this->properties.forward)
+        glm::normalize(glm::cross(this->properties.forward, this->right_vector)
         );
 }
 
 auto Camera::get_view_matrix() const -> glm::mat4 {
-    constexpr auto up_vector = glm::vec3{0.0f, 1.0f, 0.0f};
-
     return glm::lookAtLH(
         this->properties.position,
         this->properties.position + this->properties.forward,
-        up_vector
+        up_vector_world
     );
 }
 
