@@ -1,7 +1,8 @@
 #include "Window.hpp"
 
-#include <cassert>
+#include <iostream>
 
+#include <gsl/gsl>
 #include <GLFW/glfw3.h>
 
 namespace {
@@ -43,13 +44,18 @@ constexpr auto key_event_to_glfw_key_event(Luminol::KeyEvent event) -> int32_t {
 namespace Luminol {
 
 Window::Window(int32_t width, int32_t height, const std::string& title) {
-    assert(glfwInit() == GLFW_TRUE && "Failed to initialize GLFW");
+    if (glfwInit() == GLFW_FALSE) {
+        std::cerr << "Failed to initialize GLFW\n";
+        Ensures(false);
+    }
 
     this->window_handle =
         glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
 
     if (this->window_handle == nullptr) {
+        std::cerr << "Failed to create GLFW window\n";
         glfwTerminate();
+        Ensures(false);
     }
 
     glfwMakeContextCurrent(window_handle_to_glfw_window(window_handle));

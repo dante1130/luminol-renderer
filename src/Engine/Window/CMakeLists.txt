@@ -4,4 +4,5 @@ add_library(Luminol.Window
 
 target_link_libraries(Luminol.Window PRIVATE
     glfw
+    GSL
 )
