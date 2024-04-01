@@ -66,10 +66,11 @@ auto load_indices(const aiMesh& mesh) -> std::vector<uint32_t> {
 auto load_diffuse_textures(
     const aiMesh& mesh,
     gsl::span<aiMaterial*> materials,
-    const std::filesystem::path& directory
-) -> std::vector<Image> {
+    const std::filesystem::path& directory,
+    std::unordered_map<std::filesystem::path, Image>& textures_map
+) -> std::vector<std::filesystem::path> {
     if (materials.empty()) {
-        return std::vector<Image>{};
+        return std::vector<std::filesystem::path>{};
     }
 
     const auto* const material = materials[mesh.mMaterialIndex];
@@ -77,31 +78,37 @@ auto load_diffuse_textures(
     const auto diffuse_textures_count =
         material->GetTextureCount(aiTextureType_DIFFUSE);
 
-    auto diffuse_textures = std::vector<Image>{};
-    diffuse_textures.reserve(diffuse_textures_count);
+    auto diffuse_texture_paths = std::vector<std::filesystem::path>{};
+    diffuse_texture_paths.reserve(diffuse_textures_count);
 
     for (auto i = 0u; i < diffuse_textures_count; ++i) {
         auto texture_path = aiString{};
         material->GetTexture(aiTextureType_DIFFUSE, i, &texture_path);
 
-        diffuse_textures.emplace_back(
-            load_image(directory / texture_path.C_Str())
-        );
+        const auto texture_path_key = directory / texture_path.C_Str();
+
+        diffuse_texture_paths.emplace_back(directory / texture_path.C_Str());
+
+        if (!textures_map.contains(texture_path_key)) {
+            textures_map[texture_path_key] = load_image(texture_path_key);
+        }
     }
 
-    return diffuse_textures;
+    return diffuse_texture_paths;
 }
 
 auto load_mesh(
     const aiMesh& mesh,
     gsl::span<aiMaterial*> materials,
-    const std::filesystem::path& directory
+    const std::filesystem::path& directory,
+    std::unordered_map<std::filesystem::path, Image>& textures_map
 ) -> MeshData {
     return MeshData{
         .vertices = load_vertices(mesh),
         .texture_coordinates = load_texture_coordinates(mesh),
         .indices = load_indices(mesh),
-        .diffuse_textures = load_diffuse_textures(mesh, materials, directory)
+        .diffuse_texture_paths =
+            load_diffuse_textures(mesh, materials, directory, textures_map)
     };
 }
 
@@ -109,8 +116,7 @@ auto load_mesh(
 
 namespace Luminol::Utilities::ModelLoader {
 
-auto load_model(const std::filesystem::path& path)
-    -> std::optional<std::vector<MeshData>> {
+auto load_model(const std::filesystem::path& path) -> std::optional<ModelData> {
     auto importer = Assimp::Importer{};
     const auto* const scene = importer.ReadFile(
         path.string(),
@@ -122,8 +128,8 @@ auto load_model(const std::filesystem::path& path)
         return std::nullopt;
     }
 
-    auto meshes = std::vector<MeshData>{};
-    meshes.reserve(scene->mNumMeshes);
+    auto model_data = ModelData{};
+    model_data.meshes.reserve(scene->mNumMeshes);
 
     const auto mesh_span = gsl::make_span(scene->mMeshes, scene->mNumMeshes);
 
@@ -131,11 +137,12 @@ auto load_model(const std::filesystem::path& path)
         const auto materials_span =
             gsl::make_span(scene->mMaterials, scene->mNumMaterials);
 
-        meshes.emplace_back(load_mesh(*mesh, materials_span, path.parent_path())
-        );
+        model_data.meshes.emplace_back(load_mesh(
+            *mesh, materials_span, path.parent_path(), model_data.textures_map
+        ));
     }
 
-    return meshes;
+    return model_data;
 }
 
 }  // namespace Luminol::Utilities::ModelLoader

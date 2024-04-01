@@ -59,14 +59,7 @@ void Engine::run() {
             this->camera.get_projection_matrix()
         );
 
-        constexpr auto rotation_degrees_x = 20.0f;
-
-        auto model_matrix = glm::mat4(1.0f);
-        model_matrix = glm::rotate(
-            model_matrix,
-            glm::radians(rotation_degrees_x),
-            glm::vec3(1.0f, 0.0f, 0.0f)
-        );
+        constexpr auto model_matrix = glm::mat4(1.0f);
 
         this->renderer->draw(
             model->get_render_command(*this->renderer), model_matrix

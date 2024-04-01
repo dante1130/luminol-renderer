@@ -5,16 +5,16 @@
 namespace Luminol::Graphics {
 
 OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
-    const auto meshes_data_opt =
+    const auto model_data_opt =
         Luminol::Utilities::ModelLoader::load_model(model_path);
 
-    Expects(meshes_data_opt.has_value());
+    Expects(model_data_opt.has_value());
 
-    const auto& meshes_data = meshes_data_opt.value();
+    const auto& model_data = model_data_opt.value();
 
-    this->meshes.reserve(meshes_data.size());
+    this->meshes.reserve(model_data.meshes.size());
 
-    for (const auto& mesh_data : meshes_data) {
+    for (const auto& mesh_data : model_data.meshes) {
         Expects(
             mesh_data.vertices.size() == mesh_data.texture_coordinates.size()
         );
@@ -32,15 +32,18 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
             mesh_vertices.push_back(mesh_data.texture_coordinates[i].y);
         }
 
-        if (mesh_data.diffuse_textures.empty()) {
+        if (mesh_data.diffuse_texture_paths.empty()) {
             this->meshes.emplace_back(std::make_unique<OpenGLMesh>(
                 gsl::make_span(mesh_vertices), gsl::make_span(mesh_data.indices)
             ));
         } else {
+            const auto& diffuse_texture =
+                model_data.textures_map.at(mesh_data.diffuse_texture_paths[0]);
+
             this->meshes.emplace_back(std::make_unique<OpenGLMesh>(
                 gsl::make_span(mesh_vertices),
                 gsl::make_span(mesh_data.indices),
-                mesh_data.diffuse_textures[0]
+                diffuse_texture
             ));
         }
     }

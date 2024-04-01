@@ -15,10 +15,14 @@ struct MeshData {
     std::vector<glm::vec2> texture_coordinates;
     std::vector<uint32_t> indices;
 
-    std::vector<ImageLoader::Image> diffuse_textures;
+    std::vector<std::filesystem::path> diffuse_texture_paths;
 };
 
-auto load_model(const std::filesystem::path& path)
-    -> std::optional<std::vector<MeshData>>;
+struct ModelData {
+    std::vector<MeshData> meshes;
+    std::unordered_map<std::filesystem::path, ImageLoader::Image> textures_map;
+};
+
+auto load_model(const std::filesystem::path& path) -> std::optional<ModelData>;
 
 }  // namespace Luminol::Utilities::ModelLoader
