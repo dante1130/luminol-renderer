@@ -87,7 +87,7 @@ auto load_diffuse_textures(
 
         const auto texture_path_key = directory / texture_path.C_Str();
 
-        diffuse_texture_paths.emplace_back(directory / texture_path.C_Str());
+        diffuse_texture_paths.emplace_back(texture_path_key);
 
         if (!textures_map.contains(texture_path_key)) {
             textures_map[texture_path_key] = load_image(texture_path_key);
