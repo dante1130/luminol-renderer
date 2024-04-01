@@ -2,8 +2,6 @@
 
 #include <glad/gl.h>
 
-#include <Engine/Utilities/ImageLoader.hpp>
-
 namespace {
 
 auto create_texture(const Luminol::Utilities::ImageLoader::Image& image)
