@@ -2,11 +2,14 @@
 
 #include <filesystem>
 
+#include <Engine/Utilities/ImageLoader.hpp>
+
 namespace Luminol::Graphics {
 
 class OpenGLTexture {
 public:
     OpenGLTexture(const std::filesystem::path& path);
+    OpenGLTexture(const Utilities::ImageLoader::Image& image);
     ~OpenGLTexture();
     OpenGLTexture(const OpenGLTexture&) = default;
     OpenGLTexture(OpenGLTexture&&) = delete;

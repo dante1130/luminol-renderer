@@ -4,12 +4,12 @@
 
 #include <Engine/Utilities/ImageLoader.hpp>
 
-namespace Luminol::Graphics {
+namespace {
 
-OpenGLTexture::OpenGLTexture(const std::filesystem::path& path) {
-    glCreateTextures(GL_TEXTURE_2D, 1, &this->texture_id);
-
-    const auto image = Utilities::ImageLoader::load_image(path);
+auto create_texture(const Luminol::Utilities::ImageLoader::Image& image)
+    -> uint32_t {
+    uint32_t texture_id = {0};
+    glCreateTextures(GL_TEXTURE_2D, 1, &texture_id);
 
     glTextureParameteri(texture_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTextureParameteri(texture_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -37,7 +37,19 @@ OpenGLTexture::OpenGLTexture(const std::filesystem::path& path) {
     );
 
     glGenerateTextureMipmap(texture_id);
+
+    return texture_id;
 }
+
+}  // namespace
+
+namespace Luminol::Graphics {
+
+OpenGLTexture::OpenGLTexture(const std::filesystem::path& path)
+    : texture_id(create_texture(Utilities::ImageLoader::load_image(path))) {}
+
+OpenGLTexture::OpenGLTexture(const Utilities::ImageLoader::Image& image)
+    : texture_id(create_texture(image)) {}
 
 OpenGLTexture::~OpenGLTexture() { glDeleteTextures(1, &texture_id); }
 
