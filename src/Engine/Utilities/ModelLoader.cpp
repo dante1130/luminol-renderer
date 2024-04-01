@@ -120,8 +120,8 @@ auto load_model(const std::filesystem::path& path) -> std::optional<ModelData> {
     auto importer = Assimp::Importer{};
     const auto* const scene = importer.ReadFile(
         path.string(),
-        aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals |
-            aiProcess_JoinIdenticalVertices
+        aiProcess_Triangulate | aiProcess_JoinIdenticalVertices |
+            aiProcess_MakeLeftHanded | aiProcess_FlipWindingOrder
     );
 
     if (scene == nullptr || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) == 1) {

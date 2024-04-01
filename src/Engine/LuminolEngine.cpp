@@ -25,7 +25,7 @@ Engine::Engine(const Properties& properties)
 
 void Engine::run() {
     const auto model = this->graphics_factory->create_model(
-        "res/models/survival_guitar/scene.gltf"
+        "res/models/cat/12221_Cat_v1_l3.obj"
     );
 
     while (!this->window.should_close()) {
@@ -47,7 +47,7 @@ void Engine::run() {
         constexpr auto color = glm::vec4(0.2f, 0.3f, 0.3f, 1.0f);
 
         this->renderer->clear_color(color);
-        this->renderer->clear(Graphics::BufferBit::Color);
+        this->renderer->clear(Graphics::BufferBit::ColorDepth);
 
         this->camera.set_aspect_ratio(
             static_cast<float>(this->window.get_width()) /
@@ -59,7 +59,8 @@ void Engine::run() {
             this->camera.get_projection_matrix()
         );
 
-        constexpr auto model_matrix = glm::mat4(1.0f);
+        auto model_matrix = glm::mat4(1.0f);
+        model_matrix = glm::scale(model_matrix, glm::vec3(0.01f, 0.01f, 0.01f));
 
         this->renderer->draw(
             model->get_render_command(*this->renderer), model_matrix
