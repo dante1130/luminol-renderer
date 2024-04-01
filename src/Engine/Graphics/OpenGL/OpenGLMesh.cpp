@@ -35,10 +35,18 @@ OpenGLMesh::OpenGLMesh(
     : vertex_array_object(vertices, indices, create_vertex_attributes()),
       texture(texture_path) {}
 
+OpenGLMesh::OpenGLMesh(
+    gsl::span<const float> vertices,
+    gsl::span<const uint32_t> indices,
+    const Utilities::ImageLoader::Image& texture_image
+)
+    : vertex_array_object(vertices, indices, create_vertex_attributes()),
+      texture(texture_image) {}
+
 auto OpenGLMesh::get_render_command(const Renderer& /*renderer*/) const
     -> RenderCommand {
     return [this](const Renderer& /*renderer*/) {
-        this->texture.bind();
+        this->texture.bind(SamplerBindingPoint::TextureDiffuse);
         this->vertex_array_object.bind();
         glDrawElements(
             GL_TRIANGLES,

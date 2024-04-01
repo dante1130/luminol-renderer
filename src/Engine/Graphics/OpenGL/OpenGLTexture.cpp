@@ -1,6 +1,7 @@
 #include "OpenGLTexture.hpp"
 
 #include <glad/gl.h>
+#include "Engine/Graphics/OpenGL/OpenGLUniformBindingPoints.hpp"
 
 namespace {
 
@@ -49,12 +50,16 @@ OpenGLTexture::OpenGLTexture(const std::filesystem::path& path)
 OpenGLTexture::OpenGLTexture(const Utilities::ImageLoader::Image& image)
     : texture_id(create_texture(image)) {}
 
-OpenGLTexture::~OpenGLTexture() { glDeleteTextures(1, &texture_id); }
+OpenGLTexture::~OpenGLTexture() { glDeleteTextures(1, &this->texture_id); }
 
-auto OpenGLTexture::bind() const -> void { glBindTextureUnit(0, texture_id); }
+auto OpenGLTexture::bind(SamplerBindingPoint binding_point) const -> void {
+    glBindTextureUnit(static_cast<int32_t>(binding_point), this->texture_id);
+}
 
 // NOLINTBEGIN(readability-convert-member-functions-to-static)
-auto OpenGLTexture::unbind() const -> void { glBindTextureUnit(0, 0); }
+auto OpenGLTexture::unbind(SamplerBindingPoint binding_point) const -> void {
+    glBindTextureUnit(static_cast<int32_t>(binding_point), 0);
+}
 // NOLINTEND(readability-convert-member-functions-to-static)
 
 }  // namespace Luminol::Graphics

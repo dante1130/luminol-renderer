@@ -3,6 +3,7 @@
 #include <Engine/Graphics/Mesh.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLVertexArrayObject.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLTexture.hpp>
+#include <Engine/Utilities/ImageLoader.hpp>
 
 namespace Luminol::Graphics {
 
@@ -12,6 +13,12 @@ public:
         gsl::span<const float> vertices,
         gsl::span<const uint32_t> indices,
         const std::filesystem::path& texture_path
+    );
+
+    OpenGLMesh(
+        gsl::span<const float> vertices,
+        gsl::span<const uint32_t> indices,
+        const Utilities::ImageLoader::Image& texture_image
     );
 
     [[nodiscard]] auto get_render_command(const Renderer& renderer) const

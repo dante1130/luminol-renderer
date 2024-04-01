@@ -3,6 +3,7 @@
 #include <Engine/Graphics/OpenGL/OpenGLRenderer.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLShader.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLMesh.hpp>
+#include <Engine/Graphics/OpenGL/OpenGLModel.hpp>
 
 namespace Luminol::Graphics {
 
@@ -17,6 +18,11 @@ auto OpenGLFactory::create_mesh(
     const std::filesystem::path& texture_path
 ) -> std::unique_ptr<Mesh> {
     return std::make_unique<OpenGLMesh>(vertices, indices, texture_path);
+}
+
+auto OpenGLFactory::create_model(const std::filesystem::path& model_path)
+    -> std::unique_ptr<Model> {
+    return std::make_unique<OpenGLModel>(model_path);
 }
 
 auto OpenGLFactory::get_graphics_api() const -> GraphicsApi {

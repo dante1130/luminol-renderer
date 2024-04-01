@@ -14,3 +14,8 @@ add_subdirectory(GSL)
 
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE stb)
+
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+add_subdirectory(assimp)

@@ -3,6 +3,7 @@
 #include <filesystem>
 
 #include <Engine/Utilities/ImageLoader.hpp>
+#include <Engine/Graphics/OpenGL/OpenGLUniformBindingPoints.hpp>
 
 namespace Luminol::Graphics {
 
@@ -16,8 +17,8 @@ public:
     auto operator=(const OpenGLTexture&) -> OpenGLTexture& = default;
     auto operator=(OpenGLTexture&&) -> OpenGLTexture& = delete;
 
-    auto bind() const -> void;
-    auto unbind() const -> void;
+    auto bind(SamplerBindingPoint binding_point) const -> void;
+    auto unbind(SamplerBindingPoint binding_point) const -> void;
 
 private:
     uint32_t texture_id = {0};

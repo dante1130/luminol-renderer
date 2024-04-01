@@ -9,6 +9,7 @@ add_library(Luminol.Graphics
     OpenGL/OpenGLVertexArrayObject.cpp
     OpenGL/OpenGLTexture.cpp
     OpenGL/OpenGLMesh.cpp
+    OpenGL/OpenGLModel.cpp
     OpenGL/OpenGLError.cpp
 )
 
