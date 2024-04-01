@@ -121,7 +121,8 @@ auto load_model(const std::filesystem::path& path) -> std::optional<ModelData> {
     const auto* const scene = importer.ReadFile(
         path.string(),
         aiProcess_Triangulate | aiProcess_JoinIdenticalVertices |
-            aiProcess_MakeLeftHanded | aiProcess_FlipWindingOrder
+            aiProcess_MakeLeftHanded | aiProcess_FlipWindingOrder |
+            aiProcess_FlipUVs
     );
 
     if (scene == nullptr || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) == 1) {

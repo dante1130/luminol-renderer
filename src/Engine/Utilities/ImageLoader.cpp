@@ -8,7 +8,6 @@ namespace Luminol::Utilities::ImageLoader {
 auto load_image(const std::filesystem::path& path) -> Image {
     Image image = {};
 
-    stbi_set_flip_vertically_on_load(1);
     auto* image_data = stbi_load(
         path.string().c_str(), &image.width, &image.height, &image.channels, 0
     );
