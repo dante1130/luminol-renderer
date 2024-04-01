@@ -26,8 +26,8 @@ auto load_vertices(const aiMesh& mesh) -> std::vector<glm::vec3> {
 }
 
 auto load_texture_coordinates(const aiMesh& mesh) -> std::vector<glm::vec2> {
-    if (mesh.mTextureCoords[0] != nullptr) {
-        return std::vector<glm::vec2>{};
+    if (!mesh.HasTextureCoords(0)) {
+        return std::vector<glm::vec2>{mesh.mNumVertices, glm::vec2{0.0f}};
     }
 
     auto texture_coordinates = std::vector<glm::vec2>{};
@@ -68,7 +68,7 @@ auto load_diffuse_textures(
     gsl::span<aiMaterial*> materials,
     const std::filesystem::path& directory
 ) -> std::vector<Image> {
-    if (materials.empty() || mesh.mMaterialIndex == 0) {
+    if (materials.empty()) {
         return std::vector<Image>{};
     }
 
@@ -118,7 +118,7 @@ auto load_model(const std::filesystem::path& path)
             aiProcess_JoinIdenticalVertices
     );
 
-    if (scene != nullptr || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) == 1) {
+    if (scene == nullptr || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) == 1) {
         return std::nullopt;
     }
 

@@ -32,11 +32,17 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
             mesh_vertices.push_back(mesh_data.texture_coordinates[i].y);
         }
 
-        this->meshes.emplace_back(std::make_unique<OpenGLMesh>(
-            gsl::make_span(mesh_vertices),
-            gsl::make_span(mesh_data.indices),
-            mesh_data.diffuse_textures[0]
-        ));
+        if (mesh_data.diffuse_textures.empty()) {
+            this->meshes.emplace_back(std::make_unique<OpenGLMesh>(
+                gsl::make_span(mesh_vertices), gsl::make_span(mesh_data.indices)
+            ));
+        } else {
+            this->meshes.emplace_back(std::make_unique<OpenGLMesh>(
+                gsl::make_span(mesh_vertices),
+                gsl::make_span(mesh_data.indices),
+                mesh_data.diffuse_textures[0]
+            ));
+        }
     }
 }
 
@@ -47,7 +53,6 @@ auto OpenGLModel::get_render_command(const Renderer& /*renderer*/) const
             mesh->get_render_command(renderer)(renderer);
         }
     };
-
 }
 
 }  // namespace Luminol::Graphics

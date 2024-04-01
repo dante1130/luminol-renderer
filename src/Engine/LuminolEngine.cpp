@@ -24,22 +24,8 @@ Engine::Engine(const Properties& properties)
       renderer(this->graphics_factory->create_renderer(this->window)) {}
 
 void Engine::run() {
-    constexpr auto vertices = std::array{
-        0.5f,  0.5f,  0.0f, 1.0f, 1.0f, 0.5f,  -0.5f, 0.0f, 1.0f, 0.0f,
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, -0.5f, 0.5f,  0.0f, 0.0f, 1.0f,
-    };
-
-    constexpr auto indices = std::array{
-        0u,
-        1u,
-        3u,  // first triangle
-        1u,
-        2u,
-        3u  // second triangle
-    };
-
-    const auto mesh = this->graphics_factory->create_mesh(
-        vertices, indices, "res/textures/reflex.png"
+    const auto model = this->graphics_factory->create_model(
+        "res/models/survival_guitar/scene.gltf"
     );
 
     while (!this->window.should_close()) {
@@ -83,7 +69,7 @@ void Engine::run() {
         );
 
         this->renderer->draw(
-            mesh->get_render_command(*this->renderer), model_matrix
+            model->get_render_command(*this->renderer), model_matrix
         );
 
         this->window.swap_buffers();

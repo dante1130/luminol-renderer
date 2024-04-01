@@ -21,12 +21,16 @@ public:
         const Utilities::ImageLoader::Image& texture_image
     );
 
+    OpenGLMesh(
+        gsl::span<const float> vertices, gsl::span<const uint32_t> indices
+    );
+
     [[nodiscard]] auto get_render_command(const Renderer& renderer) const
         -> RenderCommand override;
 
 private:
     OpenGLVertexArrayObject vertex_array_object;
-    OpenGLTexture texture;
+    std::optional<OpenGLTexture> texture = std::nullopt;
 };
 
 }  // namespace Luminol::Graphics
