@@ -122,7 +122,7 @@ auto load_model(const std::filesystem::path& path) -> std::optional<ModelData> {
         path.string(),
         aiProcess_Triangulate | aiProcess_JoinIdenticalVertices |
             aiProcess_MakeLeftHanded | aiProcess_FlipWindingOrder |
-            aiProcess_FlipUVs
+            aiProcess_FlipUVs | aiProcess_PreTransformVertices
     );
 
     if (scene == nullptr || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) == 1) {
