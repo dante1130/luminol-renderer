@@ -45,6 +45,23 @@ auto load_texture_coordinates(const aiMesh& mesh) -> std::vector<glm::vec2> {
     return texture_coordinates;
 }
 
+auto load_normals(const aiMesh& mesh) -> std::vector<glm::vec3> {
+    if (!mesh.HasNormals()) {
+        return std::vector<glm::vec3>{mesh.mNumVertices, glm::vec3{0.0f}};
+    }
+
+    auto normals = std::vector<glm::vec3>{};
+    normals.reserve(mesh.mNumVertices);
+
+    const auto normals_span = gsl::make_span(mesh.mNormals, mesh.mNumVertices);
+
+    for (const auto& normal : normals_span) {
+        normals.emplace_back(normal.x, normal.y, normal.z);
+    }
+
+    return normals;
+}
+
 auto load_indices(const aiMesh& mesh) -> std::vector<uint32_t> {
     auto indices = std::vector<uint32_t>{};
     indices.reserve(gsl::narrow<size_t>(mesh.mNumFaces * 3));
@@ -106,6 +123,7 @@ auto load_mesh(
     return MeshData{
         .vertices = load_vertices(mesh),
         .texture_coordinates = load_texture_coordinates(mesh),
+        .normals = load_normals(mesh),
         .indices = load_indices(mesh),
         .diffuse_texture_paths =
             load_diffuse_textures(mesh, materials, directory, textures_map)
@@ -122,7 +140,8 @@ auto load_model(const std::filesystem::path& path) -> std::optional<ModelData> {
         path.string(),
         aiProcess_Triangulate | aiProcess_JoinIdenticalVertices |
             aiProcess_MakeLeftHanded | aiProcess_FlipWindingOrder |
-            aiProcess_FlipUVs | aiProcess_PreTransformVertices
+            aiProcess_FlipUVs | aiProcess_PreTransformVertices |
+            aiProcess_GenSmoothNormals
     );
 
     if (scene == nullptr || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) == 1) {

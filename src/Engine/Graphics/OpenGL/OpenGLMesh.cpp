@@ -9,6 +9,9 @@ namespace {
 using namespace Luminol::Graphics;
 
 constexpr auto create_vertex_attributes() {
+    constexpr auto texture_coordinates_offset = 3 * sizeof(float);
+    constexpr auto normal_offset = 5 * sizeof(float);
+
     return std::array{
         VertexAttribute{
             .component_count = 3,
@@ -18,7 +21,12 @@ constexpr auto create_vertex_attributes() {
         VertexAttribute{
             .component_count = 2,
             .normalized = false,
-            .relative_offset = 3 * sizeof(float),
+            .relative_offset = texture_coordinates_offset,
+        },
+        VertexAttribute{
+            .component_count = 3,
+            .normalized = false,
+            .relative_offset = normal_offset,
         },
     };
 }

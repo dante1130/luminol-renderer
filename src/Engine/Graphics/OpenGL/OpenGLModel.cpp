@@ -19,7 +19,7 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
             mesh_data.vertices.size() == mesh_data.texture_coordinates.size()
         );
 
-        constexpr auto vertex_components = 5;
+        constexpr auto vertex_components = 8;
 
         auto mesh_vertices = std::vector<float>{};
         mesh_vertices.reserve(mesh_data.vertices.size() * vertex_components);
@@ -30,6 +30,9 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
             mesh_vertices.push_back(mesh_data.vertices[i].z);
             mesh_vertices.push_back(mesh_data.texture_coordinates[i].x);
             mesh_vertices.push_back(mesh_data.texture_coordinates[i].y);
+            mesh_vertices.push_back(mesh_data.normals[i].x);
+            mesh_vertices.push_back(mesh_data.normals[i].y);
+            mesh_vertices.push_back(mesh_data.normals[i].z);
         }
 
         if (mesh_data.diffuse_texture_paths.empty()) {
