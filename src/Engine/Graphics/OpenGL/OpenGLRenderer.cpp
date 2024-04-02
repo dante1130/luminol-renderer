@@ -85,6 +85,10 @@ OpenGLRenderer::OpenGLRenderer(Window& window) {
         std::make_unique<OpenGLUniformBuffer<Transform>>(
             Transform{}, UniformBufferBindingPoint::Transform
         );
+
+    this->light_uniform_buffer = std::make_unique<OpenGLUniformBuffer<Light>>(
+        Light{}, UniformBufferBindingPoint::Light
+    );
 }
 
 auto OpenGLRenderer::set_view_matrix(const glm::mat4& view_matrix) -> void {
@@ -107,6 +111,14 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
 auto OpenGLRenderer::draw(
     const RenderCommand& render_command, const glm::mat4& model_matrix
 ) const -> void {
+    constexpr auto light = Light{
+        .position = {glm::vec3(0.0f, 1.0f, -2.0f)},
+        .color = {glm::vec3(1.0f, 1.0f, 1.0f)},
+        .ambient_intensity = 0.25f
+    };
+
+    this->light_uniform_buffer->set_data(light);
+
     this->transform_uniform_buffer->set_data(Transform{
         .model_matrix = model_matrix,
         .view_matrix = this->view_matrix,
