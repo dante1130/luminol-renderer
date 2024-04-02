@@ -62,13 +62,29 @@ void Engine::run() {
             this->camera.get_projection_matrix()
         );
 
+        constexpr auto light_position = glm::vec3(0.0f, 1.0f, -2.0f);
+
         constexpr auto light = Graphics::Light{
-            .position = glm::vec3(0.0f, 1.0f, -2.0f),
+            .position = light_position,
             .color = glm::vec3(1.0f, 1.0f, 1.0f),
             .ambient_intensity = 0.25f
         };
 
         this->renderer->update_light(light);
+
+        {
+            constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);
+
+            auto model_matrix = glm::mat4(1.0f);
+            model_matrix = glm::translate(model_matrix, light_position);
+            model_matrix = glm::scale(model_matrix, scale);
+
+            this->renderer->draw(
+                cube->get_render_command(*this->renderer),
+                model_matrix,
+                Graphics::ShaderType::Phong
+            );
+        }
 
         {
             constexpr auto scale = glm::vec3(0.01f, 0.01f, 0.01f);
@@ -78,21 +94,6 @@ void Engine::run() {
 
             this->renderer->draw(
                 model->get_render_command(*this->renderer),
-                model_matrix,
-                Graphics::ShaderType::Phong
-            );
-        }
-
-        {
-            constexpr auto translation = glm::vec3(0.0f, 1.0f, -2.0f);
-            constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);
-
-            auto model_matrix = glm::mat4(1.0f);
-            model_matrix = glm::translate(model_matrix, translation);
-            model_matrix = glm::scale(model_matrix, scale);
-
-            this->renderer->draw(
-                cube->get_render_command(*this->renderer),
                 model_matrix,
                 Graphics::ShaderType::Phong
             );
