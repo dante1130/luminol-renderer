@@ -4,8 +4,8 @@
 
 namespace {
 
-constexpr auto camera_initial_position = glm::vec3(0.0f, 0.0f, -3.0f);
-constexpr auto camera_initial_forward = glm::vec3(0.0f, 0.0f, 1.0f);
+constexpr auto camera_initial_position = glm::vec3(5.0f, 0.0f, 0.0f);
+constexpr auto camera_initial_forward = glm::vec3(-1.0f, 0.0f, 0.0f);
 constexpr auto camera_rotation_speed = 0.1f;
 
 }  // namespace
@@ -27,6 +27,9 @@ void Engine::run() {
     const auto model = this->graphics_factory->create_model(
         "res/models/survival_guitar_backpack/scene.gltf"
     );
+
+    const auto cube =
+        this->graphics_factory->create_model("res/models/cube/cube.obj");
 
     while (!this->window.should_close()) {
         const double current_frame_time_seconds = this->timer.elapsed_seconds();
@@ -59,14 +62,29 @@ void Engine::run() {
             this->camera.get_projection_matrix()
         );
 
-        constexpr auto scale = glm::vec3(0.01f, 0.01f, 0.01f);
+        {
+            constexpr auto scale = glm::vec3(0.01f, 0.01f, 0.01f);
 
-        auto model_matrix = glm::mat4(1.0f);
-        model_matrix = glm::scale(model_matrix, scale);
+            auto model_matrix = glm::mat4(1.0f);
+            model_matrix = glm::scale(model_matrix, scale);
 
-        this->renderer->draw(
-            model->get_render_command(*this->renderer), model_matrix
-        );
+            this->renderer->draw(
+                model->get_render_command(*this->renderer), model_matrix
+            );
+        }
+
+        {
+            constexpr auto translation = glm::vec3(0.0f, 1.0f, -2.0f);
+            constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);
+
+            auto model_matrix = glm::mat4(1.0f);
+            model_matrix = glm::translate(model_matrix, translation);
+            model_matrix = glm::scale(model_matrix, scale);
+
+            this->renderer->draw(
+                cube->get_render_command(*this->renderer), model_matrix
+            );
+        }
 
         this->window.swap_buffers();
     }

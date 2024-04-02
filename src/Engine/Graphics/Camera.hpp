@@ -54,8 +54,18 @@ public:
     auto set_rotation_speed(float rotation_speed) -> void;
 
 private:
-    CameraProperties properties;
+    glm::vec3 position = {0.0f, 0.0f, 0.0f};
+    glm::vec3 forward = {0.0f, 0.0f, 1.0f};
     glm::vec3 right_vector = {1.0f, 0.0f, 0.0f};
+    glm::vec3 up_vector = {0.0f, 1.0f, 0.0f};
+
+    float fov_degrees = default_fov_degrees;
+    float aspect_ratio = default_aspect_ratio;
+    float near_plane = default_near_plane;
+    float far_plane = default_far_plane;
+
+    float translation_speed = 1.0f;
+    float rotation_speed = 1.0f;
 
     float yaw_degrees = 0.0f;
     float pitch_degrees = 0.0f;
