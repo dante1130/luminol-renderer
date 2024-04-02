@@ -7,6 +7,12 @@
 
 namespace Luminol::Graphics {
 
+struct Light {
+    glm::vec3 position = {0.0f, 0.0f, 0.0f};
+    glm::vec3 color = {1.0f, 1.0f, 1.0f};
+    float ambient_intensity = 1.0f;
+};
+
 enum class ShaderType {
     Color,
     Phong,
@@ -31,6 +37,7 @@ public:
 
     virtual auto clear_color(const glm::vec4& color) const -> void = 0;
     virtual auto clear(BufferBit buffer_bit) const -> void = 0;
+    virtual auto update_light(const Light& light) -> void = 0;
     virtual auto draw(
         const RenderCommand& render_command,
         const glm::mat4& model_matrix,

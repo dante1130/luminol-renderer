@@ -62,6 +62,14 @@ void Engine::run() {
             this->camera.get_projection_matrix()
         );
 
+        constexpr auto light = Graphics::Light{
+            .position = glm::vec3(0.0f, 1.0f, -2.0f),
+            .color = glm::vec3(1.0f, 1.0f, 1.0f),
+            .ambient_intensity = 0.25f
+        };
+
+        this->renderer->update_light(light);
+
         {
             constexpr auto scale = glm::vec3(0.01f, 0.01f, 0.01f);
 

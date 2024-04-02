@@ -83,13 +83,14 @@ OpenGLRenderer::OpenGLRenderer(Window& window) {
     this->phong_shader->unbind();
 
     this->transform_uniform_buffer =
-        std::make_unique<OpenGLUniformBuffer<Transform>>(
-            Transform{}, UniformBufferBindingPoint::Transform
+        std::make_unique<OpenGLUniformBuffer<OpenGLUniforms::Transform>>(
+            OpenGLUniforms::Transform{}, UniformBufferBindingPoint::Transform
         );
 
-    this->light_uniform_buffer = std::make_unique<OpenGLUniformBuffer<Light>>(
-        Light{}, UniformBufferBindingPoint::Light
-    );
+    this->light_uniform_buffer =
+        std::make_unique<OpenGLUniformBuffer<OpenGLUniforms::Light>>(
+            OpenGLUniforms::Light{}, UniformBufferBindingPoint::Light
+        );
 }
 
 auto OpenGLRenderer::set_view_matrix(const glm::mat4& view_matrix) -> void {
@@ -109,20 +110,20 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
     glClear(buffer_bit_to_gl(buffer_bit));
 }
 
+auto OpenGLRenderer::update_light(const Light& light) -> void {
+    this->light_uniform_buffer->set_data(OpenGLUniforms::Light{
+        .position = {light.position},
+        .color = {light.color},
+        .ambient_intensity = light.ambient_intensity
+    });
+}
+
 auto OpenGLRenderer::draw(
     const RenderCommand& render_command,
     const glm::mat4& model_matrix,
     ShaderType shader_type
 ) const -> void {
-    constexpr auto light = Light{
-        .position = {glm::vec3(0.0f, 1.0f, -2.0f)},
-        .color = {glm::vec3(1.0f, 1.0f, 1.0f)},
-        .ambient_intensity = 0.25f
-    };
-
-    this->light_uniform_buffer->set_data(light);
-
-    this->transform_uniform_buffer->set_data(Transform{
+    this->transform_uniform_buffer->set_data(OpenGLUniforms::Transform{
         .model_matrix = model_matrix,
         .view_matrix = this->view_matrix,
         .projection_matrix = this->projection_matrix
