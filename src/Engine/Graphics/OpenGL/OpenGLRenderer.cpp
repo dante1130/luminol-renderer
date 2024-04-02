@@ -71,15 +71,16 @@ OpenGLRenderer::OpenGLRenderer(Window& window) {
     glCullFace(GL_BACK);
     glFrontFace(GL_CW);
 
-    this->shader = std::make_unique<OpenGLShader>(get_default_shader_paths());
-    this->shader->bind();
-    this->shader->set_sampler_binding_point(
+    this->phong_shader =
+        std::make_unique<OpenGLShader>(get_default_shader_paths());
+    this->phong_shader->bind();
+    this->phong_shader->set_sampler_binding_point(
         "texture_diffuse", SamplerBindingPoint::TextureDiffuse
     );
-    this->shader->set_uniform_block_binding_point(
+    this->phong_shader->set_uniform_block_binding_point(
         "Transform", UniformBufferBindingPoint::Transform
     );
-    this->shader->unbind();
+    this->phong_shader->unbind();
 
     this->transform_uniform_buffer =
         std::make_unique<OpenGLUniformBuffer<Transform>>(
@@ -109,7 +110,9 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
 }
 
 auto OpenGLRenderer::draw(
-    const RenderCommand& render_command, const glm::mat4& model_matrix
+    const RenderCommand& render_command,
+    const glm::mat4& model_matrix,
+    ShaderType shader_type
 ) const -> void {
     constexpr auto light = Light{
         .position = {glm::vec3(0.0f, 1.0f, -2.0f)},
@@ -125,8 +128,18 @@ auto OpenGLRenderer::draw(
         .projection_matrix = this->projection_matrix
     });
 
-    this->shader->bind();
+    this->bind_shader(shader_type);
     render_command(*this);
+}
+
+auto OpenGLRenderer::bind_shader(ShaderType shader_type) const -> void {
+    switch (shader_type) {
+        case ShaderType::Color:
+            break;
+        case ShaderType::Phong:
+            this->phong_shader->bind();
+            break;
+    }
 }
 
 }  // namespace Luminol::Graphics

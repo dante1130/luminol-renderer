@@ -34,11 +34,15 @@ public:
     auto clear_color(const glm::vec4& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
     auto draw(
-        const RenderCommand& render_command, const glm::mat4& model_matrix
+        const RenderCommand& render_command,
+        const glm::mat4& model_matrix,
+        ShaderType shader_type
     ) const -> void override;
 
 private:
-    std::unique_ptr<OpenGLShader> shader = {nullptr};
+    auto bind_shader(ShaderType shader_type) const -> void;
+
+    std::unique_ptr<OpenGLShader> phong_shader = {nullptr};
     std::unique_ptr<OpenGLUniformBuffer<Transform>> transform_uniform_buffer = {
         nullptr
     };

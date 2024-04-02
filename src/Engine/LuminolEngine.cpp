@@ -69,7 +69,9 @@ void Engine::run() {
             model_matrix = glm::scale(model_matrix, scale);
 
             this->renderer->draw(
-                model->get_render_command(*this->renderer), model_matrix
+                model->get_render_command(*this->renderer),
+                model_matrix,
+                Graphics::ShaderType::Phong
             );
         }
 
@@ -82,7 +84,9 @@ void Engine::run() {
             model_matrix = glm::scale(model_matrix, scale);
 
             this->renderer->draw(
-                cube->get_render_command(*this->renderer), model_matrix
+                cube->get_render_command(*this->renderer),
+                model_matrix,
+                Graphics::ShaderType::Phong
             );
         }
 
