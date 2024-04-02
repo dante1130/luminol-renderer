@@ -36,12 +36,21 @@ constexpr auto buffer_bit_to_gl(BufferBit buffer_bit) -> GLenum {
     return 0;
 }
 
-auto get_default_shader_paths() -> ShaderPaths {
+auto get_color_shader_paths() -> ShaderPaths {
     return ShaderPaths{
         .vertex_shader_path =
-            std::filesystem::path{"res/Shaders/default_vert.glsl"},
+            std::filesystem::path{"res/Shaders/color_vert.glsl"},
         .fragment_shader_path =
-            std::filesystem::path{"res/Shaders/default_frag.glsl"}
+            std::filesystem::path{"res/Shaders/color_frag.glsl"}
+    };
+}
+
+auto get_phong_shader_paths() -> ShaderPaths {
+    return ShaderPaths{
+        .vertex_shader_path =
+            std::filesystem::path{"res/Shaders/phong_vert.glsl"},
+        .fragment_shader_path =
+            std::filesystem::path{"res/Shaders/phong_frag.glsl"}
     };
 }
 
@@ -71,8 +80,11 @@ OpenGLRenderer::OpenGLRenderer(Window& window) {
     glCullFace(GL_BACK);
     glFrontFace(GL_CW);
 
+    this->color_shader =
+        std::make_unique<OpenGLShader>(get_color_shader_paths());
+
     this->phong_shader =
-        std::make_unique<OpenGLShader>(get_default_shader_paths());
+        std::make_unique<OpenGLShader>(get_phong_shader_paths());
     this->phong_shader->bind();
     this->phong_shader->set_sampler_binding_point(
         "texture_diffuse", SamplerBindingPoint::TextureDiffuse
@@ -118,10 +130,8 @@ auto OpenGLRenderer::update_light(const Light& light) -> void {
     });
 }
 
-auto OpenGLRenderer::draw(
-    const RenderCommand& render_command,
-    const glm::mat4& model_matrix,
-    ShaderType shader_type
+auto OpenGLRenderer::draw_with_phong(
+    const RenderCommand& render_command, const glm::mat4& model_matrix
 ) const -> void {
     this->transform_uniform_buffer->set_data(OpenGLUniforms::Transform{
         .model_matrix = model_matrix,
@@ -129,18 +139,24 @@ auto OpenGLRenderer::draw(
         .projection_matrix = this->projection_matrix
     });
 
-    this->bind_shader(shader_type);
+    this->phong_shader->bind();
     render_command(*this);
 }
 
-auto OpenGLRenderer::bind_shader(ShaderType shader_type) const -> void {
-    switch (shader_type) {
-        case ShaderType::Color:
-            break;
-        case ShaderType::Phong:
-            this->phong_shader->bind();
-            break;
-    }
+auto OpenGLRenderer::draw_with_color(
+    const RenderCommand& render_command,
+    const glm::mat4& model_matrix,
+    const glm::vec3& color
+) const -> void {
+    this->transform_uniform_buffer->set_data(OpenGLUniforms::Transform{
+        .model_matrix = model_matrix,
+        .view_matrix = this->view_matrix,
+        .projection_matrix = this->projection_matrix
+    });
+
+    this->color_shader->bind();
+    this->color_shader->set_uniform("color", color);
+    render_command(*this);
 }
 
 }  // namespace Luminol::Graphics

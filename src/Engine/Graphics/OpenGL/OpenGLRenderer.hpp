@@ -18,16 +18,19 @@ public:
     auto clear_color(const glm::vec4& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
     auto update_light(const Light& light) -> void override;
-    auto draw(
+    auto draw_with_phong(
+        const RenderCommand& render_command, const glm::mat4& model_matrix
+    ) const -> void override;
+    auto draw_with_color(
         const RenderCommand& render_command,
         const glm::mat4& model_matrix,
-        ShaderType shader_type
+        const glm::vec3& color
     ) const -> void override;
 
 private:
-    auto bind_shader(ShaderType shader_type) const -> void;
-
+    std::unique_ptr<OpenGLShader> color_shader = {nullptr};
     std::unique_ptr<OpenGLShader> phong_shader = {nullptr};
+
     std::unique_ptr<OpenGLUniformBuffer<OpenGLUniforms::Transform>>
         transform_uniform_buffer = {nullptr};
     std::unique_ptr<OpenGLUniformBuffer<OpenGLUniforms::Light>>
