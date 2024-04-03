@@ -14,6 +14,8 @@ namespace {
 
 using namespace Luminol::Graphics;
 
+constexpr auto low_res_frame_buffer_scale = 8;
+
 constexpr auto buffer_bit_to_gl(BufferBit buffer_bit) -> GLenum {
     switch (buffer_bit) {
         case BufferBit::Color:
@@ -80,7 +82,10 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
 
     window.set_framebuffer_size_callback([this](int32_t width, int32_t height) {
         glViewport(0, 0, width, height);
-        this->low_res_frame_buffer->resize(width / 4, height / 4);
+        this->low_res_frame_buffer->resize(
+            width / low_res_frame_buffer_scale,
+            height / low_res_frame_buffer_scale
+        );
     });
 
     glEnable(GL_DEBUG_OUTPUT);
@@ -98,7 +103,8 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
     this->phong_shader = create_phong_shader();
 
     this->low_res_frame_buffer = std::make_unique<OpenGLFrameBuffer>(
-        window.get_width() / 4, window.get_height() / 4
+        window.get_width() / low_res_frame_buffer_scale,
+        window.get_height() / low_res_frame_buffer_scale
     );
 
     this->transform_uniform_buffer =
