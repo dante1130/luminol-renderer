@@ -36,22 +36,33 @@ constexpr auto buffer_bit_to_gl(BufferBit buffer_bit) -> GLenum {
     return 0;
 }
 
-auto get_color_shader_paths() -> ShaderPaths {
-    return ShaderPaths{
+auto create_color_shader() -> std::unique_ptr<OpenGLShader> {
+    return std::make_unique<OpenGLShader>(ShaderPaths{
         .vertex_shader_path =
             std::filesystem::path{"res/Shaders/color_vert.glsl"},
         .fragment_shader_path =
             std::filesystem::path{"res/Shaders/color_frag.glsl"}
-    };
+    });
 }
 
-auto get_phong_shader_paths() -> ShaderPaths {
-    return ShaderPaths{
+auto create_phong_shader() -> std::unique_ptr<OpenGLShader> {
+    auto phong_shader = std::make_unique<OpenGLShader>(ShaderPaths{
         .vertex_shader_path =
             std::filesystem::path{"res/Shaders/phong_vert.glsl"},
         .fragment_shader_path =
             std::filesystem::path{"res/Shaders/phong_frag.glsl"}
-    };
+    });
+
+    phong_shader->bind();
+    phong_shader->set_sampler_binding_point(
+        "texture_diffuse", SamplerBindingPoint::TextureDiffuse
+    );
+    phong_shader->set_uniform_block_binding_point(
+        "Transform", UniformBufferBindingPoint::Transform
+    );
+    phong_shader->unbind();
+
+    return phong_shader;
 }
 
 }  // namespace
@@ -83,19 +94,8 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
     glCullFace(GL_BACK);
     glFrontFace(GL_CW);
 
-    this->color_shader =
-        std::make_unique<OpenGLShader>(get_color_shader_paths());
-
-    this->phong_shader =
-        std::make_unique<OpenGLShader>(get_phong_shader_paths());
-    this->phong_shader->bind();
-    this->phong_shader->set_sampler_binding_point(
-        "texture_diffuse", SamplerBindingPoint::TextureDiffuse
-    );
-    this->phong_shader->set_uniform_block_binding_point(
-        "Transform", UniformBufferBindingPoint::Transform
-    );
-    this->phong_shader->unbind();
+    this->color_shader = create_color_shader();
+    this->phong_shader = create_phong_shader();
 
     this->low_res_frame_buffer = std::make_unique<OpenGLFrameBuffer>(
         window.get_width() / 4, window.get_height() / 4
