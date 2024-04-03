@@ -166,9 +166,12 @@ auto OpenGLRenderer::queue_draw_with_phong(
                 .projection_matrix = this->projection_matrix
             });
 
-            this->material_uniform_buffer->set_data(
-                OpenGLUniforms::Material{.shininess = material.shininess}
-            );
+            this->material_uniform_buffer->set_data(OpenGLUniforms::Material{
+                .ambient = {material.ambient},
+                .diffuse = {material.diffuse},
+                .specular = {material.specular},
+                .shininess = material.shininess
+            });
 
             this->phong_shader->bind();
             this->phong_shader->set_uniform(

@@ -16,6 +16,9 @@ struct Light {
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers, readability-magic-numbers)
 struct Material {
+    glm::vec3 ambient = {1.0f, 1.0f, 1.0f};
+    glm::vec3 diffuse = {1.0f, 1.0f, 1.0f};
+    glm::vec3 specular = {1.0f, 1.0f, 1.0f};
     float shininess = 32.0f;
 };
 // NOLINTEND(cppcoreguidelines-avoid-magic-numbers, readability-magic-numbers)
