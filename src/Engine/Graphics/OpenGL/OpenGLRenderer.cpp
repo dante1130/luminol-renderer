@@ -190,7 +190,9 @@ auto OpenGLRenderer::draw() -> void {
 
     this->clear(BufferBit::ColorDepth);
     glViewport(0, 0, this->get_window_width(), this->get_window_height());
-    draw_scene();
+    this->low_res_frame_buffer->blit(
+        this->get_window_width(), this->get_window_height()
+    );
 
     this->draw_queue.clear();
 }

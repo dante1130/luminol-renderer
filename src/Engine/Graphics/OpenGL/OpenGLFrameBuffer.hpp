@@ -4,6 +4,8 @@
 
 #include <glm/glm.hpp>
 
+#include <Engine/Graphics/OpenGL/OpenGLUniformBindingPoints.hpp>
+
 namespace Luminol::Graphics {
 
 class OpenGLFrameBuffer {
@@ -17,6 +19,8 @@ public:
 
     auto bind() const -> void;
     auto unbind() const -> void;
+
+    auto blit(int32_t width, int32_t height) const -> void;
 
     [[nodiscard]] auto get_width() const -> int32_t;
     [[nodiscard]] auto get_height() const -> int32_t;
