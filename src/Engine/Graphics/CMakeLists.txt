@@ -11,6 +11,7 @@ add_library(Luminol.Graphics
     OpenGL/OpenGLMesh.cpp
     OpenGL/OpenGLModel.cpp
     OpenGL/OpenGLError.cpp
+    OpenGL/OpenGLFrameBuffer.cpp
 )
 
 target_link_libraries(Luminol.Graphics PUBLIC

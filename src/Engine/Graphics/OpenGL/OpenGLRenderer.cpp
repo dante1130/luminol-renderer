@@ -130,33 +130,49 @@ auto OpenGLRenderer::update_light(const Light& light) -> void {
     });
 }
 
-auto OpenGLRenderer::draw_with_phong(
+auto OpenGLRenderer::queue_draw_with_phong(
     const RenderCommand& render_command, const glm::mat4& model_matrix
-) const -> void {
-    this->transform_uniform_buffer->set_data(OpenGLUniforms::Transform{
-        .model_matrix = model_matrix,
-        .view_matrix = this->view_matrix,
-        .projection_matrix = this->projection_matrix
-    });
+) -> void {
+    this->draw_queue.emplace_back([this, model_matrix, render_command] {
+        this->transform_uniform_buffer->set_data(OpenGLUniforms::Transform{
+            .model_matrix = model_matrix,
+            .view_matrix = this->view_matrix,
+            .projection_matrix = this->projection_matrix
+        });
 
-    this->phong_shader->bind();
-    render_command(*this);
+        this->phong_shader->bind();
+        render_command(*this);
+    });
 }
 
-auto OpenGLRenderer::draw_with_color(
+auto OpenGLRenderer::queue_draw_with_color(
     const RenderCommand& render_command,
     const glm::mat4& model_matrix,
     const glm::vec3& color
-) const -> void {
-    this->transform_uniform_buffer->set_data(OpenGLUniforms::Transform{
-        .model_matrix = model_matrix,
-        .view_matrix = this->view_matrix,
-        .projection_matrix = this->projection_matrix
-    });
+) -> void {
+    this->draw_queue.emplace_back([this, model_matrix, render_command, color] {
+        this->transform_uniform_buffer->set_data(OpenGLUniforms::Transform{
+            .model_matrix = model_matrix,
+            .view_matrix = this->view_matrix,
+            .projection_matrix = this->projection_matrix
+        });
 
-    this->color_shader->bind();
-    this->color_shader->set_uniform("color", color);
-    render_command(*this);
+        this->color_shader->bind();
+        this->color_shader->set_uniform("color", color);
+        render_command(*this);
+    });
+}
+
+auto OpenGLRenderer::draw() -> void {
+    const auto draw_scene = [this] {
+        for (const auto& draw_call : this->draw_queue) {
+            draw_call();
+        }
+    };
+
+    draw_scene();
+
+    this->draw_queue.clear();
 }
 
 }  // namespace Luminol::Graphics

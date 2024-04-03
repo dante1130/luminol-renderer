@@ -79,7 +79,7 @@ void Engine::run() {
             model_matrix = glm::translate(model_matrix, light_position);
             model_matrix = glm::scale(model_matrix, scale);
 
-            this->renderer->draw_with_color(
+            this->renderer->queue_draw_with_color(
                 cube->get_render_command(*this->renderer),
                 model_matrix,
                 glm::vec3(1.0f, 1.0f, 1.0f)
@@ -92,10 +92,12 @@ void Engine::run() {
             auto model_matrix = glm::mat4(1.0f);
             model_matrix = glm::scale(model_matrix, scale);
 
-            this->renderer->draw_with_phong(
+            this->renderer->queue_draw_with_phong(
                 model->get_render_command(*this->renderer), model_matrix
             );
         }
+
+        this->renderer->draw();
 
         this->window.swap_buffers();
     }

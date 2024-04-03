@@ -9,6 +9,8 @@ namespace Luminol::Graphics {
 
 class OpenGLRenderer : public Renderer {
 public:
+    using DrawCall = std::function<void()>;
+
     OpenGLRenderer(Window& window);
 
     auto set_view_matrix(const glm::mat4& view_matrix) -> void override;
@@ -18,16 +20,19 @@ public:
     auto clear_color(const glm::vec4& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
     auto update_light(const Light& light) -> void override;
-    auto draw_with_phong(
+    auto queue_draw_with_phong(
         const RenderCommand& render_command, const glm::mat4& model_matrix
-    ) const -> void override;
-    auto draw_with_color(
+    ) -> void override;
+    auto queue_draw_with_color(
         const RenderCommand& render_command,
         const glm::mat4& model_matrix,
         const glm::vec3& color
-    ) const -> void override;
+    ) -> void override;
+    auto draw() -> void override;
 
 private:
+    std::vector<DrawCall> draw_queue = {};
+
     std::unique_ptr<OpenGLShader> color_shader = {nullptr};
     std::unique_ptr<OpenGLShader> phong_shader = {nullptr};
 
