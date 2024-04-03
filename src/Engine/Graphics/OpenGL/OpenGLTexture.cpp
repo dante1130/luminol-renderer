@@ -10,8 +10,8 @@ auto create_texture(const Luminol::Utilities::ImageLoader::Image& image)
     uint32_t texture_id = {0};
     glCreateTextures(GL_TEXTURE_2D, 1, &texture_id);
 
-    glTextureParameteri(texture_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTextureParameteri(texture_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTextureParameteri(texture_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTextureParameteri(texture_id, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTextureParameteri(texture_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTextureParameteri(texture_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
