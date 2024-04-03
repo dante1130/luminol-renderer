@@ -4,6 +4,7 @@
 #include <Engine/Graphics/OpenGL/OpenGLShader.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLUniformBuffer.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLUniforms.hpp>
+#include <Engine/Graphics/OpenGL/OpenGLFrameBuffer.hpp>
 
 namespace Luminol::Graphics {
 
@@ -31,10 +32,15 @@ public:
     auto draw() -> void override;
 
 private:
+    std::function<int32_t()> get_window_width;
+    std::function<int32_t()> get_window_height;
+
     std::vector<DrawCall> draw_queue = {};
 
     std::unique_ptr<OpenGLShader> color_shader = {nullptr};
     std::unique_ptr<OpenGLShader> phong_shader = {nullptr};
+
+    std::unique_ptr<OpenGLFrameBuffer> low_res_frame_buffer = {nullptr};
 
     std::unique_ptr<OpenGLUniformBuffer<OpenGLUniforms::Transform>>
         transform_uniform_buffer = {nullptr};

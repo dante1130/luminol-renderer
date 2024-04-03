@@ -58,15 +58,18 @@ auto get_phong_shader_paths() -> ShaderPaths {
 
 namespace Luminol::Graphics {
 
-OpenGLRenderer::OpenGLRenderer(Window& window) {
+OpenGLRenderer::OpenGLRenderer(Window& window)
+    : get_window_width{[&window]() { return window.get_width(); }},
+      get_window_height{[&window]() { return window.get_height(); }} {
     const auto version = gladLoadGL(window.get_proc_address());
     Ensures(version != 0);
 
     std::cout << "OpenGL Version " << GLAD_VERSION_MAJOR(version) << "."
               << GLAD_VERSION_MINOR(version) << " loaded\n";
 
-    window.set_framebuffer_size_callback([](int32_t width, int32_t height) {
+    window.set_framebuffer_size_callback([this](int32_t width, int32_t height) {
         glViewport(0, 0, width, height);
+        this->low_res_frame_buffer->resize(width / 4, height / 4);
     });
 
     glEnable(GL_DEBUG_OUTPUT);
@@ -93,6 +96,10 @@ OpenGLRenderer::OpenGLRenderer(Window& window) {
         "Transform", UniformBufferBindingPoint::Transform
     );
     this->phong_shader->unbind();
+
+    this->low_res_frame_buffer = std::make_unique<OpenGLFrameBuffer>(
+        window.get_width() / 4, window.get_height() / 4
+    );
 
     this->transform_uniform_buffer =
         std::make_unique<OpenGLUniformBuffer<OpenGLUniforms::Transform>>(
@@ -170,6 +177,19 @@ auto OpenGLRenderer::draw() -> void {
         }
     };
 
+    this->low_res_frame_buffer->bind();
+    this->clear(BufferBit::ColorDepth);
+    glViewport(
+        0,
+        0,
+        this->low_res_frame_buffer->get_width(),
+        this->low_res_frame_buffer->get_height()
+    );
+    draw_scene();
+    this->low_res_frame_buffer->unbind();
+
+    this->clear(BufferBit::ColorDepth);
+    glViewport(0, 0, this->get_window_width(), this->get_window_height());
     draw_scene();
 
     this->draw_queue.clear();
