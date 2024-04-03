@@ -14,7 +14,7 @@ namespace {
 
 using namespace Luminol::Graphics;
 
-constexpr auto low_res_frame_buffer_scale = 8;
+constexpr auto low_res_frame_buffer_scale = 1;
 
 constexpr auto buffer_bit_to_gl(BufferBit buffer_bit) -> GLenum {
     switch (buffer_bit) {
@@ -65,6 +65,10 @@ auto create_phong_shader() -> std::unique_ptr<OpenGLShader> {
     phong_shader->unbind();
 
     return phong_shader;
+}
+
+auto get_view_position(const glm::mat4& view_matrix) -> glm::vec3 {
+    return glm::inverse(view_matrix)[3];
 }
 
 }  // namespace
@@ -139,7 +143,8 @@ auto OpenGLRenderer::update_light(const Light& light) -> void {
     this->light_uniform_buffer->set_data(OpenGLUniforms::Light{
         .position = {light.position},
         .color = {light.color},
-        .ambient_intensity = light.ambient_intensity
+        .ambient_intensity = light.ambient_intensity,
+        .specular_intensity = light.specular_intensity
     });
 }
 
@@ -154,6 +159,9 @@ auto OpenGLRenderer::queue_draw_with_phong(
         });
 
         this->phong_shader->bind();
+        this->phong_shader->set_uniform(
+            "view_position", get_view_position(this->view_matrix)
+        );
         render_command(*this);
     });
 }

@@ -67,7 +67,8 @@ void Engine::run() {
         constexpr auto light = Graphics::Light{
             .position = light_position,
             .color = glm::vec3(1.0f, 1.0f, 1.0f),
-            .ambient_intensity = 0.25f
+            .ambient_intensity = 0.25f,
+            .specular_intensity = 0.5f
         };
 
         this->renderer->update_light(light);

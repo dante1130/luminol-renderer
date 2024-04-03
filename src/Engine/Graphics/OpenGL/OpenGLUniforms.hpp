@@ -21,6 +21,7 @@ struct Light {
     PaddedVec3 position = {.data = {0.0f, 0.0f, 0.0f}};  // 16 bytes
     glm::vec3 color = {1.0f, 1.0f, 1.0f};                // 12 bytes
     float ambient_intensity = {1.0f};                    // 4 bytes
+    float specular_intensity = {1.0f};                   // 4 bytes
 };
 
 }  // namespace OpenGLUniforms
