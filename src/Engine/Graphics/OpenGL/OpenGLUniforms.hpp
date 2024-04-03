@@ -19,9 +19,9 @@ struct Transform {
 
 struct Light {
     PaddedVec3 position = {glm::vec3{0.0f, 0.0f, 0.0f}};  // 16 bytes
-    glm::vec3 color = {glm::vec3{1.0f, 1.0f, 1.0f}};      // 12 bytes
-    float ambient_intensity = {1.0f};                     // 4 bytes
-    float specular_intensity = {1.0f};                    // 4 bytes
+    PaddedVec3 ambient = {glm::vec3{1.0f, 1.0f, 1.0f}};   // 16 bytes
+    PaddedVec3 diffuse = {glm::vec3{1.0f, 1.0f, 1.0f}};   // 16 bytes
+    PaddedVec3 specular = {glm::vec3{1.0f, 1.0f, 1.0f}};  // 16 bytes
 };
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers, readability-magic-numbers)

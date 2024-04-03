@@ -147,9 +147,9 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
 auto OpenGLRenderer::update_light(const Light& light) -> void {
     this->light_uniform_buffer->set_data(OpenGLUniforms::Light{
         .position = {light.position},
-        .color = {light.color},
-        .ambient_intensity = light.ambient_intensity,
-        .specular_intensity = light.specular_intensity
+        .ambient = {light.ambient},
+        .diffuse = {light.diffuse},
+        .specular = {light.specular}
     });
 }
 
