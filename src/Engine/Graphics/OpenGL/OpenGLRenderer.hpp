@@ -22,7 +22,9 @@ public:
     auto clear(BufferBit buffer_bit) const -> void override;
     auto update_light(const Light& light) -> void override;
     auto queue_draw_with_phong(
-        const RenderCommand& render_command, const glm::mat4& model_matrix
+        const RenderCommand& render_command,
+        const glm::mat4& model_matrix,
+        const Material& material
     ) -> void override;
     auto queue_draw_with_color(
         const RenderCommand& render_command,
@@ -46,6 +48,8 @@ private:
         transform_uniform_buffer = {nullptr};
     std::unique_ptr<OpenGLUniformBuffer<OpenGLUniforms::Light>>
         light_uniform_buffer = {nullptr};
+    std::unique_ptr<OpenGLUniformBuffer<OpenGLUniforms::Material>>
+        material_uniform_buffer = {nullptr};
 
     glm::mat4 view_matrix = {1.0f};
     glm::mat4 projection_matrix = {1.0f};

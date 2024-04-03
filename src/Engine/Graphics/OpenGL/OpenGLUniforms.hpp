@@ -24,6 +24,12 @@ struct Light {
     float specular_intensity = {1.0f};                   // 4 bytes
 };
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers, readability-magic-numbers)
+struct Material {
+    float shininess = 32.0f;  // 4 bytes
+};
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers, readability-magic-numbers)
+
 }  // namespace OpenGLUniforms
 
 }  // namespace Luminol::Graphics

@@ -120,6 +120,11 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
         std::make_unique<OpenGLUniformBuffer<OpenGLUniforms::Light>>(
             OpenGLUniforms::Light{}, UniformBufferBindingPoint::Light
         );
+
+    this->material_uniform_buffer =
+        std::make_unique<OpenGLUniformBuffer<OpenGLUniforms::Material>>(
+            OpenGLUniforms::Material{}, UniformBufferBindingPoint::Material
+        );
 }
 
 auto OpenGLRenderer::set_view_matrix(const glm::mat4& view_matrix) -> void {
@@ -149,21 +154,29 @@ auto OpenGLRenderer::update_light(const Light& light) -> void {
 }
 
 auto OpenGLRenderer::queue_draw_with_phong(
-    const RenderCommand& render_command, const glm::mat4& model_matrix
+    const RenderCommand& render_command,
+    const glm::mat4& model_matrix,
+    const Material& material
 ) -> void {
-    this->draw_queue.emplace_back([this, model_matrix, render_command] {
-        this->transform_uniform_buffer->set_data(OpenGLUniforms::Transform{
-            .model_matrix = model_matrix,
-            .view_matrix = this->view_matrix,
-            .projection_matrix = this->projection_matrix
-        });
+    this->draw_queue.emplace_back(
+        [this, model_matrix, render_command, material] {
+            this->transform_uniform_buffer->set_data(OpenGLUniforms::Transform{
+                .model_matrix = model_matrix,
+                .view_matrix = this->view_matrix,
+                .projection_matrix = this->projection_matrix
+            });
 
-        this->phong_shader->bind();
-        this->phong_shader->set_uniform(
-            "view_position", get_view_position(this->view_matrix)
-        );
-        render_command(*this);
-    });
+            this->material_uniform_buffer->set_data(
+                OpenGLUniforms::Material{.shininess = material.shininess}
+            );
+
+            this->phong_shader->bind();
+            this->phong_shader->set_uniform(
+                "view_position", get_view_position(this->view_matrix)
+            );
+            render_command(*this);
+        }
+    );
 }
 
 auto OpenGLRenderer::queue_draw_with_color(

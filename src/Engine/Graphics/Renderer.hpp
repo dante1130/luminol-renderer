@@ -14,6 +14,12 @@ struct Light {
     float specular_intensity = 1.0f;
 };
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers, readability-magic-numbers)
+struct Material {
+    float shininess = 32.0f;
+};
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers, readability-magic-numbers)
+
 class Renderer;
 
 using RenderCommand = std::function<void(const Renderer&)>;
@@ -35,7 +41,9 @@ public:
     virtual auto clear(BufferBit buffer_bit) const -> void = 0;
     virtual auto update_light(const Light& light) -> void = 0;
     virtual auto queue_draw_with_phong(
-        const RenderCommand& render_command, const glm::mat4& model_matrix
+        const RenderCommand& render_command,
+        const glm::mat4& model_matrix,
+        const Material& material
     ) -> void = 0;
     virtual auto queue_draw_with_color(
         const RenderCommand& render_command,

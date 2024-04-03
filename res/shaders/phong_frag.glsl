@@ -18,6 +18,11 @@ layout(std140, binding = 1) uniform Light
     float light_specular_intensity;
 };
 
+layout(std140, binding = 2) uniform Material
+{
+    float material_shininess;
+};
+
 vec3 calculate_ambient(vec3 light_color, float light_ambient_intensity)
 {
     return light_ambient_intensity * light_color;
@@ -35,7 +40,7 @@ vec3 calculate_specular(vec3 light_color, vec3 light_position, vec3 frag_pos, ve
     vec3 view_direction = normalize(view_position - frag_pos);
     vec3 light_direction = normalize(light_position - frag_pos);
     vec3 reflect_direction = reflect(-light_direction, normalize(normal));
-    float spec = pow(max(dot(view_direction, reflect_direction), 0.0), 256);
+    float spec = pow(max(dot(view_direction, reflect_direction), 0.0), material_shininess);
     return light_specular_intensity * spec * light_color;
 }
 

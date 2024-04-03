@@ -93,8 +93,12 @@ void Engine::run() {
             auto model_matrix = glm::mat4(1.0f);
             model_matrix = glm::scale(model_matrix, scale);
 
+            constexpr auto material = Graphics::Material{.shininess = 256.0f};
+
             this->renderer->queue_draw_with_phong(
-                model->get_render_command(*this->renderer), model_matrix
+                model->get_render_command(*this->renderer),
+                model_matrix,
+                material
             );
         }
 
