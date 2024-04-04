@@ -100,13 +100,11 @@ void Engine::run() {
             );
 
             constexpr auto material = Graphics::Material{.shininess = 256.0f};
-            constexpr auto cell_shading_levels = 3.0f;
 
-            this->renderer->queue_draw_with_cell_shading(
+            this->renderer->queue_draw_with_phong(
                 model->get_render_command(*this->renderer),
                 model_matrix,
-                material,
-                cell_shading_levels
+                material
             );
         }
 

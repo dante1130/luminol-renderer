@@ -5,6 +5,7 @@ out vec4 frag_color;
 in vec2 tex_coords_out;
 in vec3 frag_pos_out;
 in vec3 normal_out;
+in vec3 tangent_out;
 
 layout(std140, binding = 1) uniform Light
 {
@@ -19,6 +20,7 @@ struct Material
     sampler2D texture_diffuse;
     sampler2D texture_specular;
     sampler2D texture_emissive;
+    sampler2D texture_normal;
     float shininess;
 };
 
@@ -26,6 +28,19 @@ uniform vec3 view_position;
 uniform Material material;
 uniform bool is_cell_shading_enabled;
 uniform float cell_shading_levels;
+
+vec3 calculate_normal(sampler2D material_texture_normal, vec3 normal, vec3 tangent, vec2 tex_coords)
+{
+    vec3 normal_map = texture(material_texture_normal, tex_coords).rgb;
+    normal_map = normalize(normal_map * 2.0 - 1.0);
+
+    vec3 n = normalize(normal);
+    vec3 t = normalize(tangent);
+    vec3 b = cross(n, t);
+
+    mat3 tbn = mat3(t, b, n);
+    return normalize(tbn * normal_map);
+}
 
 vec3 calculate_ambient(vec3 light_ambient, sampler2D material_texture_diffuse)
 {
@@ -76,6 +91,8 @@ vec3 calculate_specular(
 
 void main()
 {
+    vec3 normal = calculate_normal(material.texture_normal, normal_out, tangent_out, tex_coords_out);
+
     vec3 ambient = calculate_ambient(light_ambient, material.texture_diffuse);
 
     vec3 diffuse = calculate_diffuse(
@@ -83,7 +100,7 @@ void main()
             light_diffuse,
             material.texture_diffuse,
             frag_pos_out,
-            normal_out
+            normal
         );
 
     vec3 specular = calculate_specular(
@@ -93,7 +110,7 @@ void main()
             material.texture_specular,
             material.shininess,
             frag_pos_out,
-            normal_out
+            normal
         );
 
     vec3 emission = texture(material.texture_emissive, tex_coords_out).rgb;

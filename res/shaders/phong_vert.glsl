@@ -8,6 +8,7 @@ layout(location = 3) in vec3 tangent;
 out vec2 tex_coords_out;
 out vec3 frag_pos_out;
 out vec3 normal_out;
+out vec3 tangent_out;
 
 layout(std140, binding = 0) uniform Transform
 {
@@ -22,4 +23,5 @@ void main()
     frag_pos_out = vec3(model_matrix * vec4(position, 1.0));
     tex_coords_out = tex_coords;
     normal_out = mat3(transpose(inverse(model_matrix))) * normal;
+    tangent_out = mat3(transpose(inverse(model_matrix))) * tangent;
 }
