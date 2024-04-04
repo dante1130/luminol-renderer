@@ -68,9 +68,7 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
         };
 
         this->meshes.emplace_back(std::make_unique<OpenGLMesh>(
-            gsl::make_span(mesh_vertices),
-            gsl::make_span(mesh_data.indices),
-            texture_images
+            mesh_vertices, mesh_data.indices, texture_images
         ));
     }
 }
