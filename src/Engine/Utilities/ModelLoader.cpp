@@ -62,6 +62,24 @@ auto load_normals(const aiMesh& mesh) -> std::vector<glm::vec3> {
     return normals;
 }
 
+auto load_tangents(const aiMesh& mesh) -> std::vector<glm::vec3> {
+    if (!mesh.HasTangentsAndBitangents()) {
+        return std::vector<glm::vec3>{mesh.mNumVertices, glm::vec3{0.0f}};
+    }
+
+    auto tangents = std::vector<glm::vec3>{};
+    tangents.reserve(mesh.mNumVertices);
+
+    const auto tangents_span =
+        gsl::make_span(mesh.mTangents, mesh.mNumVertices);
+
+    for (const auto& tangent : tangents_span) {
+        tangents.emplace_back(tangent.x, tangent.y, tangent.z);
+    }
+
+    return tangents;
+}
+
 auto load_indices(const aiMesh& mesh) -> std::vector<uint32_t> {
     auto indices = std::vector<uint32_t>{};
     indices.reserve(gsl::narrow<size_t>(mesh.mNumFaces * 3));
@@ -124,6 +142,7 @@ auto load_mesh(
         .vertices = load_vertices(mesh),
         .texture_coordinates = load_texture_coordinates(mesh),
         .normals = load_normals(mesh),
+        .tangents = load_tangents(mesh),
         .indices = load_indices(mesh),
         .diffuse_texture_paths = load_textures(
             mesh, materials, aiTextureType_DIFFUSE, directory, textures_map
@@ -133,6 +152,9 @@ auto load_mesh(
         ),
         .emissive_texture_paths = load_textures(
             mesh, materials, aiTextureType_EMISSIVE, directory, textures_map
+        ),
+        .normal_texture_paths = load_textures(
+            mesh, materials, aiTextureType_NORMALS, directory, textures_map
         )
     };
 }
@@ -148,7 +170,7 @@ auto load_model(const std::filesystem::path& path) -> std::optional<ModelData> {
         aiProcess_Triangulate | aiProcess_JoinIdenticalVertices |
             aiProcess_MakeLeftHanded | aiProcess_FlipWindingOrder |
             aiProcess_FlipUVs | aiProcess_PreTransformVertices |
-            aiProcess_GenSmoothNormals
+            aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace
     );
 
     if (scene == nullptr || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) == 1) {
