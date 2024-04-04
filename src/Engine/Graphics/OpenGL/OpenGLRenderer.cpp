@@ -59,8 +59,20 @@ auto create_phong_shader() -> std::unique_ptr<OpenGLShader> {
     phong_shader->set_sampler_binding_point(
         "texture_diffuse", SamplerBindingPoint::TextureDiffuse
     );
+    phong_shader->set_sampler_binding_point(
+        "texture_specular", SamplerBindingPoint::TextureSpecular
+    );
+    phong_shader->set_sampler_binding_point(
+        "texture_emissive", SamplerBindingPoint::TextureEmissive
+    );
     phong_shader->set_uniform_block_binding_point(
         "Transform", UniformBufferBindingPoint::Transform
+    );
+    phong_shader->set_uniform_block_binding_point(
+        "Light", UniformBufferBindingPoint::Light
+    );
+    phong_shader->set_uniform_block_binding_point(
+        "Material", UniformBufferBindingPoint::Material
     );
     phong_shader->unbind();
 

@@ -10,6 +10,8 @@ enum class UniformBufferBindingPoint {
 
 enum class SamplerBindingPoint {
     TextureDiffuse = 0,
+    TextureSpecular,
+    TextureEmissive,
 };
 
 }  // namespace Luminol::Graphics

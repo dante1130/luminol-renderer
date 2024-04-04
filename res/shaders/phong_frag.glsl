@@ -7,6 +7,8 @@ in vec3 frag_pos_out;
 in vec3 normal_out;
 
 uniform sampler2D texture_diffuse;
+uniform sampler2D texture_specular;
+uniform sampler2D texture_emissive;
 
 uniform vec3 view_position;
 
