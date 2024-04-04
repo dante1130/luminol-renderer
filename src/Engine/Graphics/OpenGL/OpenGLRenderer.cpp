@@ -57,22 +57,19 @@ auto create_phong_shader() -> std::unique_ptr<OpenGLShader> {
 
     phong_shader->bind();
     phong_shader->set_sampler_binding_point(
-        "texture_diffuse", SamplerBindingPoint::TextureDiffuse
+        "material.texture_diffuse", SamplerBindingPoint::TextureDiffuse
     );
     phong_shader->set_sampler_binding_point(
-        "texture_specular", SamplerBindingPoint::TextureSpecular
+        "material.texture_specular", SamplerBindingPoint::TextureSpecular
     );
     phong_shader->set_sampler_binding_point(
-        "texture_emissive", SamplerBindingPoint::TextureEmissive
+        "material.texture_emissive", SamplerBindingPoint::TextureEmissive
     );
     phong_shader->set_uniform_block_binding_point(
         "Transform", UniformBufferBindingPoint::Transform
     );
     phong_shader->set_uniform_block_binding_point(
         "Light", UniformBufferBindingPoint::Light
-    );
-    phong_shader->set_uniform_block_binding_point(
-        "Material", UniformBufferBindingPoint::Material
     );
     phong_shader->unbind();
 
@@ -132,11 +129,6 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
         std::make_unique<OpenGLUniformBuffer<OpenGLUniforms::Light>>(
             OpenGLUniforms::Light{}, UniformBufferBindingPoint::Light
         );
-
-    this->material_uniform_buffer =
-        std::make_unique<OpenGLUniformBuffer<OpenGLUniforms::Material>>(
-            OpenGLUniforms::Material{}, UniformBufferBindingPoint::Material
-        );
 }
 
 auto OpenGLRenderer::set_view_matrix(const glm::mat4& view_matrix) -> void {
@@ -178,16 +170,12 @@ auto OpenGLRenderer::queue_draw_with_phong(
                 .projection_matrix = this->projection_matrix
             });
 
-            this->material_uniform_buffer->set_data(OpenGLUniforms::Material{
-                .ambient = {material.ambient},
-                .diffuse = {material.diffuse},
-                .specular = {material.specular},
-                .shininess = material.shininess
-            });
-
             this->phong_shader->bind();
             this->phong_shader->set_uniform(
                 "view_position", get_view_position(this->view_matrix)
+            );
+            this->phong_shader->set_uniform(
+                "material.shininess", material.shininess
             );
             render_command(*this);
         }

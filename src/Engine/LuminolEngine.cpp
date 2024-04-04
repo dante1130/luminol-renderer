@@ -106,12 +106,7 @@ void Engine::run() {
                 glm::vec3(0.0f, 0.0f, 1.0f)
             );
 
-            constexpr auto material = Graphics::Material{
-                .ambient = glm::vec3(1.0f, 1.0f, 1.0f),
-                .diffuse = glm::vec3(1.0f, 1.0f, 1.0f),
-                .specular = glm::vec3(5.0f, 5.0f, 5.0f),
-                .shininess = 256.0f
-            };
+            constexpr auto material = Graphics::Material{.shininess = 256.0f};
 
             this->renderer->queue_draw_with_phong(
                 model->get_render_command(*this->renderer),

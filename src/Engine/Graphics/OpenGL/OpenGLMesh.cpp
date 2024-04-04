@@ -46,7 +46,9 @@ OpenGLMesh::OpenGLMesh(
     const TexturePaths& texture_paths
 )
     : vertex_array_object(vertices, indices, create_vertex_attributes()),
-      diffuse_texture(texture_paths.diffuse_texture_path) {}
+      diffuse_texture(texture_paths.diffuse_texture_path),
+      specular_texture(texture_paths.specular_texture_path),
+      emissive_texture(texture_paths.emissive_texture_path) {}
 
 OpenGLMesh::OpenGLMesh(
     gsl::span<const float> vertices,
@@ -54,13 +56,23 @@ OpenGLMesh::OpenGLMesh(
     const TextureImages& texture_images
 )
     : vertex_array_object(vertices, indices, create_vertex_attributes()),
-      diffuse_texture(texture_images.diffuse_texture) {}
+      diffuse_texture(texture_images.diffuse_texture),
+      specular_texture(texture_images.specular_texture),
+      emissive_texture(texture_images.emissive_texture) {}
 
 auto OpenGLMesh::get_render_command(const Renderer& /*renderer*/) const
     -> RenderCommand {
     return [this](const Renderer& /*renderer*/) {
         if (this->diffuse_texture.has_value()) {
             this->diffuse_texture->bind(SamplerBindingPoint::TextureDiffuse);
+        }
+
+        if (this->specular_texture.has_value()) {
+            this->specular_texture->bind(SamplerBindingPoint::TextureSpecular);
+        }
+
+        if (this->emissive_texture.has_value()) {
+            this->emissive_texture->bind(SamplerBindingPoint::TextureEmissive);
         }
 
         this->vertex_array_object.bind();
@@ -70,6 +82,20 @@ auto OpenGLMesh::get_render_command(const Renderer& /*renderer*/) const
             GL_UNSIGNED_INT,
             nullptr
         );
+
+        if (this->emissive_texture.has_value()) {
+            this->emissive_texture->unbind(SamplerBindingPoint::TextureEmissive
+            );
+        }
+
+        if (this->specular_texture.has_value()) {
+            this->specular_texture->unbind(SamplerBindingPoint::TextureSpecular
+            );
+        }
+
+        if (this->diffuse_texture.has_value()) {
+            this->diffuse_texture->unbind(SamplerBindingPoint::TextureDiffuse);
+        }
     };
 }
 

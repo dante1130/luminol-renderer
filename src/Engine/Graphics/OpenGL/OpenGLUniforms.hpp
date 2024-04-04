@@ -24,15 +24,6 @@ struct Light {
     PaddedVec3 specular = {glm::vec3{1.0f, 1.0f, 1.0f}};  // 16 bytes
 };
 
-// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers, readability-magic-numbers)
-struct Material {
-    PaddedVec3 ambient = {glm::vec3{1.0f, 1.0f, 1.0f}};  // 16 bytes
-    PaddedVec3 diffuse = {glm::vec3{1.0f, 1.0f, 1.0f}};  // 16 bytes
-    glm::vec3 specular = {glm::vec3{1.0f, 1.0f, 1.0f}};  // 12 bytes
-    float shininess = 32.0f;                             // 4 bytes
-};
-// NOLINTEND(cppcoreguidelines-avoid-magic-numbers, readability-magic-numbers)
-
 }  // namespace OpenGLUniforms
 
 }  // namespace Luminol::Graphics

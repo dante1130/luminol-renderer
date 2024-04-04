@@ -48,8 +48,6 @@ private:
         transform_uniform_buffer = {nullptr};
     std::unique_ptr<OpenGLUniformBuffer<OpenGLUniforms::Light>>
         light_uniform_buffer = {nullptr};
-    std::unique_ptr<OpenGLUniformBuffer<OpenGLUniforms::Material>>
-        material_uniform_buffer = {nullptr};
 
     glm::mat4 view_matrix = {1.0f};
     glm::mat4 projection_matrix = {1.0f};

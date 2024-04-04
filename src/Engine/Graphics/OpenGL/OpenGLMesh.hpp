@@ -38,6 +38,8 @@ public:
 private:
     OpenGLVertexArrayObject vertex_array_object;
     std::optional<OpenGLTexture> diffuse_texture = std::nullopt;
+    std::optional<OpenGLTexture> specular_texture = std::nullopt;
+    std::optional<OpenGLTexture> emissive_texture = std::nullopt;
 };
 
 }  // namespace Luminol::Graphics
