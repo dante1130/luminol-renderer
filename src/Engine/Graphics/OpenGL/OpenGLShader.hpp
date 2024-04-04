@@ -49,6 +49,7 @@ public:
         -> void;
     auto set_uniform(const std::string& name, float value) const -> void;
     auto set_uniform(const std::string& name, int value) const -> void;
+    auto set_uniform(const std::string& name, bool value) const -> void;
 
 private:
     uint32_t shader_program_id = 0;

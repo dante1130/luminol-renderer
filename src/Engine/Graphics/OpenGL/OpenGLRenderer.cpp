@@ -177,6 +177,39 @@ auto OpenGLRenderer::queue_draw_with_phong(
             this->phong_shader->set_uniform(
                 "material.shininess", material.shininess
             );
+            this->phong_shader->set_uniform("is_cell_shading_enabled", 0);
+            render_command(*this);
+        }
+    );
+}
+
+auto OpenGLRenderer::queue_draw_with_cell_shading(
+    const RenderCommand& render_command,
+    const glm::mat4& model_matrix,
+    const Material& material,
+    float cell_shading_levels
+) -> void {
+    Ensures(cell_shading_levels > 0);
+
+    this->draw_queue.emplace_back(
+        [this, model_matrix, render_command, material, cell_shading_levels] {
+            this->transform_uniform_buffer->set_data(OpenGLUniforms::Transform{
+                .model_matrix = model_matrix,
+                .view_matrix = this->view_matrix,
+                .projection_matrix = this->projection_matrix
+            });
+
+            this->phong_shader->bind();
+            this->phong_shader->set_uniform(
+                "view_position", get_view_position(this->view_matrix)
+            );
+            this->phong_shader->set_uniform(
+                "material.shininess", material.shininess
+            );
+            this->phong_shader->set_uniform("is_cell_shading_enabled", 1);
+            this->phong_shader->set_uniform(
+                "cell_shading_levels", cell_shading_levels
+            );
             render_command(*this);
         }
     );

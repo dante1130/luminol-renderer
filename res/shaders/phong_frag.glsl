@@ -24,6 +24,8 @@ struct Material
 
 uniform vec3 view_position;
 uniform Material material;
+uniform bool is_cell_shading_enabled;
+uniform float cell_shading_levels;
 
 vec3 calculate_ambient(vec3 light_ambient, sampler2D material_texture_diffuse)
 {
@@ -40,6 +42,12 @@ vec3 calculate_diffuse(
 {
     vec3 light_direction = normalize(light_position - frag_pos);
     float diff = max(dot(normalize(normal), light_direction), 0.0);
+
+    if (is_cell_shading_enabled)
+    {
+        diff = floor(diff * cell_shading_levels) / cell_shading_levels;
+    }
+
     return light_diffuse * diff * texture(material_texture_diffuse, tex_coords_out).rgb;
 }
 
@@ -57,6 +65,12 @@ vec3 calculate_specular(
     vec3 light_direction = normalize(light_position - frag_pos);
     vec3 reflect_direction = reflect(-light_direction, normalize(normal));
     float spec = pow(max(dot(view_direction, reflect_direction), 0.0), material_shininess);
+
+    if (is_cell_shading_enabled)
+    {
+        spec = floor(spec * cell_shading_levels) / cell_shading_levels;
+    }
+
     return light_specular * spec * texture(material_texture_specular, tex_coords_out).rgb;
 }
 

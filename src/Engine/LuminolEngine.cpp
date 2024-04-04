@@ -67,8 +67,8 @@ void Engine::run() {
         constexpr auto light = Graphics::Light{
             .position = light_position,
             .ambient = glm::vec3(0.2f, 0.2f, 0.2f),
-            .diffuse = glm::vec3(0.5f, 0.5f, 0.5f),
-            .specular = glm::vec3(1.0f, 1.0f, 1.0f)
+            .diffuse = glm::vec3(1.0f, 1.0f, 1.0f),
+            .specular = glm::vec3(2.0f, 2.0f, 2.0f)
         };
 
         this->renderer->update_light(light);
@@ -100,11 +100,13 @@ void Engine::run() {
             );
 
             constexpr auto material = Graphics::Material{.shininess = 256.0f};
+            constexpr auto cell_shading_levels = 3.0f;
 
-            this->renderer->queue_draw_with_phong(
+            this->renderer->queue_draw_with_cell_shading(
                 model->get_render_command(*this->renderer),
                 model_matrix,
-                material
+                material,
+                cell_shading_levels
             );
         }
 
