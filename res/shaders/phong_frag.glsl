@@ -82,7 +82,7 @@ void main()
             normal_out
         );
 
-    vec3 emission = texture(material.texture_emissive, tex_coords_out).rgb * 0.1;
+    vec3 emission = texture(material.texture_emissive, tex_coords_out).rgb;
 
     vec3 light_result = ambient + diffuse + specular + emission;
 
