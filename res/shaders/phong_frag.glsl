@@ -63,8 +63,8 @@ vec3 calculate_specular(
 {
     vec3 view_direction = normalize(view_position - frag_pos);
     vec3 light_direction = normalize(light_position - frag_pos);
-    vec3 reflect_direction = reflect(-light_direction, normalize(normal));
-    float spec = pow(max(dot(view_direction, reflect_direction), 0.0), material_shininess);
+    vec3 half_direction = normalize(light_direction + view_direction);
+    float spec = pow(max(dot(normalize(normal), half_direction), 0.0), material_shininess);
 
     if (is_cell_shading_enabled)
     {
