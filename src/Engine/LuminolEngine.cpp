@@ -24,9 +24,9 @@ Engine::Engine(const Properties& properties)
       renderer(this->graphics_factory->create_renderer(this->window)) {}
 
 void Engine::run() {
-    const auto model = this->graphics_factory->create_model(
-        "res/models/skeleton_king/scene.gltf"
-    );
+    const auto model =
+        this->graphics_factory->create_model("res/models/mech_drone/scene.gltf"
+        );
 
     const auto cube =
         this->graphics_factory->create_model("res/models/cube/cube.obj");
@@ -88,22 +88,15 @@ void Engine::run() {
         }
 
         {
-            constexpr auto translation = glm::vec3(0.0f, -3.0f, 0.0f);
-            constexpr auto scale = glm::vec3(100.0f, 100.0f, 100.0f);
-            constexpr auto rotation_degrees = 90.0f;
+            constexpr auto scale = glm::vec3(5.0f, 5.0f, 5.0f);
+            constexpr auto rotation_degrees = 180.0f;
 
             auto model_matrix = glm::mat4(1.0f);
-            model_matrix = glm::translate(model_matrix, translation);
             model_matrix = glm::scale(model_matrix, scale);
             model_matrix = glm::rotate(
                 model_matrix,
-                glm::radians(-rotation_degrees),
-                glm::vec3(0.0f, 1.0f, 0.0f)
-            );
-            model_matrix = glm::rotate(
-                model_matrix,
                 glm::radians(rotation_degrees),
-                glm::vec3(0.0f, 0.0f, 1.0f)
+                glm::vec3(0.0f, 1.0f, 0.0f)
             );
 
             constexpr auto material = Graphics::Material{.shininess = 256.0f};
