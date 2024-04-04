@@ -80,9 +80,10 @@ auto load_indices(const aiMesh& mesh) -> std::vector<uint32_t> {
     return indices;
 }
 
-auto load_diffuse_textures(
+auto load_textures(
     const aiMesh& mesh,
     gsl::span<aiMaterial*> materials,
+    aiTextureType texture_type,
     const std::filesystem::path& directory,
     std::unordered_map<std::filesystem::path, Image>& textures_map
 ) -> std::vector<std::filesystem::path> {
@@ -92,26 +93,25 @@ auto load_diffuse_textures(
 
     const auto* const material = materials[mesh.mMaterialIndex];
 
-    const auto diffuse_textures_count =
-        material->GetTextureCount(aiTextureType_DIFFUSE);
+    const auto textures_count = material->GetTextureCount(texture_type);
 
-    auto diffuse_texture_paths = std::vector<std::filesystem::path>{};
-    diffuse_texture_paths.reserve(diffuse_textures_count);
+    auto texture_paths = std::vector<std::filesystem::path>{};
+    texture_paths.reserve(textures_count);
 
-    for (auto i = 0u; i < diffuse_textures_count; ++i) {
+    for (auto i = 0u; i < textures_count; ++i) {
         auto texture_path = aiString{};
-        material->GetTexture(aiTextureType_DIFFUSE, i, &texture_path);
+        material->GetTexture(texture_type, i, &texture_path);
 
         const auto texture_path_key = directory / texture_path.C_Str();
 
-        diffuse_texture_paths.emplace_back(texture_path_key);
+        texture_paths.emplace_back(texture_path_key);
 
         if (!textures_map.contains(texture_path_key)) {
             textures_map[texture_path_key] = load_image(texture_path_key);
         }
     }
 
-    return diffuse_texture_paths;
+    return texture_paths;
 }
 
 auto load_mesh(
@@ -125,8 +125,15 @@ auto load_mesh(
         .texture_coordinates = load_texture_coordinates(mesh),
         .normals = load_normals(mesh),
         .indices = load_indices(mesh),
-        .diffuse_texture_paths =
-            load_diffuse_textures(mesh, materials, directory, textures_map)
+        .diffuse_texture_paths = load_textures(
+            mesh, materials, aiTextureType_DIFFUSE, directory, textures_map
+        ),
+        .specular_texture_paths = load_textures(
+            mesh, materials, aiTextureType_SPECULAR, directory, textures_map
+        ),
+        .emissive_texture_paths = load_textures(
+            mesh, materials, aiTextureType_EMISSIVE, directory, textures_map
+        )
     };
 }
 
