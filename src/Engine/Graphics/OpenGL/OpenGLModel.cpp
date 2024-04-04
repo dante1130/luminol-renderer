@@ -59,6 +59,12 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
             .diffuse_texture = load_first_texture_or_nothing(
                 mesh_data.diffuse_texture_paths, model_data.textures_map
             ),
+            .specular_texture = load_first_texture_or_nothing(
+                mesh_data.specular_texture_paths, model_data.textures_map
+            ),
+            .emissive_texture = load_first_texture_or_nothing(
+                mesh_data.emissive_texture_paths, model_data.textures_map
+            ),
         };
 
         this->meshes.emplace_back(std::make_unique<OpenGLMesh>(
