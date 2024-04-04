@@ -11,6 +11,7 @@ using namespace Luminol::Graphics;
 constexpr auto create_vertex_attributes() {
     constexpr auto texture_coordinates_offset = 3 * sizeof(float);
     constexpr auto normal_offset = 5 * sizeof(float);
+    constexpr auto tangent_offset = 8 * sizeof(float);
 
     return std::array{
         VertexAttribute{
@@ -27,6 +28,11 @@ constexpr auto create_vertex_attributes() {
             .component_count = 3,
             .normalized = false,
             .relative_offset = normal_offset,
+        },
+        VertexAttribute{
+            .component_count = 3,
+            .normalized = false,
+            .relative_offset = tangent_offset,
         },
     };
 }
@@ -48,7 +54,8 @@ OpenGLMesh::OpenGLMesh(
     : vertex_array_object(vertices, indices, create_vertex_attributes()),
       diffuse_texture(texture_paths.diffuse_texture_path),
       specular_texture(texture_paths.specular_texture_path),
-      emissive_texture(texture_paths.emissive_texture_path) {}
+      emissive_texture(texture_paths.emissive_texture_path),
+      normal_texture(texture_paths.normal_texture_path) {}
 
 OpenGLMesh::OpenGLMesh(
     gsl::span<const float> vertices,
@@ -58,7 +65,8 @@ OpenGLMesh::OpenGLMesh(
     : vertex_array_object(vertices, indices, create_vertex_attributes()),
       diffuse_texture(texture_images.diffuse_texture),
       specular_texture(texture_images.specular_texture),
-      emissive_texture(texture_images.emissive_texture) {}
+      emissive_texture(texture_images.emissive_texture),
+      normal_texture(texture_images.normal_texture) {}
 
 auto OpenGLMesh::get_render_command(const Renderer& /*renderer*/) const
     -> RenderCommand {
@@ -73,6 +81,10 @@ auto OpenGLMesh::get_render_command(const Renderer& /*renderer*/) const
 
         if (this->emissive_texture.has_value()) {
             this->emissive_texture->bind(SamplerBindingPoint::TextureEmissive);
+        }
+
+        if (this->normal_texture.has_value()) {
+            this->normal_texture->bind(SamplerBindingPoint::TextureNormal);
         }
 
         this->vertex_array_object.bind();
@@ -95,6 +107,10 @@ auto OpenGLMesh::get_render_command(const Renderer& /*renderer*/) const
 
         if (this->diffuse_texture.has_value()) {
             this->diffuse_texture->unbind(SamplerBindingPoint::TextureDiffuse);
+        }
+
+        if (this->normal_texture.has_value()) {
+            this->normal_texture->unbind(SamplerBindingPoint::TextureNormal);
         }
     };
 }

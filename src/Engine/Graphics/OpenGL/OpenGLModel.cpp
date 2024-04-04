@@ -39,7 +39,7 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
             mesh_data.vertices.size() == mesh_data.texture_coordinates.size()
         );
 
-        constexpr auto vertex_components = 8;
+        constexpr auto vertex_components = 11;
 
         auto mesh_vertices = std::vector<float>{};
         mesh_vertices.reserve(mesh_data.vertices.size() * vertex_components);
@@ -53,6 +53,9 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
             mesh_vertices.push_back(mesh_data.normals[i].x);
             mesh_vertices.push_back(mesh_data.normals[i].y);
             mesh_vertices.push_back(mesh_data.normals[i].z);
+            mesh_vertices.push_back(mesh_data.tangents[i].x);
+            mesh_vertices.push_back(mesh_data.tangents[i].y);
+            mesh_vertices.push_back(mesh_data.tangents[i].z);
         }
 
         const auto texture_images = TextureImages{
@@ -65,6 +68,9 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
             .emissive_texture = load_first_texture_or_nothing(
                 mesh_data.emissive_texture_paths, model_data.textures_map
             ),
+            .normal_texture = load_first_texture_or_nothing(
+                mesh_data.normal_texture_paths, model_data.textures_map
+            )
         };
 
         this->meshes.emplace_back(std::make_unique<OpenGLMesh>(

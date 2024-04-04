@@ -12,6 +12,7 @@ struct TextureImages {
     std::optional<Utilities::ImageLoader::Image> diffuse_texture;
     std::optional<Utilities::ImageLoader::Image> specular_texture;
     std::optional<Utilities::ImageLoader::Image> emissive_texture;
+    std::optional<Utilities::ImageLoader::Image> normal_texture;
 };
 
 class OpenGLMesh : public Mesh {
@@ -40,6 +41,7 @@ private:
     std::optional<OpenGLTexture> diffuse_texture = std::nullopt;
     std::optional<OpenGLTexture> specular_texture = std::nullopt;
     std::optional<OpenGLTexture> emissive_texture = std::nullopt;
+    std::optional<OpenGLTexture> normal_texture = std::nullopt;
 };
 
 }  // namespace Luminol::Graphics

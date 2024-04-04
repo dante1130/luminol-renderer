@@ -11,6 +11,7 @@ enum class SamplerBindingPoint {
     TextureDiffuse = 0,
     TextureSpecular,
     TextureEmissive,
+    TextureNormal,
 };
 
 }  // namespace Luminol::Graphics
