@@ -55,7 +55,7 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
             mesh_vertices.push_back(mesh_data.normals[i].z);
         }
 
-        auto texture_images = TextureImages{
+        const auto texture_images = TextureImages{
             .diffuse_texture = load_first_texture_or_nothing(
                 mesh_data.diffuse_texture_paths, model_data.textures_map
             ),
