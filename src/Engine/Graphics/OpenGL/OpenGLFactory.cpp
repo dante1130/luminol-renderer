@@ -15,9 +15,9 @@ auto OpenGLFactory::create_renderer(Window& window)
 auto OpenGLFactory::create_mesh(
     gsl::span<const float> vertices,
     gsl::span<const uint32_t> indices,
-    const std::filesystem::path& texture_path
+    const TexturePaths& texture_paths
 ) -> std::unique_ptr<Mesh> {
-    return std::make_unique<OpenGLMesh>(vertices, indices, texture_path);
+    return std::make_unique<OpenGLMesh>(vertices, indices, texture_paths);
 }
 
 auto OpenGLFactory::create_model(const std::filesystem::path& model_path)

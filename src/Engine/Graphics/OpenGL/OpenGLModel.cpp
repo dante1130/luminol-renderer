@@ -1,6 +1,26 @@
 #include "OpenGLModel.hpp"
 
 #include <Engine/Utilities/ModelLoader.hpp>
+#include "Engine/Utilities/ImageLoader.hpp"
+
+namespace {
+
+using namespace Luminol::Graphics;
+
+auto load_first_texture_or_nothing(
+    const std::vector<std::filesystem::path>& texture_paths,
+    const std::unordered_map<
+        std::filesystem::path,
+        Luminol::Utilities::ImageLoader::Image>& textures_map
+) -> std::optional<Luminol::Utilities::ImageLoader::Image> {
+    if (texture_paths.empty()) {
+        return std::nullopt;
+    }
+
+    return textures_map.at(texture_paths[0]);
+}
+
+}  // namespace
 
 namespace Luminol::Graphics {
 
@@ -35,20 +55,17 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
             mesh_vertices.push_back(mesh_data.normals[i].z);
         }
 
-        if (mesh_data.diffuse_texture_paths.empty()) {
-            this->meshes.emplace_back(std::make_unique<OpenGLMesh>(
-                gsl::make_span(mesh_vertices), gsl::make_span(mesh_data.indices)
-            ));
-        } else {
-            const auto& diffuse_texture =
-                model_data.textures_map.at(mesh_data.diffuse_texture_paths[0]);
+        auto texture_images = TextureImages{
+            .diffuse_texture = load_first_texture_or_nothing(
+                mesh_data.diffuse_texture_paths, model_data.textures_map
+            ),
+        };
 
-            this->meshes.emplace_back(std::make_unique<OpenGLMesh>(
-                gsl::make_span(mesh_vertices),
-                gsl::make_span(mesh_data.indices),
-                diffuse_texture
-            ));
-        }
+        this->meshes.emplace_back(std::make_unique<OpenGLMesh>(
+            gsl::make_span(mesh_vertices),
+            gsl::make_span(mesh_data.indices),
+            texture_images
+        ));
     }
 }
 

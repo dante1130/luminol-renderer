@@ -7,6 +7,7 @@
 
 #include <Engine/Graphics/GraphicsApi.hpp>
 #include <Engine/Graphics/Renderer.hpp>
+#include <Engine/Graphics/TexturePaths.hpp>
 #include <Engine/Graphics/Mesh.hpp>
 #include <Engine/Graphics/Model.hpp>
 #include <Engine/Window/Window.hpp>
@@ -31,7 +32,7 @@ public:
     [[nodiscard]] virtual auto create_mesh(
         gsl::span<const float> vertices,
         gsl::span<const uint32_t> indices,
-        const std::filesystem::path& texture_path
+        const TexturePaths& texture_paths
     ) -> std::unique_ptr<Mesh> = 0;
 
     [[nodiscard]] virtual auto create_model(

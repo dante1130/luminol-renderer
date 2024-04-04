@@ -38,18 +38,18 @@ namespace Luminol::Graphics {
 OpenGLMesh::OpenGLMesh(
     gsl::span<const float> vertices,
     gsl::span<const uint32_t> indices,
-    const std::filesystem::path& texture_path
+    const TexturePaths& texture_paths
 )
     : vertex_array_object(vertices, indices, create_vertex_attributes()),
-      texture(texture_path) {}
+      diffuse_texture(texture_paths.diffuse_texture_path) {}
 
 OpenGLMesh::OpenGLMesh(
     gsl::span<const float> vertices,
     gsl::span<const uint32_t> indices,
-    const Utilities::ImageLoader::Image& texture_image
+    const TextureImages& texture_images
 )
     : vertex_array_object(vertices, indices, create_vertex_attributes()),
-      texture(texture_image) {}
+      diffuse_texture(texture_images.diffuse_texture) {}
 
 OpenGLMesh::OpenGLMesh(
     gsl::span<const float> vertices, gsl::span<const uint32_t> indices
@@ -59,8 +59,8 @@ OpenGLMesh::OpenGLMesh(
 auto OpenGLMesh::get_render_command(const Renderer& /*renderer*/) const
     -> RenderCommand {
     return [this](const Renderer& /*renderer*/) {
-        if (this->texture.has_value()) {
-            this->texture->bind(SamplerBindingPoint::TextureDiffuse);
+        if (this->diffuse_texture.has_value()) {
+            this->diffuse_texture->bind(SamplerBindingPoint::TextureDiffuse);
         }
 
         this->vertex_array_object.bind();
