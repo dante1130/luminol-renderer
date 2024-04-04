@@ -36,6 +36,11 @@ constexpr auto create_vertex_attributes() {
 namespace Luminol::Graphics {
 
 OpenGLMesh::OpenGLMesh(
+    gsl::span<const float> vertices, gsl::span<const uint32_t> indices
+)
+    : vertex_array_object(vertices, indices, create_vertex_attributes()) {}
+
+OpenGLMesh::OpenGLMesh(
     gsl::span<const float> vertices,
     gsl::span<const uint32_t> indices,
     const TexturePaths& texture_paths
@@ -50,11 +55,6 @@ OpenGLMesh::OpenGLMesh(
 )
     : vertex_array_object(vertices, indices, create_vertex_attributes()),
       diffuse_texture(texture_images.diffuse_texture) {}
-
-OpenGLMesh::OpenGLMesh(
-    gsl::span<const float> vertices, gsl::span<const uint32_t> indices
-)
-    : vertex_array_object(vertices, indices, create_vertex_attributes()) {}
 
 auto OpenGLMesh::get_render_command(const Renderer& /*renderer*/) const
     -> RenderCommand {
