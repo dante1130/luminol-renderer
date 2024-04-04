@@ -5,20 +5,50 @@
 
 namespace {
 
+constexpr auto channels_to_internal_format(int32_t channels) -> GLenum {
+    switch (channels) {
+        case 1:
+            return GL_R8;
+        case 2:
+            return GL_RG8;
+        case 3:
+            return GL_RGB8;
+        case 4:
+            return GL_RGBA8;
+        default:
+            throw std::runtime_error{"Invalid number of channels"};
+    }
+}
+
+constexpr auto channels_to_format(int32_t channels) -> GLenum {
+    switch (channels) {
+        case 1:
+            return GL_RED;
+        case 2:
+            return GL_RG;
+        case 3:
+            return GL_RGB;
+        case 4:
+            return GL_RGBA;
+        default:
+            throw std::runtime_error{"Invalid number of channels"};
+    }
+}
+
 auto create_texture(const Luminol::Utilities::ImageLoader::Image& image)
     -> uint32_t {
     uint32_t texture_id = {0};
     glCreateTextures(GL_TEXTURE_2D, 1, &texture_id);
 
-    glTextureParameteri(texture_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTextureParameteri(texture_id, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTextureParameteri(texture_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTextureParameteri(texture_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTextureParameteri(texture_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTextureParameteri(texture_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     glTextureStorage2D(
         texture_id,
         1,
-        image.channels == 4 ? GL_RGBA8 : GL_RGB8,
+        channels_to_internal_format(image.channels),
         image.width,
         image.height
     );
@@ -30,7 +60,7 @@ auto create_texture(const Luminol::Utilities::ImageLoader::Image& image)
         0,
         image.width,
         image.height,
-        image.channels == 4 ? GL_RGBA : GL_RGB,
+        channels_to_format(image.channels),
         GL_UNSIGNED_BYTE,
         image.data.data()
     );
