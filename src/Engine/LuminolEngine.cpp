@@ -25,7 +25,7 @@ Engine::Engine(const Properties& properties)
 
 void Engine::run() {
     const auto model = this->graphics_factory->create_model(
-        "res/models/survival_guitar_backpack/scene.gltf"
+        "res/models/skeleton_king/scene.gltf"
     );
 
     const auto cube =
@@ -88,10 +88,23 @@ void Engine::run() {
         }
 
         {
-            constexpr auto scale = glm::vec3(0.01f, 0.01f, 0.01f);
+            constexpr auto translation = glm::vec3(0.0f, -3.0f, 0.0f);
+            constexpr auto scale = glm::vec3(100.0f, 100.0f, 100.0f);
+            constexpr auto rotation_degrees = 90.0f;
 
             auto model_matrix = glm::mat4(1.0f);
+            model_matrix = glm::translate(model_matrix, translation);
             model_matrix = glm::scale(model_matrix, scale);
+            model_matrix = glm::rotate(
+                model_matrix,
+                glm::radians(-rotation_degrees),
+                glm::vec3(0.0f, 1.0f, 0.0f)
+            );
+            model_matrix = glm::rotate(
+                model_matrix,
+                glm::radians(rotation_degrees),
+                glm::vec3(0.0f, 0.0f, 1.0f)
+            );
 
             constexpr auto material = Graphics::Material{
                 .ambient = glm::vec3(1.0f, 1.0f, 1.0f),
