@@ -181,7 +181,7 @@ auto OpenGLRenderer::queue_draw_with_phong(
                 "material.shininess", material.shininess
             );
             this->phong_shader->set_uniform("is_cell_shading_enabled", 0);
-            render_command(*this);
+            render_command();
         }
     );
 }
@@ -213,7 +213,7 @@ auto OpenGLRenderer::queue_draw_with_cell_shading(
             this->phong_shader->set_uniform(
                 "cell_shading_levels", cell_shading_levels
             );
-            render_command(*this);
+            render_command();
         }
     );
 }
@@ -232,7 +232,7 @@ auto OpenGLRenderer::queue_draw_with_color(
 
         this->color_shader->bind();
         this->color_shader->set_uniform("color", color);
-        render_command(*this);
+        render_command();
     });
 }
 

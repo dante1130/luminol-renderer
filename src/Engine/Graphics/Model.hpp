@@ -13,8 +13,7 @@ public:
     auto operator=(const Model&) -> Model& = default;
     auto operator=(Model&&) -> Model& = default;
 
-    [[nodiscard]] virtual auto get_render_command(const Renderer& renderer
-    ) const -> RenderCommand = 0;
+    [[nodiscard]] virtual auto get_render_command() const -> RenderCommand = 0;
 };
 
 }  // namespace Luminol::Graphics

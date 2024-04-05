@@ -22,7 +22,7 @@ struct Material {
 
 class Renderer;
 
-using RenderCommand = std::function<void(const Renderer&)>;
+using RenderCommand = std::function<void()>;
 
 class Renderer {
 public:

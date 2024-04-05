@@ -68,9 +68,8 @@ OpenGLMesh::OpenGLMesh(
       emissive_texture(texture_images.emissive_texture),
       normal_texture(texture_images.normal_texture) {}
 
-auto OpenGLMesh::get_render_command(const Renderer& /*renderer*/) const
-    -> RenderCommand {
-    return [this](const Renderer& /*renderer*/) {
+auto OpenGLMesh::get_render_command() const -> RenderCommand {
+    return [this]() {
         if (this->diffuse_texture.has_value()) {
             this->diffuse_texture->bind(SamplerBindingPoint::TextureDiffuse);
         }

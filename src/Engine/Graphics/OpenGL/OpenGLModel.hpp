@@ -11,8 +11,7 @@ class OpenGLModel : public Model {
 public:
     OpenGLModel(const std::filesystem::path& model_path);
 
-    [[nodiscard]] auto get_render_command(const Renderer& renderer) const
-        -> RenderCommand override;
+    [[nodiscard]] auto get_render_command() const -> RenderCommand override;
 
 private:
     std::vector<std::unique_ptr<OpenGLMesh>> meshes;

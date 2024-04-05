@@ -79,11 +79,10 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
     }
 }
 
-auto OpenGLModel::get_render_command(const Renderer& /*renderer*/) const
-    -> RenderCommand {
-    return [this](const Renderer& renderer) {
+auto OpenGLModel::get_render_command() const -> RenderCommand {
+    return [this]() {
         for (const auto& mesh : this->meshes) {
-            mesh->get_render_command(renderer)(renderer);
+            mesh->get_render_command()();
         }
     };
 }

@@ -81,7 +81,7 @@ void Engine::run() {
             model_matrix = glm::scale(model_matrix, scale);
 
             this->renderer->queue_draw_with_color(
-                cube->get_render_command(*this->renderer),
+                cube->get_render_command(),
                 model_matrix,
                 glm::vec3(1.0f, 1.0f, 1.0f)
             );
@@ -102,9 +102,7 @@ void Engine::run() {
             constexpr auto material = Graphics::Material{.shininess = 256.0f};
 
             this->renderer->queue_draw_with_phong(
-                model->get_render_command(*this->renderer),
-                model_matrix,
-                material
+                model->get_render_command(), model_matrix, material
             );
         }
 

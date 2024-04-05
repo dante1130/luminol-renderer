@@ -13,8 +13,7 @@ public:
     auto operator=(const Mesh&) -> Mesh& = delete;
     auto operator=(Mesh&&) -> Mesh& = default;
 
-    [[nodiscard]] virtual auto get_render_command(const Renderer& renderer
-    ) const -> RenderCommand = 0;
+    [[nodiscard]] virtual auto get_render_command() const -> RenderCommand = 0;
 };
 
 }  // namespace Luminol::Graphics
