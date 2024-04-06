@@ -13,4 +13,6 @@ struct Image {
 
 auto load_image(const std::filesystem::path& path) -> Image;
 
+auto get_default_normal_map() -> Image;
+
 }  // namespace Luminol::Utilities::ImageLoader

@@ -55,7 +55,11 @@ OpenGLMesh::OpenGLMesh(
       diffuse_texture(texture_paths.diffuse_texture_path),
       specular_texture(texture_paths.specular_texture_path),
       emissive_texture(texture_paths.emissive_texture_path),
-      normal_texture(texture_paths.normal_texture_path) {}
+      normal_texture(texture_paths.normal_texture_path) {
+    if (!this->normal_texture.has_value()) {
+        this->normal_texture = Utilities::ImageLoader::get_default_normal_map();
+    }
+}
 
 OpenGLMesh::OpenGLMesh(
     gsl::span<const float> vertices,
@@ -66,7 +70,11 @@ OpenGLMesh::OpenGLMesh(
       diffuse_texture(texture_images.diffuse_texture),
       specular_texture(texture_images.specular_texture),
       emissive_texture(texture_images.emissive_texture),
-      normal_texture(texture_images.normal_texture) {}
+      normal_texture(
+          texture_images.normal_texture.has_value()
+              ? texture_images.normal_texture
+              : Utilities::ImageLoader::get_default_normal_map()
+      ) {}
 
 auto OpenGLMesh::get_render_command() const -> RenderCommand {
     return [this]() {
