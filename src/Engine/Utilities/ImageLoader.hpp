@@ -5,6 +5,7 @@
 namespace Luminol::Utilities::ImageLoader {
 
 struct Image {
+    std::filesystem::path path = {};
     std::vector<uint8_t> data = {};
     int32_t width = {0};
     int32_t height = {0};

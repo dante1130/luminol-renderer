@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Engine/Graphics/OpenGL/OpenGLMesh.hpp>
+#include <Engine/Graphics/OpenGL/OpenGLTextureManager.hpp>
 
 #include <glad/gl.h>
 
@@ -37,6 +38,33 @@ constexpr auto create_vertex_attributes() {
     };
 }
 
+auto load_texture_from_path(const std::optional<std::filesystem::path>& path)
+    -> OpenGLMesh::TextureRefOptional {
+    if (!path.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto& path_value = path.value();
+
+    auto& texture_manager = OpenGLTextureManager::get_instance();
+    texture_manager.load_texture(path_value);
+    return texture_manager.get_texture(path_value);
+}
+
+auto load_texture_from_image(
+    const std::optional<Luminol::Utilities::ImageLoader::Image>& image
+) -> OpenGLMesh::TextureRefOptional {
+    if (!image.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto& image_value = image.value();
+
+    auto& texture_manager = OpenGLTextureManager::get_instance();
+    texture_manager.load_texture(image_value);
+    return texture_manager.get_texture(image_value.path);
+}
+
 }  // namespace
 
 namespace Luminol::Graphics {
@@ -52,14 +80,16 @@ OpenGLMesh::OpenGLMesh(
     const TexturePaths& texture_paths
 )
     : vertex_array_object(vertices, indices, create_vertex_attributes()),
-      diffuse_texture(texture_paths.diffuse_texture_path),
-      specular_texture(texture_paths.specular_texture_path),
-      emissive_texture(texture_paths.emissive_texture_path),
-      normal_texture(texture_paths.normal_texture_path) {
-    if (!this->normal_texture.has_value()) {
-        this->normal_texture = Utilities::ImageLoader::get_default_normal_map();
-    }
-}
+      diffuse_texture(load_texture_from_path(texture_paths.diffuse_texture_path)
+      ),
+      specular_texture(
+          load_texture_from_path(texture_paths.specular_texture_path)
+      ),
+      emissive_texture(
+          load_texture_from_path(texture_paths.emissive_texture_path)
+      ),
+      normal_texture(load_texture_from_path(texture_paths.normal_texture_path)
+      ) {}
 
 OpenGLMesh::OpenGLMesh(
     gsl::span<const float> vertices,
@@ -67,31 +97,36 @@ OpenGLMesh::OpenGLMesh(
     const TextureImages& texture_images
 )
     : vertex_array_object(vertices, indices, create_vertex_attributes()),
-      diffuse_texture(texture_images.diffuse_texture),
-      specular_texture(texture_images.specular_texture),
-      emissive_texture(texture_images.emissive_texture),
-      normal_texture(
-          texture_images.normal_texture.has_value()
-              ? texture_images.normal_texture
-              : Utilities::ImageLoader::get_default_normal_map()
-      ) {}
+      diffuse_texture(load_texture_from_image(texture_images.diffuse_texture)),
+      specular_texture(load_texture_from_image(texture_images.specular_texture)
+      ),
+      emissive_texture(load_texture_from_image(texture_images.emissive_texture)
+      ),
+      normal_texture(load_texture_from_image(texture_images.normal_texture)) {}
 
 auto OpenGLMesh::get_render_command() const -> RenderCommand {
     return [this]() {
         if (this->diffuse_texture.has_value()) {
-            this->diffuse_texture->bind(SamplerBindingPoint::TextureDiffuse);
+            this->diffuse_texture->get().bind(
+                SamplerBindingPoint::TextureDiffuse
+            );
         }
 
         if (this->specular_texture.has_value()) {
-            this->specular_texture->bind(SamplerBindingPoint::TextureSpecular);
+            this->specular_texture->get().bind(
+                SamplerBindingPoint::TextureSpecular
+            );
         }
 
         if (this->emissive_texture.has_value()) {
-            this->emissive_texture->bind(SamplerBindingPoint::TextureEmissive);
+            this->emissive_texture->get().bind(
+                SamplerBindingPoint::TextureEmissive
+            );
         }
 
         if (this->normal_texture.has_value()) {
-            this->normal_texture->bind(SamplerBindingPoint::TextureNormal);
+            this->normal_texture->get().bind(SamplerBindingPoint::TextureNormal
+            );
         }
 
         this->vertex_array_object.bind();
@@ -103,21 +138,27 @@ auto OpenGLMesh::get_render_command() const -> RenderCommand {
         );
 
         if (this->emissive_texture.has_value()) {
-            this->emissive_texture->unbind(SamplerBindingPoint::TextureEmissive
+            this->emissive_texture->get().unbind(
+                SamplerBindingPoint::TextureEmissive
             );
         }
 
         if (this->specular_texture.has_value()) {
-            this->specular_texture->unbind(SamplerBindingPoint::TextureSpecular
+            this->specular_texture->get().unbind(
+                SamplerBindingPoint::TextureSpecular
             );
         }
 
         if (this->diffuse_texture.has_value()) {
-            this->diffuse_texture->unbind(SamplerBindingPoint::TextureDiffuse);
+            this->diffuse_texture->get().unbind(
+                SamplerBindingPoint::TextureDiffuse
+            );
         }
 
         if (this->normal_texture.has_value()) {
-            this->normal_texture->unbind(SamplerBindingPoint::TextureNormal);
+            this->normal_texture->get().unbind(
+                SamplerBindingPoint::TextureNormal
+            );
         }
     };
 }

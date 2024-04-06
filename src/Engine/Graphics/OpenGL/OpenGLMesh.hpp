@@ -17,6 +17,9 @@ struct TextureImages {
 
 class OpenGLMesh : public Mesh {
 public:
+    using TextureRefOptional =
+        std::optional<std::reference_wrapper<const OpenGLTexture>>;
+
     OpenGLMesh(
         gsl::span<const float> vertices, gsl::span<const uint32_t> indices
     );
@@ -37,10 +40,11 @@ public:
 
 private:
     OpenGLVertexArrayObject vertex_array_object;
-    std::optional<OpenGLTexture> diffuse_texture = std::nullopt;
-    std::optional<OpenGLTexture> specular_texture = std::nullopt;
-    std::optional<OpenGLTexture> emissive_texture = std::nullopt;
-    std::optional<OpenGLTexture> normal_texture = std::nullopt;
+
+    TextureRefOptional diffuse_texture = std::nullopt;
+    TextureRefOptional specular_texture = std::nullopt;
+    TextureRefOptional emissive_texture = std::nullopt;
+    TextureRefOptional normal_texture = std::nullopt;
 };
 
 }  // namespace Luminol::Graphics

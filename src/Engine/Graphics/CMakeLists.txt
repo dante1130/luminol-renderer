@@ -8,6 +8,7 @@ add_library(Luminol.Graphics
     OpenGL/OpenGLIndexBuffer.cpp
     OpenGL/OpenGLVertexArrayObject.cpp
     OpenGL/OpenGLTexture.cpp
+    OpenGL/OpenGLTextureManager.cpp
     OpenGL/OpenGLSkybox.cpp
     OpenGL/OpenGLMesh.cpp
     OpenGL/OpenGLModel.cpp
