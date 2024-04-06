@@ -36,6 +36,9 @@ vec3 calculate_normal(sampler2D material_texture_normal, vec3 normal, vec3 tange
 
     vec3 n = normalize(normal);
     vec3 t = normalize(tangent);
+
+    t = normalize(t - dot(t, n) * n);
+
     vec3 b = cross(n, t);
 
     mat3 tbn = mat3(t, b, n);
