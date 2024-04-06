@@ -73,16 +73,16 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
             )
         };
 
-        this->meshes.emplace_back(std::make_unique<OpenGLMesh>(
+        this->meshes.emplace_back(
             mesh_vertices, mesh_data.indices, texture_images
-        ));
+        );
     }
 }
 
 auto OpenGLModel::get_render_command() const -> RenderCommand {
     return [this]() {
         for (const auto& mesh : this->meshes) {
-            mesh->get_render_command()();
+            mesh.get_render_command()();
         }
     };
 }

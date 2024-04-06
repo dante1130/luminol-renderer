@@ -14,7 +14,7 @@ public:
     [[nodiscard]] auto get_render_command() const -> RenderCommand override;
 
 private:
-    std::vector<std::unique_ptr<OpenGLMesh>> meshes;
+    std::vector<OpenGLMesh> meshes;
 };
 
 }  // namespace Luminol::Graphics

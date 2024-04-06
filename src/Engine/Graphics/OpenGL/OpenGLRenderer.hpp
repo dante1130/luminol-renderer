@@ -43,28 +43,30 @@ public:
 
 private:
     auto draw_skybox() -> void;
+    auto get_framebuffer_resize_callback()
+        -> Window::FramebufferSizeCallback;
+
+    int32_t opengl_version;
 
     std::function<int32_t()> get_window_width;
     std::function<int32_t()> get_window_height;
 
-    std::vector<DrawCall> draw_queue = {};
+    std::vector<DrawCall> draw_queue;
 
-    std::unique_ptr<OpenGLShader> color_shader = {nullptr};
-    std::unique_ptr<OpenGLShader> phong_shader = {nullptr};
-    std::unique_ptr<OpenGLShader> skybox_shader = {nullptr};
+    OpenGLShader color_shader;
+    OpenGLShader phong_shader;
+    OpenGLShader skybox_shader;
 
-    std::unique_ptr<OpenGLFrameBuffer> low_res_frame_buffer = {nullptr};
+    OpenGLFrameBuffer low_res_frame_buffer;
 
-    std::unique_ptr<OpenGLUniformBuffer<OpenGLUniforms::Transform>>
-        transform_uniform_buffer = {nullptr};
-    std::unique_ptr<OpenGLUniformBuffer<OpenGLUniforms::Light>>
-        light_uniform_buffer = {nullptr};
+    OpenGLUniformBuffer<OpenGLUniforms::Transform> transform_uniform_buffer;
+    OpenGLUniformBuffer<OpenGLUniforms::Light> light_uniform_buffer;
 
-    std::unique_ptr<OpenGLSkybox> skybox = {nullptr};
-    std::unique_ptr<OpenGLModel> cube = {nullptr};
+    OpenGLSkybox skybox;
+    OpenGLModel cube;
 
-    glm::mat4 view_matrix = {1.0f};
-    glm::mat4 projection_matrix = {1.0f};
+    glm::mat4 view_matrix;
+    glm::mat4 projection_matrix;
 };
 
 }  // namespace Luminol::Graphics

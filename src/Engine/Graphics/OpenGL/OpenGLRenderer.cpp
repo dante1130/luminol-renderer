@@ -15,6 +15,35 @@ using namespace Luminol::Graphics;
 
 constexpr auto low_res_frame_buffer_scale = 1;
 
+auto initialize_opengl(
+    Luminol::Window& window,
+    const Luminol::Window::FramebufferSizeCallback& framebuffer_size_callback
+) -> int32_t {
+    const auto version = gladLoadGL(window.get_proc_address());
+    Ensures(version != 0);
+
+    std::cout << "OpenGL Version " << GLAD_VERSION_MAJOR(version) << "."
+              << GLAD_VERSION_MINOR(version) << " loaded\n";
+
+    window.set_framebuffer_size_callback(framebuffer_size_callback);
+
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(gl_debug_message_callback, nullptr);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CW);
+
+    return version;
+}
+
 constexpr auto buffer_bit_to_gl(BufferBit buffer_bit) -> GLenum {
     switch (buffer_bit) {
         case BufferBit::Color:
@@ -37,77 +66,77 @@ constexpr auto buffer_bit_to_gl(BufferBit buffer_bit) -> GLenum {
     return 0;
 }
 
-auto create_color_shader() -> std::unique_ptr<OpenGLShader> {
-    auto color_shader = std::make_unique<OpenGLShader>(ShaderPaths{
+auto create_color_shader() -> OpenGLShader {
+    auto color_shader = OpenGLShader{ShaderPaths{
         .vertex_shader_path =
             std::filesystem::path{"res/shaders/color_vert.glsl"},
         .fragment_shader_path =
             std::filesystem::path{"res/shaders/color_frag.glsl"}
-    });
+    }};
 
-    color_shader->bind();
-    color_shader->set_sampler_binding_point(
+    color_shader.bind();
+    color_shader.set_sampler_binding_point(
         "texture_diffuse", SamplerBindingPoint::TextureDiffuse
     );
-    color_shader->set_uniform_block_binding_point(
+    color_shader.set_uniform_block_binding_point(
         "Transform", UniformBufferBindingPoint::Transform
     );
-    color_shader->unbind();
+    color_shader.unbind();
 
     return color_shader;
 }
 
-auto create_phong_shader() -> std::unique_ptr<OpenGLShader> {
-    auto phong_shader = std::make_unique<OpenGLShader>(ShaderPaths{
+auto create_phong_shader() -> OpenGLShader {
+    auto phong_shader = OpenGLShader{ShaderPaths{
         .vertex_shader_path =
             std::filesystem::path{"res/shaders/phong_vert.glsl"},
         .fragment_shader_path =
             std::filesystem::path{"res/shaders/phong_frag.glsl"}
-    });
+    }};
 
-    phong_shader->bind();
-    phong_shader->set_sampler_binding_point(
+    phong_shader.bind();
+    phong_shader.set_sampler_binding_point(
         "material.texture_diffuse", SamplerBindingPoint::TextureDiffuse
     );
-    phong_shader->set_sampler_binding_point(
+    phong_shader.set_sampler_binding_point(
         "material.texture_specular", SamplerBindingPoint::TextureSpecular
     );
-    phong_shader->set_sampler_binding_point(
+    phong_shader.set_sampler_binding_point(
         "material.texture_emissive", SamplerBindingPoint::TextureEmissive
     );
-    phong_shader->set_sampler_binding_point(
+    phong_shader.set_sampler_binding_point(
         "material.texture_normal", SamplerBindingPoint::TextureNormal
     );
-    phong_shader->set_sampler_binding_point(
+    phong_shader.set_sampler_binding_point(
         "skybox", SamplerBindingPoint::Skybox
     );
-    phong_shader->set_uniform_block_binding_point(
+    phong_shader.set_uniform_block_binding_point(
         "Transform", UniformBufferBindingPoint::Transform
     );
-    phong_shader->set_uniform_block_binding_point(
+    phong_shader.set_uniform_block_binding_point(
         "Light", UniformBufferBindingPoint::Light
     );
-    phong_shader->unbind();
+    phong_shader.unbind();
 
     return phong_shader;
 }
 
-auto create_skybox_shader() -> std::unique_ptr<OpenGLShader> {
-    auto skybox_shader = std::make_unique<OpenGLShader>(ShaderPaths{
+auto create_skybox_shader() -> OpenGLShader {
+    auto skybox_shader = OpenGLShader{ShaderPaths{
         .vertex_shader_path =
             std::filesystem::path{"res/shaders/skybox_vert.glsl"},
         .fragment_shader_path =
             std::filesystem::path{"res/shaders/skybox_frag.glsl"}
-    });
+    }};
 
-    skybox_shader->bind();
-    skybox_shader->set_sampler_binding_point(
+    skybox_shader.bind();
+    skybox_shader.set_sampler_binding_point(
         "skybox", SamplerBindingPoint::Skybox
     );
-    skybox_shader->set_uniform_block_binding_point(
+    skybox_shader.set_uniform_block_binding_point(
         "Transform", UniformBufferBindingPoint::Transform
     );
-    skybox_shader->unbind();
+    skybox_shader.unbind();
 
     return skybox_shader;
 }
@@ -121,66 +150,35 @@ auto get_view_position(const glm::mat4& view_matrix) -> glm::vec3 {
 namespace Luminol::Graphics {
 
 OpenGLRenderer::OpenGLRenderer(Window& window)
-    : get_window_width{[&window]() { return window.get_width(); }},
-      get_window_height{[&window]() { return window.get_height(); }} {
-    const auto version = gladLoadGL(window.get_proc_address());
-    Ensures(version != 0);
-
-    std::cout << "OpenGL Version " << GLAD_VERSION_MAJOR(version) << "."
-              << GLAD_VERSION_MINOR(version) << " loaded\n";
-
-    window.set_framebuffer_size_callback([this](int32_t width, int32_t height) {
-        glViewport(0, 0, width, height);
-        this->low_res_frame_buffer->resize(
-            width / low_res_frame_buffer_scale,
-            height / low_res_frame_buffer_scale
-        );
-    });
-
-    glEnable(GL_DEBUG_OUTPUT);
-    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    glDebugMessageCallback(gl_debug_message_callback, nullptr);
-
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CW);
-
-    this->color_shader = create_color_shader();
-    this->phong_shader = create_phong_shader();
-    this->skybox_shader = create_skybox_shader();
-
-    this->low_res_frame_buffer = std::make_unique<OpenGLFrameBuffer>(
-        window.get_width() / low_res_frame_buffer_scale,
-        window.get_height() / low_res_frame_buffer_scale
-    );
-
-    this->transform_uniform_buffer =
-        std::make_unique<OpenGLUniformBuffer<OpenGLUniforms::Transform>>(
-            OpenGLUniforms::Transform{}, UniformBufferBindingPoint::Transform
-        );
-
-    this->light_uniform_buffer =
-        std::make_unique<OpenGLUniformBuffer<OpenGLUniforms::Light>>(
-            OpenGLUniforms::Light{}, UniformBufferBindingPoint::Light
-        );
-
-    this->skybox = std::make_unique<OpenGLSkybox>(SkyboxPaths{
-        .front = std::filesystem::path{"res/skybox/default/front.jpg"},
-        .back = std::filesystem::path{"res/skybox/default/back.jpg"},
-        .top = std::filesystem::path{"res/skybox/default/top.jpg"},
-        .bottom = std::filesystem::path{"res/skybox/default/bottom.jpg"},
-        .left = std::filesystem::path{"res/skybox/default/left.jpg"},
-        .right = std::filesystem::path{"res/skybox/default/right.jpg"}
-    });
-
-    this->cube = std::make_unique<OpenGLModel>("res/models/cube/cube.obj");
-}
+    : opengl_version{initialize_opengl(
+          window, this->get_framebuffer_resize_callback()
+      )},
+      get_window_width{[&window]() { return window.get_width(); }},
+      get_window_height{[&window]() { return window.get_height(); }},
+      color_shader{create_color_shader()},
+      phong_shader{create_phong_shader()},
+      skybox_shader{create_skybox_shader()},
+      low_res_frame_buffer{
+          window.get_width() / low_res_frame_buffer_scale,
+          window.get_height() / low_res_frame_buffer_scale
+      },
+      transform_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Transform>{
+          OpenGLUniforms::Transform{}, UniformBufferBindingPoint::Transform
+      }},
+      light_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Light>{
+          OpenGLUniforms::Light{}, UniformBufferBindingPoint::Light
+      }},
+      skybox{OpenGLSkybox{SkyboxPaths{
+          .front = std::filesystem::path{"res/skybox/default/front.jpg"},
+          .back = std::filesystem::path{"res/skybox/default/back.jpg"},
+          .top = std::filesystem::path{"res/skybox/default/top.jpg"},
+          .bottom = std::filesystem::path{"res/skybox/default/bottom.jpg"},
+          .left = std::filesystem::path{"res/skybox/default/left.jpg"},
+          .right = std::filesystem::path{"res/skybox/default/right.jpg"}
+      }}},
+      cube{OpenGLModel{"res/models/cube/cube.obj"}},
+      view_matrix{glm::mat4{1.0f}},
+      projection_matrix{glm::mat4{1.0f}} {}
 
 auto OpenGLRenderer::set_view_matrix(const glm::mat4& view_matrix) -> void {
     this->view_matrix = view_matrix;
@@ -200,7 +198,7 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
 }
 
 auto OpenGLRenderer::update_light(const Light& light) -> void {
-    this->light_uniform_buffer->set_data(OpenGLUniforms::Light{
+    this->light_uniform_buffer.set_data(OpenGLUniforms::Light{
         .position = {light.position},
         .ambient = {light.ambient},
         .diffuse = {light.diffuse},
@@ -215,20 +213,20 @@ auto OpenGLRenderer::queue_draw_with_phong(
 ) -> void {
     this->draw_queue.emplace_back(
         [this, model_matrix, render_command, material] {
-            this->transform_uniform_buffer->set_data(OpenGLUniforms::Transform{
+            this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
                 .model_matrix = model_matrix,
                 .view_matrix = this->view_matrix,
                 .projection_matrix = this->projection_matrix
             });
 
-            this->phong_shader->bind();
-            this->phong_shader->set_uniform(
+            this->phong_shader.bind();
+            this->phong_shader.set_uniform(
                 "view_position", get_view_position(this->view_matrix)
             );
-            this->phong_shader->set_uniform(
+            this->phong_shader.set_uniform(
                 "material.shininess", material.shininess
             );
-            this->phong_shader->set_uniform("is_cell_shading_enabled", 0);
+            this->phong_shader.set_uniform("is_cell_shading_enabled", 0);
             render_command();
         }
     );
@@ -244,21 +242,21 @@ auto OpenGLRenderer::queue_draw_with_cell_shading(
 
     this->draw_queue.emplace_back(
         [this, model_matrix, render_command, material, cell_shading_levels] {
-            this->transform_uniform_buffer->set_data(OpenGLUniforms::Transform{
+            this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
                 .model_matrix = model_matrix,
                 .view_matrix = this->view_matrix,
                 .projection_matrix = this->projection_matrix
             });
 
-            this->phong_shader->bind();
-            this->phong_shader->set_uniform(
+            this->phong_shader.bind();
+            this->phong_shader.set_uniform(
                 "view_position", get_view_position(this->view_matrix)
             );
-            this->phong_shader->set_uniform(
+            this->phong_shader.set_uniform(
                 "material.shininess", material.shininess
             );
-            this->phong_shader->set_uniform("is_cell_shading_enabled", 1);
-            this->phong_shader->set_uniform(
+            this->phong_shader.set_uniform("is_cell_shading_enabled", 1);
+            this->phong_shader.set_uniform(
                 "cell_shading_levels", cell_shading_levels
             );
             render_command();
@@ -272,14 +270,14 @@ auto OpenGLRenderer::queue_draw_with_color(
     const glm::vec3& color
 ) -> void {
     this->draw_queue.emplace_back([this, model_matrix, render_command, color] {
-        this->transform_uniform_buffer->set_data(OpenGLUniforms::Transform{
+        this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
             .model_matrix = model_matrix,
             .view_matrix = this->view_matrix,
             .projection_matrix = this->projection_matrix
         });
 
-        this->color_shader->bind();
-        this->color_shader->set_uniform("color", color);
+        this->color_shader.bind();
+        this->color_shader.set_uniform("color", color);
         render_command();
     });
 }
@@ -291,23 +289,23 @@ auto OpenGLRenderer::draw() -> void {
         }
     };
 
-    this->low_res_frame_buffer->bind();
+    this->low_res_frame_buffer.bind();
     this->clear(BufferBit::ColorDepth);
     glViewport(
         0,
         0,
-        this->low_res_frame_buffer->get_width(),
-        this->low_res_frame_buffer->get_height()
+        this->low_res_frame_buffer.get_width(),
+        this->low_res_frame_buffer.get_height()
     );
 
     this->draw_skybox();
     draw_scene();
 
-    this->low_res_frame_buffer->unbind();
+    this->low_res_frame_buffer.unbind();
 
     this->clear(BufferBit::ColorDepth);
     glViewport(0, 0, this->get_window_width(), this->get_window_height());
-    this->low_res_frame_buffer->blit(
+    this->low_res_frame_buffer.blit(
         this->get_window_width(), this->get_window_height()
     );
 
@@ -315,19 +313,30 @@ auto OpenGLRenderer::draw() -> void {
 }
 
 auto OpenGLRenderer::draw_skybox() -> void {
-    this->transform_uniform_buffer->set_data(OpenGLUniforms::Transform{
+    this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
         .view_matrix = glm::mat4{glm::mat3{this->view_matrix}},
         .projection_matrix = this->projection_matrix
     });
 
     glCullFace(GL_FRONT);
     glDepthFunc(GL_LEQUAL);
-    this->skybox_shader->bind();
-    this->skybox->bind();
-    this->cube->get_render_command()();
-    this->skybox->unbind();
+    this->skybox_shader.bind();
+    this->skybox.bind();
+    this->cube.get_render_command()();
+    this->skybox.unbind();
     glDepthFunc(GL_LESS);
     glCullFace(GL_BACK);
+}
+
+auto OpenGLRenderer::get_framebuffer_resize_callback()
+    -> Window::FramebufferSizeCallback {
+    return [this](int width, int height) {
+        glViewport(0, 0, width, height);
+        this->low_res_frame_buffer.resize(
+            width / low_res_frame_buffer_scale,
+            height / low_res_frame_buffer_scale
+        );
+    };
 }
 
 }  // namespace Luminol::Graphics
