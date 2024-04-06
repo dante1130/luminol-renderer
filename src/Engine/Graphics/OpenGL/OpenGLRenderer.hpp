@@ -6,6 +6,7 @@
 #include <Engine/Graphics/OpenGL/OpenGLUniforms.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLFrameBuffer.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLSkybox.hpp>
+#include <Engine/Graphics/OpenGL/OpenGLModel.hpp>
 
 namespace Luminol::Graphics {
 
@@ -41,6 +42,8 @@ public:
     auto draw() -> void override;
 
 private:
+    auto draw_skybox() -> void;
+
     std::function<int32_t()> get_window_width;
     std::function<int32_t()> get_window_height;
 
@@ -48,6 +51,7 @@ private:
 
     std::unique_ptr<OpenGLShader> color_shader = {nullptr};
     std::unique_ptr<OpenGLShader> phong_shader = {nullptr};
+    std::unique_ptr<OpenGLShader> skybox_shader = {nullptr};
 
     std::unique_ptr<OpenGLFrameBuffer> low_res_frame_buffer = {nullptr};
 
@@ -57,6 +61,7 @@ private:
         light_uniform_buffer = {nullptr};
 
     std::unique_ptr<OpenGLSkybox> skybox = {nullptr};
+    std::unique_ptr<OpenGLModel> cube = {nullptr};
 
     glm::mat4 view_matrix = {1.0f};
     glm::mat4 projection_matrix = {1.0f};

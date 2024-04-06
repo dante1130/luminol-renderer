@@ -1,7 +1,6 @@
 #include "OpenGLRenderer.hpp"
 
 #include <iostream>
-#include <filesystem>
 
 #include <gsl/gsl>
 #include <glad/gl.h>
@@ -39,20 +38,31 @@ constexpr auto buffer_bit_to_gl(BufferBit buffer_bit) -> GLenum {
 }
 
 auto create_color_shader() -> std::unique_ptr<OpenGLShader> {
-    return std::make_unique<OpenGLShader>(ShaderPaths{
+    auto color_shader = std::make_unique<OpenGLShader>(ShaderPaths{
         .vertex_shader_path =
-            std::filesystem::path{"res/Shaders/color_vert.glsl"},
+            std::filesystem::path{"res/shaders/color_vert.glsl"},
         .fragment_shader_path =
-            std::filesystem::path{"res/Shaders/color_frag.glsl"}
+            std::filesystem::path{"res/shaders/color_frag.glsl"}
     });
+
+    color_shader->bind();
+    color_shader->set_sampler_binding_point(
+        "texture_diffuse", SamplerBindingPoint::TextureDiffuse
+    );
+    color_shader->set_uniform_block_binding_point(
+        "Transform", UniformBufferBindingPoint::Transform
+    );
+    color_shader->unbind();
+
+    return color_shader;
 }
 
 auto create_phong_shader() -> std::unique_ptr<OpenGLShader> {
     auto phong_shader = std::make_unique<OpenGLShader>(ShaderPaths{
         .vertex_shader_path =
-            std::filesystem::path{"res/Shaders/phong_vert.glsl"},
+            std::filesystem::path{"res/shaders/phong_vert.glsl"},
         .fragment_shader_path =
-            std::filesystem::path{"res/Shaders/phong_frag.glsl"}
+            std::filesystem::path{"res/shaders/phong_frag.glsl"}
     });
 
     phong_shader->bind();
@@ -80,6 +90,26 @@ auto create_phong_shader() -> std::unique_ptr<OpenGLShader> {
     phong_shader->unbind();
 
     return phong_shader;
+}
+
+auto create_skybox_shader() -> std::unique_ptr<OpenGLShader> {
+    auto skybox_shader = std::make_unique<OpenGLShader>(ShaderPaths{
+        .vertex_shader_path =
+            std::filesystem::path{"res/shaders/skybox_vert.glsl"},
+        .fragment_shader_path =
+            std::filesystem::path{"res/shaders/skybox_frag.glsl"}
+    });
+
+    skybox_shader->bind();
+    skybox_shader->set_sampler_binding_point(
+        "skybox", SamplerBindingPoint::Skybox
+    );
+    skybox_shader->set_uniform_block_binding_point(
+        "Transform", UniformBufferBindingPoint::Transform
+    );
+    skybox_shader->unbind();
+
+    return skybox_shader;
 }
 
 auto get_view_position(const glm::mat4& view_matrix) -> glm::vec3 {
@@ -123,6 +153,7 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
 
     this->color_shader = create_color_shader();
     this->phong_shader = create_phong_shader();
+    this->skybox_shader = create_skybox_shader();
 
     this->low_res_frame_buffer = std::make_unique<OpenGLFrameBuffer>(
         window.get_width() / low_res_frame_buffer_scale,
@@ -147,6 +178,8 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
         .left = std::filesystem::path{"res/skybox/default/left.jpg"},
         .right = std::filesystem::path{"res/skybox/default/right.jpg"}
     });
+
+    this->cube = std::make_unique<OpenGLModel>("res/models/cube/cube.obj");
 }
 
 auto OpenGLRenderer::set_view_matrix(const glm::mat4& view_matrix) -> void {
@@ -266,7 +299,10 @@ auto OpenGLRenderer::draw() -> void {
         this->low_res_frame_buffer->get_width(),
         this->low_res_frame_buffer->get_height()
     );
+
+    this->draw_skybox();
     draw_scene();
+
     this->low_res_frame_buffer->unbind();
 
     this->clear(BufferBit::ColorDepth);
@@ -276,6 +312,22 @@ auto OpenGLRenderer::draw() -> void {
     );
 
     this->draw_queue.clear();
+}
+
+auto OpenGLRenderer::draw_skybox() -> void {
+    this->transform_uniform_buffer->set_data(OpenGLUniforms::Transform{
+        .view_matrix = glm::mat4{glm::mat3{this->view_matrix}},
+        .projection_matrix = this->projection_matrix
+    });
+
+    glCullFace(GL_FRONT);
+    glDepthFunc(GL_LEQUAL);
+    this->skybox_shader->bind();
+    this->skybox->bind();
+    this->cube->get_render_command()();
+    this->skybox->unbind();
+    glDepthFunc(GL_LESS);
+    glCullFace(GL_BACK);
 }
 
 }  // namespace Luminol::Graphics
