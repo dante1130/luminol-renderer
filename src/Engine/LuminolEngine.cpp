@@ -64,14 +64,14 @@ void Engine::run() {
 
         constexpr auto light_position = glm::vec3(0.0f, 1.0f, -2.0f);
 
-        constexpr auto light = Graphics::Light{
-            .position = light_position,
+        constexpr auto directional_light = Graphics::DirectionalLight{
+            .direction = glm::vec3(0.5f, -0.5f, 1.0f),
             .ambient = glm::vec3(0.2f, 0.2f, 0.2f),
             .diffuse = glm::vec3(1.0f, 1.0f, 1.0f),
             .specular = glm::vec3(2.0f, 2.0f, 2.0f)
         };
 
-        this->renderer->update_light(light);
+        this->renderer->update_directional_light(directional_light);
 
         {
             constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);

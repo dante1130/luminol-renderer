@@ -17,11 +17,15 @@ struct Transform {
     glm::mat4 projection_matrix = {1.0f};  // 64 bytes
 };
 
+struct DirectionalLight {
+    PaddedVec3 direction = {glm::vec3{0.0f, 0.0f, 0.0f}};  // 16 bytes
+    PaddedVec3 ambient = {glm::vec3{1.0f, 1.0f, 1.0f}};    // 16 bytes
+    PaddedVec3 diffuse = {glm::vec3{1.0f, 1.0f, 1.0f}};    // 16 bytes
+    PaddedVec3 specular = {glm::vec3{1.0f, 1.0f, 1.0f}};   // 16 bytes
+};
+
 struct Light {
-    PaddedVec3 position = {glm::vec3{0.0f, 0.0f, 0.0f}};  // 16 bytes
-    PaddedVec3 ambient = {glm::vec3{1.0f, 1.0f, 1.0f}};   // 16 bytes
-    PaddedVec3 diffuse = {glm::vec3{1.0f, 1.0f, 1.0f}};   // 16 bytes
-    PaddedVec3 specular = {glm::vec3{1.0f, 1.0f, 1.0f}};  // 16 bytes
+    DirectionalLight directional_light;  // 64 bytes
 };
 
 }  // namespace OpenGLUniforms

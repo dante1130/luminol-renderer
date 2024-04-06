@@ -197,12 +197,15 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
     glClear(buffer_bit_to_gl(buffer_bit));
 }
 
-auto OpenGLRenderer::update_light(const Light& light) -> void {
+auto OpenGLRenderer::update_directional_light(const DirectionalLight& light)
+    -> void {
     this->light_uniform_buffer.set_data(OpenGLUniforms::Light{
-        .position = {light.position},
-        .ambient = {light.ambient},
-        .diffuse = {light.diffuse},
-        .specular = {light.specular}
+        .directional_light = {
+            .direction = {light.direction},
+            .ambient = {light.ambient},
+            .diffuse = {light.diffuse},
+            .specular = {light.specular}
+        }
     });
 }
 

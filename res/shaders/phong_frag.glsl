@@ -7,12 +7,17 @@ in vec3 frag_pos_out;
 in vec3 normal_out;
 in vec3 tangent_out;
 
+struct DirectionalLight
+{
+    vec3 direction;
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+};
+
 layout(std140, binding = 1) uniform Light
 {
-    vec3 light_position;
-    vec3 light_ambient;
-    vec3 light_diffuse;
-    vec3 light_specular;
+    DirectionalLight directional_light;
 };
 
 struct Material
@@ -51,14 +56,13 @@ vec3 calculate_ambient(vec3 light_ambient, sampler2D material_texture_diffuse)
 }
 
 vec3 calculate_diffuse(
-    vec3 light_position,
+    vec3 light_direction,
     vec3 light_diffuse,
     sampler2D material_texture_diffuse,
     vec3 frag_pos,
     vec3 normal
 )
 {
-    vec3 light_direction = normalize(light_position - frag_pos);
     float diff = max(dot(normalize(normal), light_direction), 0.0);
 
     if (is_cell_shading_enabled)
@@ -70,7 +74,7 @@ vec3 calculate_diffuse(
 }
 
 vec3 calculate_specular(
-    vec3 light_position,
+    vec3 light_direction,
     vec3 view_position,
     vec3 light_specular,
     sampler2D material_texture_specular,
@@ -80,7 +84,6 @@ vec3 calculate_specular(
 )
 {
     vec3 view_direction = normalize(view_position - frag_pos);
-    vec3 light_direction = normalize(light_position - frag_pos);
     vec3 half_direction = normalize(light_direction + view_direction);
     float spec = pow(max(dot(normalize(normal), half_direction), 0.0), material_shininess);
 
@@ -96,20 +99,20 @@ void main()
 {
     vec3 normal = calculate_normal(material.texture_normal, normal_out, tangent_out, tex_coords_out);
 
-    vec3 ambient = calculate_ambient(light_ambient, material.texture_diffuse);
+    vec3 ambient = calculate_ambient(directional_light.ambient, material.texture_diffuse);
 
     vec3 diffuse = calculate_diffuse(
-            light_position,
-            light_diffuse,
+            normalize(-directional_light.direction),
+            directional_light.diffuse,
             material.texture_diffuse,
             frag_pos_out,
             normal
         );
 
     vec3 specular = calculate_specular(
-            light_position,
+            normalize(-directional_light.direction),
             view_position,
-            light_specular,
+            directional_light.specular,
             material.texture_specular,
             material.shininess,
             frag_pos_out,

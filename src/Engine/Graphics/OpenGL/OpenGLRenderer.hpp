@@ -22,7 +22,8 @@ public:
 
     auto clear_color(const glm::vec4& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
-    auto update_light(const Light& light) -> void override;
+    auto update_directional_light(const DirectionalLight& light)
+        -> void override;
     auto queue_draw_with_phong(
         const RenderCommand& render_command,
         const glm::mat4& model_matrix,
@@ -43,8 +44,7 @@ public:
 
 private:
     auto draw_skybox() -> void;
-    auto get_framebuffer_resize_callback()
-        -> Window::FramebufferSizeCallback;
+    auto get_framebuffer_resize_callback() -> Window::FramebufferSizeCallback;
 
     int32_t opengl_version;
 

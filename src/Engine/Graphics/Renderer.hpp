@@ -33,7 +33,9 @@ public:
 
     virtual auto clear_color(const glm::vec4& color) const -> void = 0;
     virtual auto clear(BufferBit buffer_bit) const -> void = 0;
-    virtual auto update_light(const Light& light) -> void = 0;
+    virtual auto update_directional_light(
+        const DirectionalLight& directional_light
+    ) -> void = 0;
     virtual auto queue_draw_with_phong(
         const RenderCommand& render_command,
         const glm::mat4& model_matrix,
