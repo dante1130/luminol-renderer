@@ -1,6 +1,10 @@
 #pragma once
 
+#include <array>
+
 #include <glm/glm.hpp>
+
+#include <Engine/Graphics/Light.hpp>
 
 namespace Luminol::Graphics {
 
@@ -24,8 +28,20 @@ struct DirectionalLight {
     PaddedVec3 specular = {glm::vec3{1.0f, 1.0f, 1.0f}};   // 16 bytes
 };
 
+struct PointLight {
+    PaddedVec3 position = {glm::vec3{0.0f, 0.0f, 0.0f}};  // 16 bytes
+    PaddedVec3 ambient = {glm::vec3{1.0f, 1.0f, 1.0f}};   // 16 bytes
+    PaddedVec3 diffuse = {glm::vec3{1.0f, 1.0f, 1.0f}};   // 16 bytes
+    PaddedVec3 specular = {glm::vec3{1.0f, 1.0f, 1.0f}};  // 16 bytes
+    float constant = default_constant;                    // 4 bytes
+    float linear = default_linear;                        // 4 bytes
+    float quadratic = default_quadratic;                  // 4 bytes
+};
+
 struct Light {
-    DirectionalLight directional_light;  // 64 bytes
+    DirectionalLight directional_light;                     // 64 bytes
+    std::array<PointLight, max_point_lights> point_lights;  // 512 bytes
+    uint32_t point_light_count = 0;                         // 4 bytes
 };
 
 }  // namespace OpenGLUniforms
