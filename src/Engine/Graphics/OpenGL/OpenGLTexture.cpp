@@ -83,12 +83,12 @@ OpenGLTexture::OpenGLTexture(const Utilities::ImageLoader::Image& image)
 OpenGLTexture::~OpenGLTexture() { glDeleteTextures(1, &this->texture_id); }
 
 auto OpenGLTexture::bind(SamplerBindingPoint binding_point) const -> void {
-    glBindTextureUnit(static_cast<int32_t>(binding_point), this->texture_id);
+    glBindTextureUnit(static_cast<uint32_t>(binding_point), this->texture_id);
 }
 
 // NOLINTBEGIN(readability-convert-member-functions-to-static)
 auto OpenGLTexture::unbind(SamplerBindingPoint binding_point) const -> void {
-    glBindTextureUnit(static_cast<int32_t>(binding_point), 0);
+    glBindTextureUnit(static_cast<uint32_t>(binding_point), 0);
 }
 // NOLINTEND(readability-convert-member-functions-to-static)
 

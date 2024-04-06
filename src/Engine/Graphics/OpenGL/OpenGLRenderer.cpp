@@ -68,6 +68,9 @@ auto create_phong_shader() -> std::unique_ptr<OpenGLShader> {
     phong_shader->set_sampler_binding_point(
         "material.texture_normal", SamplerBindingPoint::TextureNormal
     );
+    phong_shader->set_sampler_binding_point(
+        "skybox", SamplerBindingPoint::Skybox
+    );
     phong_shader->set_uniform_block_binding_point(
         "Transform", UniformBufferBindingPoint::Transform
     );
@@ -135,6 +138,15 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
         std::make_unique<OpenGLUniformBuffer<OpenGLUniforms::Light>>(
             OpenGLUniforms::Light{}, UniformBufferBindingPoint::Light
         );
+
+    this->skybox = std::make_unique<OpenGLSkybox>(SkyboxPaths{
+        .front = std::filesystem::path{"res/skybox/default/front.jpg"},
+        .back = std::filesystem::path{"res/skybox/default/back.jpg"},
+        .top = std::filesystem::path{"res/skybox/default/top.jpg"},
+        .bottom = std::filesystem::path{"res/skybox/default/bottom.jpg"},
+        .left = std::filesystem::path{"res/skybox/default/left.jpg"},
+        .right = std::filesystem::path{"res/skybox/default/right.jpg"}
+    });
 }
 
 auto OpenGLRenderer::set_view_matrix(const glm::mat4& view_matrix) -> void {

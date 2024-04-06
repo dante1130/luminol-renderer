@@ -12,6 +12,7 @@ enum class SamplerBindingPoint {
     TextureSpecular,
     TextureEmissive,
     TextureNormal,
+    Skybox,
 };
 
 }  // namespace Luminol::Graphics

@@ -164,7 +164,7 @@ auto OpenGLShader::unbind() const -> void { glUseProgram(0); }
 auto OpenGLShader::set_sampler_binding_point(
     const std::string& sampler_name, SamplerBindingPoint binding_point
 ) const -> void {
-    this->set_uniform(sampler_name, static_cast<int>(binding_point));
+    this->set_uniform(sampler_name, static_cast<int32_t>(binding_point));
 }
 
 auto OpenGLShader::set_uniform_block_binding_point(

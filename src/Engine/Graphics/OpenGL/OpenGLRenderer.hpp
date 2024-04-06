@@ -5,6 +5,7 @@
 #include <Engine/Graphics/OpenGL/OpenGLUniformBuffer.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLUniforms.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLFrameBuffer.hpp>
+#include <Engine/Graphics/OpenGL/OpenGLSkybox.hpp>
 
 namespace Luminol::Graphics {
 
@@ -54,6 +55,8 @@ private:
         transform_uniform_buffer = {nullptr};
     std::unique_ptr<OpenGLUniformBuffer<OpenGLUniforms::Light>>
         light_uniform_buffer = {nullptr};
+
+    std::unique_ptr<OpenGLSkybox> skybox = {nullptr};
 
     glm::mat4 view_matrix = {1.0f};
     glm::mat4 projection_matrix = {1.0f};
