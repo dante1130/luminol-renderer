@@ -36,6 +36,7 @@ struct PointLight {
     float constant = default_constant;                    // 4 bytes
     float linear = default_linear;                        // 4 bytes
     float quadratic = default_quadratic;                  // 4 bytes
+    float padding = 0.0f;                                 // 4 bytes
 };
 
 struct Light {
