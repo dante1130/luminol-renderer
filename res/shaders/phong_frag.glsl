@@ -8,6 +8,7 @@ in vec3 normal_out;
 in vec3 tangent_out;
 
 const uint MAX_POINT_LIGHTS = 4;
+const uint MAX_SPOT_LIGHTS = 4;
 
 struct DirectionalLight
 {
@@ -28,11 +29,27 @@ struct PointLight
     float quadratic;
 };
 
+struct SpotLight
+{
+    vec3 position;
+    vec3 direction;
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float constant;
+    float linear;
+    float quadratic;
+    float cut_off;
+    float outer_cut_off;
+};
+
 layout(std140, binding = 1) uniform Light
 {
     DirectionalLight directional_light;
     PointLight point_lights[MAX_POINT_LIGHTS];
+    SpotLight spot_lights[MAX_SPOT_LIGHTS];
     uint point_lights_count;
+    uint spot_lights_count;
 };
 
 struct Material
@@ -168,6 +185,45 @@ vec3 calculate_point_light(PointLight light, vec3 normal, vec3 view_position, ve
     return (ambient + diffuse + specular) * attenuation;
 }
 
+vec3 calculate_spot_light(SpotLight light, vec3 normal, vec3 view_position, vec3 frag_pos)
+{
+    const vec3 light_direction = normalize(light.position - frag_pos);
+
+    const float theta = dot(light_direction, normalize(-light.direction));
+    const float epsilon = light.cut_off - light.outer_cut_off;
+    const float intensity = clamp((theta - light.outer_cut_off) / epsilon, 0.0, 1.0);
+
+    const vec3 ambient = calculate_ambient(light.ambient, material.texture_diffuse);
+
+    if (intensity <= 0.0)
+    {
+        return ambient;
+    }
+
+    const vec3 diffuse = calculate_diffuse(
+            light_direction,
+            light.diffuse,
+            material.texture_diffuse,
+            frag_pos,
+            normal
+        );
+
+    const vec3 specular = calculate_specular(
+            light_direction,
+            view_position,
+            light.specular,
+            material.texture_specular,
+            material.shininess,
+            frag_pos,
+            normal
+        );
+
+    const float distance = length(light.position - frag_pos);
+    const float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+
+    return ambient + ((diffuse + specular) * attenuation) * intensity;
+}
+
 void main()
 {
     const vec3 normal = calculate_normal(material.texture_normal, normal_out, tangent_out, tex_coords_out);
@@ -181,6 +237,11 @@ void main()
     for (uint i = 0; i < point_lights_count; i++)
     {
         light_result += calculate_point_light(point_lights[i], normal, view_position, frag_pos_out);
+    }
+
+    for (uint i = 0; i < spot_lights_count; i++)
+    {
+        light_result += calculate_spot_light(spot_lights[i], normal, view_position, frag_pos_out);
     }
 
     frag_color = vec4(light_result, 1.0);

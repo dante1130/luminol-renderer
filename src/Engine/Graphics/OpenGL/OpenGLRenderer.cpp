@@ -314,7 +314,8 @@ auto OpenGLRenderer::update_lights() -> void {
              .ambient = {light_data.directional_light.ambient},
              .diffuse = {light_data.directional_light.diffuse},
              .specular = {light_data.directional_light.specular}},
-        .point_light_count = light_data.point_light_count
+        .point_light_count = light_data.point_light_count,
+        .spot_light_count = light_data.spot_light_count
     };
 
     /// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
@@ -327,6 +328,21 @@ auto OpenGLRenderer::update_lights() -> void {
             .constant = light_data.point_lights[i].constant,
             .linear = light_data.point_lights[i].linear,
             .quadratic = light_data.point_lights[i].quadratic,
+        };
+    }
+
+    for (size_t i = 0; i < light_data.spot_light_count; ++i) {
+        light_uniforms.spot_lights[i] = {
+            .position = {light_data.spot_lights[i].position},
+            .direction = {light_data.spot_lights[i].direction},
+            .ambient = {light_data.spot_lights[i].ambient},
+            .diffuse = {light_data.spot_lights[i].diffuse},
+            .specular = {light_data.spot_lights[i].specular},
+            .constant = light_data.spot_lights[i].constant,
+            .linear = light_data.spot_lights[i].linear,
+            .quadratic = light_data.spot_lights[i].quadratic,
+            .cut_off = light_data.spot_lights[i].cut_off,
+            .outer_cut_off = light_data.spot_lights[i].outer_cut_off,
         };
     }
     /// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)

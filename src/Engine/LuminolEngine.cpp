@@ -98,6 +98,30 @@ void Engine::run() {
         );
     }
 
+    const auto initial_flash_light = Graphics::SpotLight{
+        .position = this->camera.get_position(),
+        .direction = this->camera.get_forward(),
+        .ambient = glm::vec3(0.2f, 0.2f, 0.2f),
+        .diffuse = glm::vec3(1.0f, 1.0f, 1.0f),
+        .specular = glm::vec3(2.0f, 2.0f, 2.0f),
+        .constant = 1.0f,
+        .linear = 0.09f,
+        .quadratic = 0.032f,
+        .cut_off = glm::cos(glm::radians(12.5f)),
+        .outer_cut_off = glm::cos(glm::radians(17.5f))
+    };
+
+    auto flash_light = initial_flash_light;
+
+    const auto flash_light_id_opt =
+        this->renderer->get_light_manager().add_spot_light(flash_light);
+
+    if (!flash_light_id_opt.has_value()) {
+        throw std::runtime_error("Failed to add spot light");
+    }
+
+    const auto flash_light_id = flash_light_id_opt.value();
+
     while (!this->window.should_close()) {
         const double current_frame_time_seconds = this->timer.elapsed_seconds();
         this->delta_time_seconds =
@@ -127,6 +151,13 @@ void Engine::run() {
         this->renderer->set_view_matrix(this->camera.get_view_matrix());
         this->renderer->set_projection_matrix(
             this->camera.get_projection_matrix()
+        );
+
+        flash_light.position = this->camera.get_position();
+        flash_light.direction = this->camera.get_forward();
+
+        this->renderer->get_light_manager().update_spot_light(
+            flash_light_id, flash_light
         );
 
         {

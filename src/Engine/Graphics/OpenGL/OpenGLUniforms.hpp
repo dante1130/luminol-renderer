@@ -39,11 +39,33 @@ struct PointLight {
     float padding = 0.0f;                                 // 4 bytes
 };
 
+struct SpotLight {
+    PaddedVec3 position = {glm::vec3{0.0f, 0.0f, 0.0f}};   // 16 bytes
+    PaddedVec3 direction = {glm::vec3{0.0f, 0.0f, 0.0f}};  // 16 bytes
+    PaddedVec3 ambient = {glm::vec3{1.0f, 1.0f, 1.0f}};    // 16 bytes
+    PaddedVec3 diffuse = {glm::vec3{1.0f, 1.0f, 1.0f}};    // 16 bytes
+    glm::vec3 specular = {glm::vec3{1.0f, 1.0f, 1.0f}};    // 12 bytes
+    float constant = default_constant;                     // 4 bytes
+    float linear = default_linear;                         // 4 bytes
+    float quadratic = default_quadratic;                   // 4 bytes
+    float cut_off = default_cut_off;                       // 4 bytes
+    float outer_cut_off = default_outer_cut_off;           // 4 bytes
+};
+
 struct Light {
     DirectionalLight directional_light;                     // 64 bytes
-    std::array<PointLight, max_point_lights> point_lights;  // 512 bytes
+    std::array<PointLight, max_point_lights> point_lights;  // 320 bytes
+    std::array<SpotLight, max_spot_lights> spot_lights;     // 384 bytes
     uint32_t point_light_count = 0;                         // 4 bytes
+    uint32_t spot_light_count = 0;                          // 4 bytes
 };
+
+constexpr static auto alignment = 16u;
+
+static_assert(sizeof(Transform) % alignment == 0);
+static_assert(sizeof(DirectionalLight) % alignment == 0);
+static_assert(sizeof(PointLight) % alignment == 0);
+static_assert(sizeof(SpotLight) % alignment == 0);
 
 }  // namespace OpenGLUniforms
 
