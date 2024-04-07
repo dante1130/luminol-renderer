@@ -38,8 +38,9 @@ constexpr auto create_vertex_attributes() {
     };
 }
 
-auto load_texture_from_path(const std::optional<std::filesystem::path>& path)
-    -> OpenGLMesh::TextureRefOptional {
+auto load_texture_from_path(
+    const std::optional<std::filesystem::path>& path, ColorSpace color_space
+) -> OpenGLMesh::TextureRefOptional {
     if (!path.has_value()) {
         return std::nullopt;
     }
@@ -47,12 +48,13 @@ auto load_texture_from_path(const std::optional<std::filesystem::path>& path)
     const auto& path_value = path.value();
 
     auto& texture_manager = OpenGLTextureManager::get_instance();
-    texture_manager.load_texture(path_value);
+    texture_manager.load_texture(path_value, color_space);
     return texture_manager.get_texture(path_value);
 }
 
 auto load_texture_from_image(
-    const std::optional<Luminol::Utilities::ImageLoader::Image>& image
+    const std::optional<Luminol::Utilities::ImageLoader::Image>& image,
+    ColorSpace color_space
 ) -> OpenGLMesh::TextureRefOptional {
     if (!image.has_value()) {
         return std::nullopt;
@@ -61,7 +63,7 @@ auto load_texture_from_image(
     const auto& image_value = image.value();
 
     auto& texture_manager = OpenGLTextureManager::get_instance();
-    texture_manager.load_texture(image_value);
+    texture_manager.load_texture(image_value, color_space);
     return texture_manager.get_texture(image_value.path);
 }
 
@@ -72,37 +74,45 @@ namespace Luminol::Graphics {
 OpenGLMesh::OpenGLMesh(
     gsl::span<const float> vertices, gsl::span<const uint32_t> indices
 )
-    : vertex_array_object(vertices, indices, create_vertex_attributes()) {}
+    : vertex_array_object{vertices, indices, create_vertex_attributes()} {}
 
 OpenGLMesh::OpenGLMesh(
     gsl::span<const float> vertices,
     gsl::span<const uint32_t> indices,
     const TexturePaths& texture_paths
 )
-    : vertex_array_object(vertices, indices, create_vertex_attributes()),
-      diffuse_texture(load_texture_from_path(texture_paths.diffuse_texture_path)
-      ),
-      specular_texture(
-          load_texture_from_path(texture_paths.specular_texture_path)
-      ),
-      emissive_texture(
-          load_texture_from_path(texture_paths.emissive_texture_path)
-      ),
-      normal_texture(load_texture_from_path(texture_paths.normal_texture_path)
-      ) {}
+    : vertex_array_object{vertices, indices, create_vertex_attributes()},
+      diffuse_texture{load_texture_from_path(
+          texture_paths.diffuse_texture_path, ColorSpace::SRGB
+      )},
+      specular_texture{load_texture_from_path(
+          texture_paths.specular_texture_path, ColorSpace::Linear
+      )},
+      emissive_texture{load_texture_from_path(
+          texture_paths.emissive_texture_path, ColorSpace::SRGB
+      )},
+      normal_texture{load_texture_from_path(
+          texture_paths.normal_texture_path, ColorSpace::Linear
+      )} {}
 
 OpenGLMesh::OpenGLMesh(
     gsl::span<const float> vertices,
     gsl::span<const uint32_t> indices,
     const TextureImages& texture_images
 )
-    : vertex_array_object(vertices, indices, create_vertex_attributes()),
-      diffuse_texture(load_texture_from_image(texture_images.diffuse_texture)),
-      specular_texture(load_texture_from_image(texture_images.specular_texture)
-      ),
-      emissive_texture(load_texture_from_image(texture_images.emissive_texture)
-      ),
-      normal_texture(load_texture_from_image(texture_images.normal_texture)) {}
+    : vertex_array_object{vertices, indices, create_vertex_attributes()},
+      diffuse_texture{load_texture_from_image(
+          texture_images.diffuse_texture, ColorSpace::SRGB
+      )},
+      specular_texture{load_texture_from_image(
+          texture_images.specular_texture, ColorSpace::Linear
+      )},
+      emissive_texture{load_texture_from_image(
+          texture_images.emissive_texture, ColorSpace::SRGB
+      )},
+      normal_texture{load_texture_from_image(
+          texture_images.normal_texture, ColorSpace::Linear
+      )} {}
 
 auto OpenGLMesh::get_render_command() const -> RenderCommand {
     return [this]() {

@@ -13,8 +13,11 @@ public:
 
     static auto get_instance() -> OpenGLTextureManager&;
 
-    auto load_texture(const std::filesystem::path& path) -> void;
-    auto load_texture(const Utilities::ImageLoader::Image& image) -> void;
+    auto load_texture(const std::filesystem::path& path, ColorSpace color_space)
+        -> void;
+    auto load_texture(
+        const Utilities::ImageLoader::Image& image, ColorSpace color_space
+    ) -> void;
 
     [[nodiscard]] auto get_texture(const std::filesystem::path& path) const
         -> const OpenGLTexture&;

@@ -8,16 +8,16 @@
 
 namespace {
 
-constexpr auto channels_to_internal_format(int32_t channels) -> GLenum {
+constexpr auto channels_to_internal_format_srgb(int32_t channels) -> GLenum {
     switch (channels) {
         case 1:
-            return GL_R8;
+            return GL_SRGB8;
         case 2:
-            return GL_RG8;
+            return GL_SRGB8_ALPHA8;
         case 3:
-            return GL_RGB8;
+            return GL_SRGB8;
         case 4:
-            return GL_RGBA8;
+            return GL_SRGB8_ALPHA8;
         default:
             throw std::runtime_error{"Invalid number of channels"};
     }
@@ -43,7 +43,8 @@ auto load_skybox_face(
 ) {
     auto image = Luminol::Utilities::ImageLoader::load_image(path);
 
-    const auto internal_format = channels_to_internal_format(image.channels);
+    const auto internal_format =
+        channels_to_internal_format_srgb(image.channels);
     const auto format = channels_to_format(image.channels);
 
     glTextureImage2DEXT(

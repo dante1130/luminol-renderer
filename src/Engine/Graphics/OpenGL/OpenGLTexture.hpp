@@ -7,10 +7,14 @@
 
 namespace Luminol::Graphics {
 
+enum class ColorSpace { SRGB, Linear };
+
 class OpenGLTexture {
 public:
-    OpenGLTexture(const std::filesystem::path& path);
-    OpenGLTexture(const Utilities::ImageLoader::Image& image);
+    OpenGLTexture(const std::filesystem::path& path, ColorSpace color_space);
+    OpenGLTexture(
+        const Utilities::ImageLoader::Image& image, ColorSpace color_space
+    );
     ~OpenGLTexture();
     OpenGLTexture(const OpenGLTexture&) = default;
     OpenGLTexture(OpenGLTexture&&) = delete;
