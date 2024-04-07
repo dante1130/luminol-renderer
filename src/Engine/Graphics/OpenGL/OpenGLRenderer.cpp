@@ -102,9 +102,7 @@ auto create_quad_mesh() -> OpenGLMesh {
     };
 
     // Draw in counter-clockwise order
-    const auto indices = std::array{
-        0u, 3u, 2u, 2u, 1u, 0u
-    };
+    constexpr auto indices = std::array{0u, 3u, 2u, 2u, 1u, 0u};
 
     constexpr auto component_count = 11u;
 
