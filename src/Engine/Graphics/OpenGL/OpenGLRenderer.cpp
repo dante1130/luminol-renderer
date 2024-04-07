@@ -306,7 +306,7 @@ auto OpenGLRenderer::draw() -> void {
 }
 
 auto OpenGLRenderer::update_lights() -> void {
-    const auto light_data = this->get_light_manager().get_light_data();
+    const auto& light_data = this->get_light_manager().get_light_data();
 
     auto light_uniforms = OpenGLUniforms::Light{
         .directional_light =
