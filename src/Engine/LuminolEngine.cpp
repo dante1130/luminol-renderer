@@ -71,7 +71,9 @@ void Engine::run() {
             .specular = glm::vec3(2.0f, 2.0f, 2.0f)
         };
 
-        this->renderer->update_directional_light(directional_light);
+        this->renderer->get_light_manager().update_directional_light(
+            directional_light
+        );
 
         {
             constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);

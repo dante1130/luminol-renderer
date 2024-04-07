@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include <glm/glm.hpp>
 
 namespace Luminol::Graphics {
@@ -11,7 +13,7 @@ struct DirectionalLight {
     glm::vec3 specular = {1.0f, 1.0f, 1.0f};
 };
 
-constexpr static auto max_point_lights = 4;
+constexpr static auto max_point_lights = 4u;
 constexpr static auto default_constant = 1.0f;
 constexpr static auto default_linear = 0.09f;
 constexpr static auto default_quadratic = 0.032f;
@@ -24,6 +26,12 @@ struct PointLight {
     float constant = default_constant;
     float linear = default_linear;
     float quadratic = default_quadratic;
+};
+
+struct Light {
+    DirectionalLight directional_light;
+    std::array<PointLight, max_point_lights> point_lights;
+    uint32_t point_light_count = 0u;
 };
 
 }  // namespace Luminol::Graphics

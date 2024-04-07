@@ -197,18 +197,6 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
     glClear(buffer_bit_to_gl(buffer_bit));
 }
 
-auto OpenGLRenderer::update_directional_light(const DirectionalLight& light)
-    -> void {
-    this->light_uniform_buffer.set_data(OpenGLUniforms::Light{
-        .directional_light = {
-            .direction = {light.direction},
-            .ambient = {light.ambient},
-            .diffuse = {light.diffuse},
-            .specular = {light.specular}
-        }
-    });
-}
-
 auto OpenGLRenderer::queue_draw_with_phong(
     const RenderCommand& render_command,
     const glm::mat4& model_matrix,
@@ -292,6 +280,8 @@ auto OpenGLRenderer::draw() -> void {
         }
     };
 
+    this->update_lights();
+
     this->low_res_frame_buffer.bind();
     this->clear(BufferBit::ColorDepth);
     glViewport(
@@ -313,6 +303,18 @@ auto OpenGLRenderer::draw() -> void {
     );
 
     this->draw_queue.clear();
+}
+
+auto OpenGLRenderer::update_lights() -> void {
+    const auto light_data = this->get_light_manager().get_light_data();
+
+    this->light_uniform_buffer.set_data(OpenGLUniforms::Light{
+        .directional_light =
+            {.direction = {light_data.directional_light.direction},
+             .ambient = {light_data.directional_light.ambient},
+             .diffuse = {light_data.directional_light.diffuse},
+             .specular = {light_data.directional_light.specular}},
+    });
 }
 
 auto OpenGLRenderer::draw_skybox() -> void {

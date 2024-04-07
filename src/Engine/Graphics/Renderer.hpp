@@ -4,7 +4,7 @@
 
 #include <Engine/Window/Window.hpp>
 #include <Engine/Graphics/BufferBit.hpp>
-#include <Engine/Graphics/Light.hpp>
+#include <Engine/Graphics/LightManager.hpp>
 
 namespace Luminol::Graphics {
 
@@ -27,15 +27,14 @@ public:
     auto operator=(const Renderer&) -> Renderer& = default;
     auto operator=(Renderer&&) -> Renderer& = delete;
 
+    auto get_light_manager() -> LightManager&;
+
     virtual auto set_view_matrix(const glm::mat4& view_matrix) -> void = 0;
     virtual auto set_projection_matrix(const glm::mat4& projection_matrix)
         -> void = 0;
 
     virtual auto clear_color(const glm::vec4& color) const -> void = 0;
     virtual auto clear(BufferBit buffer_bit) const -> void = 0;
-    virtual auto update_directional_light(
-        const DirectionalLight& directional_light
-    ) -> void = 0;
     virtual auto queue_draw_with_phong(
         const RenderCommand& render_command,
         const glm::mat4& model_matrix,
@@ -53,6 +52,9 @@ public:
         const glm::vec3& color
     ) -> void = 0;
     virtual auto draw() -> void = 0;
+
+private:
+    LightManager light_manager;
 };
 
 }  // namespace Luminol::Graphics

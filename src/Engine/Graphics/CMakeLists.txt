@@ -1,6 +1,8 @@
 add_library(Luminol.Graphics
     Camera.cpp
     GraphicsFactory.cpp
+    LightManager.cpp
+    Renderer.cpp
     OpenGL/OpenGLRenderer.cpp
     OpenGL/OpenGLFactory.cpp
     OpenGL/OpenGLShader.cpp
