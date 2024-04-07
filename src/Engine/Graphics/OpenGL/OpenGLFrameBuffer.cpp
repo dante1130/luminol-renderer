@@ -22,6 +22,19 @@ OpenGLFrameBuffer::OpenGLFrameBuffer(int32_t width, int32_t height)
         GL_UNSIGNED_BYTE,
         nullptr
     );
+    glTextureParameteri(
+        this->color_attachment_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR
+    );
+    glTextureParameteri(
+        this->color_attachment_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR
+    );
+    glTextureParameteri(
+        this->color_attachment_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE
+    );
+    glTextureParameteri(
+        this->color_attachment_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE
+    );
+
     glNamedFramebufferTexture(
         this->frame_buffer_id,
         GL_COLOR_ATTACHMENT0,
@@ -59,6 +72,21 @@ auto OpenGLFrameBuffer::bind() const -> void {
 // NOLINTBEGIN(readability-convert-member-functions-to-static)
 auto OpenGLFrameBuffer::unbind() const -> void {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+// NOLINTEND(readability-convert-member-functions-to-static)
+
+auto OpenGLFrameBuffer::bind_color_attachment(SamplerBindingPoint binding_point
+) const -> void {
+    glBindTextureUnit(
+        static_cast<uint32_t>(binding_point), this->color_attachment_id
+    );
+}
+
+// NOLINTBEGIN(readability-convert-member-functions-to-static)
+auto OpenGLFrameBuffer::unbind_color_attachment(
+    SamplerBindingPoint binding_point
+) const -> void {
+    glBindTextureUnit(static_cast<uint32_t>(binding_point), 0);
 }
 // NOLINTEND(readability-convert-member-functions-to-static)
 

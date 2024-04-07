@@ -55,6 +55,7 @@ private:
     OpenGLShader color_shader;
     OpenGLShader phong_shader;
     OpenGLShader skybox_shader;
+    OpenGLShader hdr_shader;
 
     OpenGLFrameBuffer hdr_frame_buffer;
 

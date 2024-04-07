@@ -69,39 +69,42 @@ constexpr auto buffer_bit_to_gl(BufferBit buffer_bit) -> GLenum {
 auto create_quad_mesh() -> OpenGLMesh {
     struct Vertex {
         glm::vec3 position;
-        glm::vec3 normal;
         glm::vec2 tex_coords;
+        glm::vec3 normal;
         glm::vec3 tangent;
     };
 
     const auto vertices = std::array{
         Vertex{
             .position = glm::vec3{-1.0f, 1.0f, 0.0f},
-            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
             .tex_coords = glm::vec2{0.0f, 1.0f},
+            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
             .tangent = glm::vec3{1.0f, 0.0f, 0.0f}
         },
         Vertex{
             .position = glm::vec3{-1.0f, -1.0f, 0.0f},
-            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
             .tex_coords = glm::vec2{0.0f, 0.0f},
+            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
             .tangent = glm::vec3{1.0f, 0.0f, 0.0f}
         },
         Vertex{
             .position = glm::vec3{1.0f, -1.0f, 0.0f},
-            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
             .tex_coords = glm::vec2{1.0f, 0.0f},
+            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
             .tangent = glm::vec3{1.0f, 0.0f, 0.0f}
         },
         Vertex{
             .position = glm::vec3{1.0f, 1.0f, 0.0f},
-            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
             .tex_coords = glm::vec2{1.0f, 1.0f},
+            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
             .tangent = glm::vec3{1.0f, 0.0f, 0.0f}
         }
     };
 
-    constexpr auto indices = std::array{0u, 1u, 2u, 2u, 3u, 0u};
+    // Draw in counter-clockwise order
+    const auto indices = std::array{
+        0u, 3u, 2u, 2u, 1u, 0u
+    };
 
     constexpr auto component_count = 11u;
 
@@ -113,12 +116,12 @@ auto create_quad_mesh() -> OpenGLMesh {
         vertices_float.push_back(vertex.position.y);
         vertices_float.push_back(vertex.position.z);
 
+        vertices_float.push_back(vertex.tex_coords.x);
+        vertices_float.push_back(vertex.tex_coords.y);
+
         vertices_float.push_back(vertex.normal.x);
         vertices_float.push_back(vertex.normal.y);
         vertices_float.push_back(vertex.normal.z);
-
-        vertices_float.push_back(vertex.tex_coords.x);
-        vertices_float.push_back(vertex.tex_coords.y);
 
         vertices_float.push_back(vertex.tangent.x);
         vertices_float.push_back(vertex.tangent.y);
@@ -203,6 +206,23 @@ auto create_skybox_shader() -> OpenGLShader {
     return skybox_shader;
 }
 
+auto create_hdr_shader() -> OpenGLShader {
+    auto hdr_shader = OpenGLShader{ShaderPaths{
+        .vertex_shader_path =
+            std::filesystem::path{"res/shaders/hdr_vert.glsl"},
+        .fragment_shader_path =
+            std::filesystem::path{"res/shaders/hdr_frag.glsl"}
+    }};
+
+    hdr_shader.bind();
+    hdr_shader.set_sampler_binding_point(
+        "hdr_framebuffer", SamplerBindingPoint::HDRFramebuffer
+    );
+    hdr_shader.unbind();
+
+    return hdr_shader;
+}
+
 auto get_view_position(const glm::mat4& view_matrix) -> glm::vec3 {
     return glm::inverse(view_matrix)[3];
 }
@@ -220,6 +240,7 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       color_shader{create_color_shader()},
       phong_shader{create_phong_shader()},
       skybox_shader{create_skybox_shader()},
+      hdr_shader{create_hdr_shader()},
       hdr_frame_buffer{window.get_width(), window.get_height()},
       transform_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Transform>{
           OpenGLUniforms::Transform{}, UniformBufferBindingPoint::Transform
@@ -341,8 +362,18 @@ auto OpenGLRenderer::draw() -> void {
     };
 
     this->update_lights();
+
+    this->hdr_frame_buffer.bind();
+    this->clear(BufferBit::ColorDepth);
     this->draw_skybox();
     draw_scene();
+    this->hdr_frame_buffer.unbind();
+
+    this->clear(BufferBit::ColorDepth);
+    this->hdr_shader.bind();
+    this->hdr_frame_buffer.bind_color_attachment(
+        SamplerBindingPoint::HDRFramebuffer
+    );
     this->quad.get_render_command()();
 
     this->draw_queue.clear();

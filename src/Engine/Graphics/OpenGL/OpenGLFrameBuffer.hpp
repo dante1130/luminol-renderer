@@ -20,6 +20,10 @@ public:
     auto bind() const -> void;
     auto unbind() const -> void;
 
+    auto bind_color_attachment(SamplerBindingPoint binding_point) const -> void;
+    auto unbind_color_attachment(SamplerBindingPoint binding_point) const
+        -> void;
+
     auto blit(int32_t width, int32_t height) const -> void;
 
     [[nodiscard]] auto get_width() const -> int32_t;

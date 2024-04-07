@@ -13,6 +13,7 @@ enum class SamplerBindingPoint {
     TextureEmissive,
     TextureNormal,
     Skybox,
+    HDRFramebuffer,
 };
 
 }  // namespace Luminol::Graphics
