@@ -63,6 +63,7 @@ private:
 
     OpenGLSkybox skybox;
     OpenGLModel cube;
+    OpenGLMesh quad;
 
     glm::mat4 view_matrix;
     glm::mat4 projection_matrix;

@@ -66,6 +66,68 @@ constexpr auto buffer_bit_to_gl(BufferBit buffer_bit) -> GLenum {
     return 0;
 }
 
+auto create_quad_mesh() -> OpenGLMesh {
+    struct Vertex {
+        glm::vec3 position;
+        glm::vec3 normal;
+        glm::vec2 tex_coords;
+        glm::vec3 tangent;
+    };
+
+    const auto vertices = std::array{
+        Vertex{
+            .position = glm::vec3{-1.0f, 1.0f, 0.0f},
+            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
+            .tex_coords = glm::vec2{0.0f, 1.0f},
+            .tangent = glm::vec3{1.0f, 0.0f, 0.0f}
+        },
+        Vertex{
+            .position = glm::vec3{-1.0f, -1.0f, 0.0f},
+            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
+            .tex_coords = glm::vec2{0.0f, 0.0f},
+            .tangent = glm::vec3{1.0f, 0.0f, 0.0f}
+        },
+        Vertex{
+            .position = glm::vec3{1.0f, -1.0f, 0.0f},
+            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
+            .tex_coords = glm::vec2{1.0f, 0.0f},
+            .tangent = glm::vec3{1.0f, 0.0f, 0.0f}
+        },
+        Vertex{
+            .position = glm::vec3{1.0f, 1.0f, 0.0f},
+            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
+            .tex_coords = glm::vec2{1.0f, 1.0f},
+            .tangent = glm::vec3{1.0f, 0.0f, 0.0f}
+        }
+    };
+
+    constexpr auto indices = std::array{0u, 1u, 2u, 2u, 3u, 0u};
+
+    constexpr auto component_count = 11u;
+
+    auto vertices_float = std::vector<float>{};
+    vertices_float.reserve(vertices.size() * component_count);
+
+    for (const auto& vertex : vertices) {
+        vertices_float.push_back(vertex.position.x);
+        vertices_float.push_back(vertex.position.y);
+        vertices_float.push_back(vertex.position.z);
+
+        vertices_float.push_back(vertex.normal.x);
+        vertices_float.push_back(vertex.normal.y);
+        vertices_float.push_back(vertex.normal.z);
+
+        vertices_float.push_back(vertex.tex_coords.x);
+        vertices_float.push_back(vertex.tex_coords.y);
+
+        vertices_float.push_back(vertex.tangent.x);
+        vertices_float.push_back(vertex.tangent.y);
+        vertices_float.push_back(vertex.tangent.z);
+    }
+
+    return OpenGLMesh{vertices_float, indices};
+}
+
 auto create_color_shader() -> OpenGLShader {
     auto color_shader = OpenGLShader{ShaderPaths{
         .vertex_shader_path =
@@ -158,10 +220,7 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       color_shader{create_color_shader()},
       phong_shader{create_phong_shader()},
       skybox_shader{create_skybox_shader()},
-      hdr_frame_buffer{
-          window.get_width(),
-          window.get_height()
-      },
+      hdr_frame_buffer{window.get_width(), window.get_height()},
       transform_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Transform>{
           OpenGLUniforms::Transform{}, UniformBufferBindingPoint::Transform
       }},
@@ -176,7 +235,8 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
           .left = std::filesystem::path{"res/skybox/default/left.jpg"},
           .right = std::filesystem::path{"res/skybox/default/right.jpg"}
       }}},
-      cube{OpenGLModel{"res/models/cube/cube.obj"}},
+      cube{"res/models/cube/cube.obj"},
+      quad{create_quad_mesh()},
       view_matrix{glm::mat4{1.0f}},
       projection_matrix{glm::mat4{1.0f}} {}
 
@@ -283,6 +343,7 @@ auto OpenGLRenderer::draw() -> void {
     this->update_lights();
     this->draw_skybox();
     draw_scene();
+    this->quad.get_render_command()();
 
     this->draw_queue.clear();
 }
@@ -352,10 +413,7 @@ auto OpenGLRenderer::get_framebuffer_resize_callback()
     -> Window::FramebufferSizeCallback {
     return [this](int width, int height) {
         glViewport(0, 0, width, height);
-        this->hdr_frame_buffer.resize(
-            width,
-            height
-        );
+        this->hdr_frame_buffer.resize(width, height);
     };
 }
 
