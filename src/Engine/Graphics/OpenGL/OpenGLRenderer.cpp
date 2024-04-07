@@ -308,13 +308,15 @@ auto OpenGLRenderer::draw() -> void {
 auto OpenGLRenderer::update_lights() -> void {
     const auto light_data = this->get_light_manager().get_light_data();
 
-    this->light_uniform_buffer.set_data(OpenGLUniforms::Light{
+    auto light_uniforms = OpenGLUniforms::Light{
         .directional_light =
             {.direction = {light_data.directional_light.direction},
              .ambient = {light_data.directional_light.ambient},
              .diffuse = {light_data.directional_light.diffuse},
              .specular = {light_data.directional_light.specular}},
-    });
+    };
+
+    this->light_uniform_buffer.set_data(light_uniforms);
 }
 
 auto OpenGLRenderer::draw_skybox() -> void {

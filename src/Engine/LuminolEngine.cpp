@@ -31,6 +31,41 @@ void Engine::run() {
     const auto cube =
         this->graphics_factory->create_model("res/models/cube/cube.obj");
 
+    constexpr auto directional_light = Graphics::DirectionalLight{
+        .direction = glm::vec3(0.5f, -0.5f, 1.0f),
+        .ambient = glm::vec3(0.2f, 0.2f, 0.2f),
+        .diffuse = glm::vec3(1.0f, 1.0f, 1.0f),
+        .specular = glm::vec3(2.0f, 2.0f, 2.0f)
+    };
+
+    this->renderer->get_light_manager().update_directional_light(
+        directional_light
+    );
+
+    constexpr auto point_light_position = glm::vec3(0.0f, 1.0f, -2.0f);
+    constexpr auto point_light = Graphics::PointLight{
+        .position = point_light_position,
+        .ambient = glm::vec3(0.2f, 0.2f, 0.2f),
+        .diffuse = glm::vec3(1.0f, 1.0f, 1.0f),
+        .specular = glm::vec3(2.0f, 2.0f, 2.0f),
+        .constant = 1.0f,
+        .linear = 0.09f,
+        .quadratic = 0.032f
+    };
+
+    const auto point_light_id_opt =
+        this->renderer->get_light_manager().add_point_light(point_light);
+
+    if (!point_light_id_opt.has_value()) {
+        throw std::runtime_error("Failed to add point light");
+    }
+
+    const auto point_light_id = point_light_id_opt.value();
+
+    this->renderer->get_light_manager().update_point_light(
+        point_light_id, point_light
+    );
+
     while (!this->window.should_close()) {
         const double current_frame_time_seconds = this->timer.elapsed_seconds();
         this->delta_time_seconds =
@@ -62,24 +97,11 @@ void Engine::run() {
             this->camera.get_projection_matrix()
         );
 
-        constexpr auto light_position = glm::vec3(0.0f, 1.0f, -2.0f);
-
-        constexpr auto directional_light = Graphics::DirectionalLight{
-            .direction = glm::vec3(0.5f, -0.5f, 1.0f),
-            .ambient = glm::vec3(0.2f, 0.2f, 0.2f),
-            .diffuse = glm::vec3(1.0f, 1.0f, 1.0f),
-            .specular = glm::vec3(2.0f, 2.0f, 2.0f)
-        };
-
-        this->renderer->get_light_manager().update_directional_light(
-            directional_light
-        );
-
         {
             constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);
 
             auto model_matrix = glm::mat4(1.0f);
-            model_matrix = glm::translate(model_matrix, light_position);
+            model_matrix = glm::translate(model_matrix, point_light_position);
             model_matrix = glm::scale(model_matrix, scale);
 
             this->renderer->queue_draw_with_color(
