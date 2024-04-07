@@ -101,7 +101,7 @@ void Engine::run() {
     const auto initial_flash_light = Graphics::SpotLight{
         .position = this->camera.get_position(),
         .direction = this->camera.get_forward(),
-        .ambient = glm::vec3(0.2f, 0.2f, 0.2f),
+        .ambient = glm::vec3(0.0f, 0.0f, 0.0f),
         .diffuse = glm::vec3(1.0f, 1.0f, 1.0f),
         .specular = glm::vec3(2.0f, 2.0f, 2.0f),
         .constant = 1.0f,
