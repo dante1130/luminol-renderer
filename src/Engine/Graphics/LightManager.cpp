@@ -42,17 +42,6 @@ auto LightManager::add_point_light(const PointLight& point_light)
     this->free_point_light_ids.erase(point_light_id);
 
     this->point_lights_map[point_light_id] = point_light;
-    /// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
-    this->light_data.point_lights[point_light_id] = {
-        .position = point_light.position,
-        .ambient = point_light.ambient,
-        .diffuse = point_light.diffuse,
-        .specular = point_light.specular,
-        .constant = point_light.constant,
-        .linear = point_light.linear,
-        .quadratic = point_light.quadratic,
-    };
-    /// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
     this->light_data.point_light_count =
         gsl::narrow<uint32_t>(this->point_lights_map.size());
 
@@ -67,17 +56,6 @@ auto LightManager::update_point_light(
     }
 
     this->point_lights_map[point_light_id] = point_light;
-    /// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
-    this->light_data.point_lights[point_light_id] = {
-        .position = point_light.position,
-        .ambient = point_light.ambient,
-        .diffuse = point_light.diffuse,
-        .specular = point_light.specular,
-        .constant = point_light.constant,
-        .linear = point_light.linear,
-        .quadratic = point_light.quadratic,
-    };
-    /// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 }
 
 auto LightManager::remove_point_light(PointLightId point_light_id) -> void {
@@ -87,14 +65,19 @@ auto LightManager::remove_point_light(PointLightId point_light_id) -> void {
 
     this->free_point_light_ids.insert(point_light_id);
     this->point_lights_map.erase(point_light_id);
-    /// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
-    this->light_data.point_lights[point_light_id] = {};
-    /// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
     this->light_data.point_light_count =
         gsl::narrow<uint32_t>(this->point_lights_map.size());
 }
 
-[[nodiscard]] auto LightManager::get_light_data() const -> const Light& {
+[[nodiscard]] auto LightManager::get_light_data() -> const Light& {
+    size_t array_index = 0;
+    /// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
+    for (const auto& [point_light_id, point_light] : this->point_lights_map) {
+        this->light_data.point_lights[array_index] = point_light;
+        ++array_index;
+    }
+    /// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
+
     return this->light_data;
 }
 
