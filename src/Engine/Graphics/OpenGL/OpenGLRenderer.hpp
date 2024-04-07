@@ -56,7 +56,7 @@ private:
     OpenGLShader phong_shader;
     OpenGLShader skybox_shader;
 
-    OpenGLFrameBuffer low_res_frame_buffer;
+    OpenGLFrameBuffer hdr_frame_buffer;
 
     OpenGLUniformBuffer<OpenGLUniforms::Transform> transform_uniform_buffer;
     OpenGLUniformBuffer<OpenGLUniforms::Light> light_uniform_buffer;

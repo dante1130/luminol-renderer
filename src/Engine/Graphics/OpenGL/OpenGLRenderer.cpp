@@ -13,8 +13,6 @@ namespace {
 
 using namespace Luminol::Graphics;
 
-constexpr auto low_res_frame_buffer_scale = 1;
-
 auto initialize_opengl(
     Luminol::Window& window,
     const Luminol::Window::FramebufferSizeCallback& framebuffer_size_callback
@@ -160,9 +158,9 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       color_shader{create_color_shader()},
       phong_shader{create_phong_shader()},
       skybox_shader{create_skybox_shader()},
-      low_res_frame_buffer{
-          window.get_width() / low_res_frame_buffer_scale,
-          window.get_height() / low_res_frame_buffer_scale
+      hdr_frame_buffer{
+          window.get_width(),
+          window.get_height()
       },
       transform_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Transform>{
           OpenGLUniforms::Transform{}, UniformBufferBindingPoint::Transform
@@ -283,26 +281,8 @@ auto OpenGLRenderer::draw() -> void {
     };
 
     this->update_lights();
-
-    this->low_res_frame_buffer.bind();
-    this->clear(BufferBit::ColorDepth);
-    glViewport(
-        0,
-        0,
-        this->low_res_frame_buffer.get_width(),
-        this->low_res_frame_buffer.get_height()
-    );
-
     this->draw_skybox();
     draw_scene();
-
-    this->low_res_frame_buffer.unbind();
-
-    this->clear(BufferBit::ColorDepth);
-    glViewport(0, 0, this->get_window_width(), this->get_window_height());
-    this->low_res_frame_buffer.blit(
-        this->get_window_width(), this->get_window_height()
-    );
 
     this->draw_queue.clear();
 }
@@ -372,9 +352,9 @@ auto OpenGLRenderer::get_framebuffer_resize_callback()
     -> Window::FramebufferSizeCallback {
     return [this](int width, int height) {
         glViewport(0, 0, width, height);
-        this->low_res_frame_buffer.resize(
-            width / low_res_frame_buffer_scale,
-            height / low_res_frame_buffer_scale
+        this->hdr_frame_buffer.resize(
+            width,
+            height
         );
     };
 }
