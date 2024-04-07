@@ -14,12 +14,12 @@ OpenGLFrameBuffer::OpenGLFrameBuffer(int32_t width, int32_t height)
         this->color_attachment_id,
         GL_TEXTURE_2D,
         0,
-        GL_SRGB8_ALPHA8,
+        GL_RGBA32F,
         this->width,
         this->height,
         0,
         GL_RGBA,
-        GL_UNSIGNED_BYTE,
+        GL_FLOAT,
         nullptr
     );
     glTextureParameteri(
@@ -119,12 +119,12 @@ auto OpenGLFrameBuffer::resize(int32_t width, int32_t height) -> void {
         this->color_attachment_id,
         GL_TEXTURE_2D,
         0,
-        GL_SRGB8_ALPHA8,
+        GL_RGBA32F,
         this->width,
         this->height,
         0,
         GL_RGBA,
-        GL_UNSIGNED_BYTE,
+        GL_FLOAT,
         nullptr
     );
 
