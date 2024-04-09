@@ -74,7 +74,7 @@ auto create_quad_mesh() -> OpenGLMesh {
         glm::vec3 tangent;
     };
 
-    const auto vertices = std::array{
+    constexpr auto vertices = std::array{
         Vertex{
             .position = glm::vec3{-1.0f, 1.0f, 0.0f},
             .tex_coords = glm::vec2{0.0f, 1.0f},
