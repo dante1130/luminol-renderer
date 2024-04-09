@@ -24,6 +24,9 @@ Engine::Engine(const Properties& properties)
       renderer(this->graphics_factory->create_renderer(this->window)) {}
 
 void Engine::run() {
+    constexpr auto exposure = 2.0f;
+    this->renderer->set_exposure(exposure);
+
     const auto model =
         this->graphics_factory->create_model("res/models/mech_drone/scene.gltf"
         );

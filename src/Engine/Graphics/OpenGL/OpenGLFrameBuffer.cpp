@@ -14,7 +14,7 @@ OpenGLFrameBuffer::OpenGLFrameBuffer(int32_t width, int32_t height)
         this->color_attachment_id,
         GL_TEXTURE_2D,
         0,
-        GL_RGBA32F,
+        GL_RGBA16F,
         this->width,
         this->height,
         0,

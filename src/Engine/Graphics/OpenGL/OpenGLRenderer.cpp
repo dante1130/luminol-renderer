@@ -35,8 +35,6 @@ auto initialize_opengl(
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glEnable(GL_FRAMEBUFFER_SRGB);
-
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CW);
@@ -268,6 +266,10 @@ auto OpenGLRenderer::set_projection_matrix(const glm::mat4& projection_matrix)
     this->projection_matrix = projection_matrix;
 }
 
+auto OpenGLRenderer::set_exposure(float exposure) -> void {
+    this->exposure = exposure;
+}
+
 auto OpenGLRenderer::clear_color(const glm::vec4& color) const -> void {
     glClearColor(color.r, color.g, color.b, color.a);
 }
@@ -369,6 +371,7 @@ auto OpenGLRenderer::draw() -> void {
 
     this->clear(BufferBit::ColorDepth);
     this->hdr_shader.bind();
+    this->hdr_shader.set_uniform("exposure", this->exposure);
     this->hdr_frame_buffer.bind_color_attachment(
         SamplerBindingPoint::HDRFramebuffer
     );

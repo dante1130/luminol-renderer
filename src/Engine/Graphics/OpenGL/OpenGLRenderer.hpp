@@ -20,6 +20,8 @@ public:
     auto set_projection_matrix(const glm::mat4& projection_matrix)
         -> void override;
 
+    auto set_exposure(float exposure) -> void override;
+
     auto clear_color(const glm::vec4& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
     auto queue_draw_with_phong(
@@ -65,6 +67,8 @@ private:
     OpenGLSkybox skybox;
     OpenGLModel cube;
     OpenGLMesh quad;
+
+    float exposure = 1.0f;
 
     glm::mat4 view_matrix;
     glm::mat4 projection_matrix;
