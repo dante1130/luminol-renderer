@@ -219,6 +219,19 @@ auto create_hdr_shader() -> OpenGLShader {
     return hdr_shader;
 }
 
+auto create_hdr_frame_buffer(int32_t width, int32_t height)
+    -> OpenGLFrameBuffer {
+    return OpenGLFrameBuffer{OpenGLFrameBufferDescriptor{
+        width,
+        height,
+        std::vector{OpenGLFrameBufferAttachment{
+            .internal_format = TextureInternalFormat::RGBA16F,
+            .format = TextureFormat::RGBA,
+            .binding_point = SamplerBindingPoint::HDRFramebuffer,
+        }}
+    }};
+}
+
 auto get_view_position(const glm::mat4& view_matrix) -> glm::vec3 {
     return glm::inverse(view_matrix)[3];
 }
@@ -237,7 +250,9 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       phong_shader{create_phong_shader()},
       skybox_shader{create_skybox_shader()},
       hdr_shader{create_hdr_shader()},
-      hdr_frame_buffer{window.get_width(), window.get_height()},
+      hdr_frame_buffer{create_hdr_frame_buffer(
+          this->get_window_width(), this->get_window_height()
+      )},
       transform_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Transform>{
           OpenGLUniforms::Transform{}, UniformBufferBindingPoint::Transform
       }},
@@ -372,9 +387,7 @@ auto OpenGLRenderer::draw() -> void {
     this->clear(BufferBit::ColorDepth);
     this->hdr_shader.bind();
     this->hdr_shader.set_uniform("exposure", this->exposure);
-    this->hdr_frame_buffer.bind_color_attachment(
-        SamplerBindingPoint::HDRFramebuffer
-    );
+    this->hdr_frame_buffer.bind_color_attachments();
     this->quad.get_render_command()();
 
     this->draw_queue.clear();

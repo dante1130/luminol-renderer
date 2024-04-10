@@ -1,56 +1,12 @@
 #include "OpenGLTexture.hpp"
 
 #include <glad/gl.h>
-#include "Engine/Graphics/OpenGL/OpenGLUniformBindingPoints.hpp"
+
+#include <Engine/Graphics/OpenGL/OpenGLTextureFormat.hpp>
 
 namespace {
 
 using namespace Luminol::Graphics;
-
-constexpr auto channels_to_internal_format_linear(int32_t channels) -> GLenum {
-    switch (channels) {
-        case 1:
-            return GL_R8;
-        case 2:
-            return GL_RG8;
-        case 3:
-            return GL_RGB8;
-        case 4:
-            return GL_RGBA8;
-        default:
-            throw std::runtime_error{"Invalid number of channels"};
-    }
-}
-
-constexpr auto channels_to_internal_format_srgb(int32_t channels) -> GLenum {
-    switch (channels) {
-        case 1:
-            return GL_SRGB8;
-        case 2:
-            return GL_SRGB8_ALPHA8;
-        case 3:
-            return GL_SRGB8;
-        case 4:
-            return GL_SRGB8_ALPHA8;
-        default:
-            throw std::runtime_error{"Invalid number of channels"};
-    }
-}
-
-constexpr auto channels_to_format(int32_t channels) -> GLenum {
-    switch (channels) {
-        case 1:
-            return GL_RED;
-        case 2:
-            return GL_RG;
-        case 3:
-            return GL_RGB;
-        case 4:
-            return GL_RGBA;
-        default:
-            throw std::runtime_error{"Invalid number of channels"};
-    }
-}
 
 auto create_texture(
     const Luminol::Utilities::ImageLoader::Image& image, ColorSpace color_space
@@ -65,12 +21,18 @@ auto create_texture(
 
     const auto internal_format =
         color_space == ColorSpace::SRGB
-            ? channels_to_internal_format_srgb(image.channels)
-            : channels_to_internal_format_linear(image.channels);
+            ? get_internal_format_from_channels_srgb(image.channels)
+            : get_internal_format_from_channels(image.channels);
 
     glTextureStorage2D(
-        texture_id, 1, internal_format, image.width, image.height
+        texture_id,
+        1,
+        get_opengl_internal_format(internal_format),
+        image.width,
+        image.height
     );
+
+    const auto format = get_format_from_channels(image.channels);
 
     glTextureSubImage2D(
         texture_id,
@@ -79,8 +41,8 @@ auto create_texture(
         0,
         image.width,
         image.height,
-        channels_to_format(image.channels),
-        GL_UNSIGNED_BYTE,
+        get_opengl_format(format),
+        get_opengl_data_type_from_internal_format(internal_format),
         image.data.data()
     );
 

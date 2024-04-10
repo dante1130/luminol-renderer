@@ -11,6 +11,7 @@ add_library(Luminol.Graphics
     OpenGL/OpenGLVertexArrayObject.cpp
     OpenGL/OpenGLTexture.cpp
     OpenGL/OpenGLTextureManager.cpp
+    OpenGL/OpenGLTextureFormat.cpp
     OpenGL/OpenGLSkybox.cpp
     OpenGL/OpenGLMesh.cpp
     OpenGL/OpenGLModel.cpp

@@ -5,41 +5,65 @@
 
 namespace Luminol::Graphics {
 
-OpenGLFrameBuffer::OpenGLFrameBuffer(int32_t width, int32_t height)
-    : width(width), height(height) {
+OpenGLFrameBuffer::OpenGLFrameBuffer(
+    const OpenGLFrameBufferDescriptor& descriptor
+)
+    : width(descriptor.width),
+      height(descriptor.height),
+      color_attachments(descriptor.color_attachments) {
     glCreateFramebuffers(1, &this->frame_buffer_id);
 
-    glCreateTextures(GL_TEXTURE_2D, 1, &this->color_attachment_id);
-    glTextureImage2DEXT(
-        this->color_attachment_id,
-        GL_TEXTURE_2D,
-        0,
-        GL_RGBA16F,
-        this->width,
-        this->height,
-        0,
-        GL_RGBA,
-        GL_FLOAT,
-        nullptr
-    );
-    glTextureParameteri(
-        this->color_attachment_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR
-    );
-    glTextureParameteri(
-        this->color_attachment_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR
-    );
-    glTextureParameteri(
-        this->color_attachment_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE
-    );
-    glTextureParameteri(
-        this->color_attachment_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE
-    );
+    auto draw_buffers = std::vector<GLenum>{};
+    draw_buffers.reserve(this->color_attachments.size());
 
-    glNamedFramebufferTexture(
+    for (size_t i = 0; i < color_attachments.size(); ++i) {
+        auto& color_attachment = color_attachments[i];
+
+        glCreateTextures(GL_TEXTURE_2D, 1, &color_attachment.attachment_id);
+        glTextureImage2DEXT(
+            color_attachment.attachment_id,
+            GL_TEXTURE_2D,
+            0,
+            get_opengl_internal_format(color_attachment.internal_format),
+            width,
+            height,
+            0,
+            get_opengl_format(color_attachment.format),
+            get_opengl_data_type_from_internal_format(
+                color_attachment.internal_format
+            ),
+            nullptr
+        );
+        glTextureParameteri(
+            color_attachment.attachment_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR
+        );
+        glTextureParameteri(
+            color_attachment.attachment_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR
+        );
+        glTextureParameteri(
+            color_attachment.attachment_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE
+        );
+        glTextureParameteri(
+            color_attachment.attachment_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE
+        );
+
+        const auto color_attachment_point =
+            GL_COLOR_ATTACHMENT0 + gsl::narrow_cast<GLenum>(i);
+
+        glNamedFramebufferTexture(
+            this->frame_buffer_id,
+            color_attachment_point,
+            color_attachment.attachment_id,
+            0
+        );
+
+        draw_buffers.push_back(color_attachment_point);
+    }
+
+    glNamedFramebufferDrawBuffers(
         this->frame_buffer_id,
-        GL_COLOR_ATTACHMENT0,
-        this->color_attachment_id,
-        0
+        gsl::narrow_cast<GLsizei>(draw_buffers.size()),
+        draw_buffers.data()
     );
 
     glCreateRenderbuffers(1, &this->render_buffer_id);
@@ -61,7 +85,9 @@ OpenGLFrameBuffer::OpenGLFrameBuffer(int32_t width, int32_t height)
 
 OpenGLFrameBuffer::~OpenGLFrameBuffer() {
     glDeleteFramebuffers(1, &this->frame_buffer_id);
-    glDeleteTextures(1, &this->color_attachment_id);
+    for (const auto& color_attachment : this->color_attachments) {
+        glDeleteTextures(1, &color_attachment.attachment_id);
+    }
     glDeleteRenderbuffers(1, &this->render_buffer_id);
 }
 
@@ -75,20 +101,22 @@ auto OpenGLFrameBuffer::unbind() const -> void {
 }
 // NOLINTEND(readability-convert-member-functions-to-static)
 
-auto OpenGLFrameBuffer::bind_color_attachment(SamplerBindingPoint binding_point
-) const -> void {
-    glBindTextureUnit(
-        static_cast<uint32_t>(binding_point), this->color_attachment_id
-    );
+auto OpenGLFrameBuffer::bind_color_attachments() const -> void {
+    for (const auto& color_attachment : this->color_attachments) {
+        glBindTextureUnit(
+            static_cast<uint32_t>(color_attachment.binding_point),
+            color_attachment.attachment_id
+        );
+    }
 }
 
-// NOLINTBEGIN(readability-convert-member-functions-to-static)
-auto OpenGLFrameBuffer::unbind_color_attachment(
-    SamplerBindingPoint binding_point
-) const -> void {
-    glBindTextureUnit(static_cast<uint32_t>(binding_point), 0);
+auto OpenGLFrameBuffer::unbind_color_attachments() const -> void {
+    for (const auto& color_attachment : this->color_attachments) {
+        glBindTextureUnit(
+            static_cast<uint32_t>(color_attachment.binding_point), 0
+        );
+    }
 }
-// NOLINTEND(readability-convert-member-functions-to-static)
 
 auto OpenGLFrameBuffer::blit(int32_t width, int32_t height) const -> void {
     glBlitNamedFramebuffer(
@@ -115,18 +143,22 @@ auto OpenGLFrameBuffer::resize(int32_t width, int32_t height) -> void {
     this->width = width;
     this->height = height;
 
-    glTextureImage2DEXT(
-        this->color_attachment_id,
-        GL_TEXTURE_2D,
-        0,
-        GL_RGBA32F,
-        this->width,
-        this->height,
-        0,
-        GL_RGBA,
-        GL_FLOAT,
-        nullptr
-    );
+    for (const auto& color_attachment : this->color_attachments) {
+        glTextureImage2DEXT(
+            color_attachment.attachment_id,
+            GL_TEXTURE_2D,
+            0,
+            get_opengl_internal_format(color_attachment.internal_format),
+            width,
+            height,
+            0,
+            get_opengl_format(color_attachment.format),
+            get_opengl_data_type_from_internal_format(
+                color_attachment.internal_format
+            ),
+            nullptr
+        );
+    }
 
     glNamedRenderbufferStorageEXT(
         this->render_buffer_id, GL_DEPTH24_STENCIL8, this->width, this->height

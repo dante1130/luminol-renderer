@@ -4,13 +4,27 @@
 
 #include <glm/glm.hpp>
 
+#include <Engine/Graphics/OpenGL/OpenGLTextureFormat.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLUniformBindingPoints.hpp>
 
 namespace Luminol::Graphics {
 
+struct OpenGLFrameBufferAttachment {
+    uint32_t attachment_id = {0};
+    TextureInternalFormat internal_format = {TextureInternalFormat::RGBA8};
+    TextureFormat format = {TextureFormat::RGBA};
+    SamplerBindingPoint binding_point = {SamplerBindingPoint::HDRFramebuffer};
+};
+
+struct OpenGLFrameBufferDescriptor {
+    int32_t width = {0};
+    int32_t height = {0};
+    std::vector<OpenGLFrameBufferAttachment> color_attachments = {};
+};
+
 class OpenGLFrameBuffer {
 public:
-    OpenGLFrameBuffer(int32_t width, int32_t height);
+    OpenGLFrameBuffer(const OpenGLFrameBufferDescriptor& descriptor);
     ~OpenGLFrameBuffer();
     OpenGLFrameBuffer(const OpenGLFrameBuffer&) = delete;
     OpenGLFrameBuffer(OpenGLFrameBuffer&&) = default;
@@ -20,9 +34,8 @@ public:
     auto bind() const -> void;
     auto unbind() const -> void;
 
-    auto bind_color_attachment(SamplerBindingPoint binding_point) const -> void;
-    auto unbind_color_attachment(SamplerBindingPoint binding_point) const
-        -> void;
+    auto bind_color_attachments() const -> void;
+    auto unbind_color_attachments() const -> void;
 
     auto blit(int32_t width, int32_t height) const -> void;
 
@@ -36,7 +49,7 @@ private:
     int32_t height = {0};
 
     uint32_t frame_buffer_id = {0};
-    uint32_t color_attachment_id = {0};
+    std::vector<OpenGLFrameBufferAttachment> color_attachments = {};
     uint32_t render_buffer_id = {0};
 };
 
