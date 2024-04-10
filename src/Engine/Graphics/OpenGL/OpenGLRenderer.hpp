@@ -60,6 +60,7 @@ private:
     OpenGLShader hdr_shader;
 
     OpenGLFrameBuffer hdr_frame_buffer;
+    OpenGLFrameBuffer geometry_frame_buffer;
 
     OpenGLUniformBuffer<OpenGLUniforms::Transform> transform_uniform_buffer;
     OpenGLUniformBuffer<OpenGLUniforms::Light> light_uniform_buffer;

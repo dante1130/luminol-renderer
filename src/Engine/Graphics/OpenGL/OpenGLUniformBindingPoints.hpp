@@ -14,6 +14,9 @@ enum class SamplerBindingPoint {
     TextureNormal,
     Skybox,
     HDRFramebuffer,
+    GBufferPosition,
+    GBufferNormal,
+    GBufferAlbedo,
 };
 
 }  // namespace Luminol::Graphics

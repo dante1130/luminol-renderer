@@ -224,11 +224,36 @@ auto create_hdr_frame_buffer(int32_t width, int32_t height)
     return OpenGLFrameBuffer{OpenGLFrameBufferDescriptor{
         width,
         height,
-        std::vector{OpenGLFrameBufferAttachment{
+        {OpenGLFrameBufferAttachment{
             .internal_format = TextureInternalFormat::RGBA16F,
             .format = TextureFormat::RGBA,
             .binding_point = SamplerBindingPoint::HDRFramebuffer,
         }}
+    }};
+}
+
+auto create_geometry_frame_buffer(int32_t width, int32_t height)
+    -> OpenGLFrameBuffer {
+    return OpenGLFrameBuffer{OpenGLFrameBufferDescriptor{
+        width,
+        height,
+        {
+            OpenGLFrameBufferAttachment{
+                .internal_format = TextureInternalFormat::RGBA16F,
+                .format = TextureFormat::RGBA,
+                .binding_point = SamplerBindingPoint::GBufferPosition,
+            },
+            OpenGLFrameBufferAttachment{
+                .internal_format = TextureInternalFormat::RGBA16F,
+                .format = TextureFormat::RGBA,
+                .binding_point = SamplerBindingPoint::GBufferNormal,
+            },
+            OpenGLFrameBufferAttachment{
+                .internal_format = TextureInternalFormat::RGBA8,
+                .format = TextureFormat::RGBA,
+                .binding_point = SamplerBindingPoint::GBufferAlbedo,
+            },
+        }
     }};
 }
 
@@ -251,6 +276,9 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       skybox_shader{create_skybox_shader()},
       hdr_shader{create_hdr_shader()},
       hdr_frame_buffer{create_hdr_frame_buffer(
+          this->get_window_width(), this->get_window_height()
+      )},
+      geometry_frame_buffer{create_geometry_frame_buffer(
           this->get_window_width(), this->get_window_height()
       )},
       transform_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Transform>{
