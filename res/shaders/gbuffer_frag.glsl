@@ -1,7 +1,7 @@
 #version 460 core
 
-layout(location = 0) out vec3 gbuffer_position;
-layout(location = 1) out vec3 gbuffer_normal;
+layout(location = 0) out vec4 gbuffer_position;
+layout(location = 1) out vec4 gbuffer_normal;
 layout(location = 2) out vec4 gbuffer_albedo_spec;
 
 in vec2 tex_coords_out;
@@ -36,8 +36,8 @@ vec3 calculate_normal(sampler2D material_texture_normal, vec3 normal, vec3 tange
 
 void main()
 {
-    gbuffer_position = frag_pos_out;
-    gbuffer_normal = calculate_normal(material.texture_normal, normal_out, tangent_out, tex_coords_out);
+    gbuffer_position = vec4(frag_pos_out, 1.0);
+    gbuffer_normal = vec4(calculate_normal(material.texture_normal, normal_out, tangent_out, tex_coords_out), 1.0);
     gbuffer_albedo_spec.rgb = texture(material.texture_diffuse, tex_coords_out).rgb;
     gbuffer_albedo_spec.a = texture(material.texture_specular, tex_coords_out).r;
 }

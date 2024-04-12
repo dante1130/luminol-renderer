@@ -219,7 +219,31 @@ auto create_hdr_shader() -> OpenGLShader {
     return hdr_shader;
 }
 
-auto create_gbuffer_shader() -> OpenGLShader {}
+auto create_gbuffer_shader() -> OpenGLShader {
+    auto gbuffer_shader = OpenGLShader{ShaderPaths{
+        .vertex_shader_path =
+            std::filesystem::path{"res/shaders/gbuffer_vert.glsl"},
+        .fragment_shader_path =
+            std::filesystem::path{"res/shaders/gbuffer_frag.glsl"},
+    }};
+
+    gbuffer_shader.bind();
+    gbuffer_shader.set_uniform_block_binding_point(
+        "Transform", UniformBufferBindingPoint::Transform
+    );
+    gbuffer_shader.set_sampler_binding_point(
+        "material.texture_diffuse", SamplerBindingPoint::TextureDiffuse
+    );
+    gbuffer_shader.set_sampler_binding_point(
+        "material.texture_specular", SamplerBindingPoint::TextureSpecular
+    );
+    gbuffer_shader.set_sampler_binding_point(
+        "material.texture_normal", SamplerBindingPoint::TextureNormal
+    );
+    gbuffer_shader.unbind();
+
+    return gbuffer_shader;
+}
 
 auto create_hdr_frame_buffer(int32_t width, int32_t height)
     -> OpenGLFrameBuffer {
@@ -253,7 +277,7 @@ auto create_geometry_frame_buffer(int32_t width, int32_t height)
             OpenGLFrameBufferAttachment{
                 .internal_format = TextureInternalFormat::RGBA8,
                 .format = TextureFormat::RGBA,
-                .binding_point = SamplerBindingPoint::GBufferAlbedo,
+                .binding_point = SamplerBindingPoint::GBufferAlbedoSpec,
             },
         }
     }};
@@ -277,6 +301,7 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       phong_shader{create_phong_shader()},
       skybox_shader{create_skybox_shader()},
       hdr_shader{create_hdr_shader()},
+      gbuffer_shader{create_gbuffer_shader()},
       hdr_frame_buffer{create_hdr_frame_buffer(
           this->get_window_width(), this->get_window_height()
       )},
@@ -335,15 +360,6 @@ auto OpenGLRenderer::queue_draw_with_phong(
                 .view_matrix = this->view_matrix,
                 .projection_matrix = this->projection_matrix
             });
-
-            this->phong_shader.bind();
-            this->phong_shader.set_uniform(
-                "view_position", get_view_position(this->view_matrix)
-            );
-            this->phong_shader.set_uniform(
-                "material.shininess", material.shininess
-            );
-            this->phong_shader.set_uniform("is_cell_shading_enabled", 0);
             render_command();
         }
     );
@@ -365,17 +381,6 @@ auto OpenGLRenderer::queue_draw_with_cell_shading(
                 .projection_matrix = this->projection_matrix
             });
 
-            this->phong_shader.bind();
-            this->phong_shader.set_uniform(
-                "view_position", get_view_position(this->view_matrix)
-            );
-            this->phong_shader.set_uniform(
-                "material.shininess", material.shininess
-            );
-            this->phong_shader.set_uniform("is_cell_shading_enabled", 1);
-            this->phong_shader.set_uniform(
-                "cell_shading_levels", cell_shading_levels
-            );
             render_command();
         }
     );
@@ -392,9 +397,6 @@ auto OpenGLRenderer::queue_draw_with_color(
             .view_matrix = this->view_matrix,
             .projection_matrix = this->projection_matrix
         });
-
-        this->color_shader.bind();
-        this->color_shader.set_uniform("color", color);
         render_command();
     });
 }
@@ -408,17 +410,16 @@ auto OpenGLRenderer::draw() -> void {
 
     this->update_lights();
 
-    this->hdr_frame_buffer.bind();
+    this->gbuffer_shader.bind();
+    this->geometry_frame_buffer.bind();
     this->clear(BufferBit::ColorDepth);
-    this->draw_skybox();
     draw_scene();
-    this->hdr_frame_buffer.unbind();
+    this->geometry_frame_buffer.unbind();
 
     this->clear(BufferBit::ColorDepth);
-    this->hdr_shader.bind();
-    this->hdr_shader.set_uniform("exposure", this->exposure);
-    this->hdr_frame_buffer.bind_color_attachments();
-    this->quad.get_render_command()();
+    this->geometry_frame_buffer.blit(
+        this->get_window_width(), this->get_window_height()
+    );
 
     this->draw_queue.clear();
 }

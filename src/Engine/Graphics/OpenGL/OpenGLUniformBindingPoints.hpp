@@ -16,7 +16,7 @@ enum class SamplerBindingPoint {
     HDRFramebuffer,
     GBufferPosition,
     GBufferNormal,
-    GBufferAlbedo,
+    GBufferAlbedoSpec,
 };
 
 }  // namespace Luminol::Graphics
