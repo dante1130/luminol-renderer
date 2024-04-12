@@ -219,6 +219,8 @@ auto create_hdr_shader() -> OpenGLShader {
     return hdr_shader;
 }
 
+auto create_gbuffer_shader() -> OpenGLShader {}
+
 auto create_hdr_frame_buffer(int32_t width, int32_t height)
     -> OpenGLFrameBuffer {
     return OpenGLFrameBuffer{OpenGLFrameBufferDescriptor{

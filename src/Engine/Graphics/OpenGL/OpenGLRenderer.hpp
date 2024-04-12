@@ -58,6 +58,7 @@ private:
     OpenGLShader phong_shader;
     OpenGLShader skybox_shader;
     OpenGLShader hdr_shader;
+    OpenGLShader gbuffer_shader;
 
     OpenGLFrameBuffer hdr_frame_buffer;
     OpenGLFrameBuffer geometry_frame_buffer;
