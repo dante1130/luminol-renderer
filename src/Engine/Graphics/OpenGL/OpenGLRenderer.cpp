@@ -157,16 +157,19 @@ auto create_phong_shader() -> OpenGLShader {
 
     phong_shader.bind();
     phong_shader.set_sampler_binding_point(
-        "material.texture_diffuse", SamplerBindingPoint::TextureDiffuse
-    );
-    phong_shader.set_sampler_binding_point(
-        "material.texture_specular", SamplerBindingPoint::TextureSpecular
-    );
-    phong_shader.set_sampler_binding_point(
         "material.texture_emissive", SamplerBindingPoint::TextureEmissive
     );
     phong_shader.set_sampler_binding_point(
         "material.texture_normal", SamplerBindingPoint::TextureNormal
+    );
+    phong_shader.set_sampler_binding_point(
+        "gbuffer.position", SamplerBindingPoint::GBufferPosition
+    );
+    phong_shader.set_sampler_binding_point(
+        "gbuffer.normal", SamplerBindingPoint::GBufferNormal
+    );
+    phong_shader.set_sampler_binding_point(
+        "gbuffer.albedo_spec", SamplerBindingPoint::GBufferAlbedoSpec
     );
     phong_shader.set_sampler_binding_point(
         "skybox", SamplerBindingPoint::Skybox
