@@ -175,9 +175,6 @@ auto create_phong_shader() -> OpenGLShader {
         "skybox", SamplerBindingPoint::Skybox
     );
     phong_shader.set_uniform_block_binding_point(
-        "Transform", UniformBufferBindingPoint::Transform
-    );
-    phong_shader.set_uniform_block_binding_point(
         "Light", UniformBufferBindingPoint::Light
     );
     phong_shader.unbind();
@@ -383,15 +380,24 @@ auto OpenGLRenderer::draw() -> void {
     this->gbuffer_shader.bind();
     this->geometry_frame_buffer.bind();
     this->clear(BufferBit::ColorDepth);
+    this->draw_skybox();
     this->draw_geometry();
     this->geometry_frame_buffer.unbind();
 
+    this->hdr_frame_buffer.bind();
     this->clear(BufferBit::ColorDepth);
-    this->geometry_frame_buffer.blit(
-        this->get_window_width(), this->get_window_height()
-    );
+    this->draw_lighting();
+    this->hdr_frame_buffer.unbind();
+
+    this->hdr_shader.bind();
+    this->clear(BufferBit::ColorDepth);
+    this->hdr_shader.set_uniform("exposure", this->exposure);
+    this->hdr_frame_buffer.bind_color_attachments();
+    this->quad.get_render_command()();
 
     this->draw_queue.clear();
+    this->color_draw_queue.clear();
+    this->cell_shading_draw_queue.clear();
 }
 
 auto OpenGLRenderer::draw_geometry() -> void {
@@ -410,6 +416,24 @@ auto OpenGLRenderer::draw_geometry() -> void {
     draw_with_transform(this->draw_queue);
     draw_with_transform(this->cell_shading_draw_queue);
     draw_with_transform(this->color_draw_queue);
+}
+
+auto OpenGLRenderer::draw_lighting() -> void {
+    for (const auto& draw_call : this->draw_queue) {
+        const auto& renderable = draw_call.renderable.get();
+
+        this->phong_shader.bind();
+        this->geometry_frame_buffer.bind_color_attachments();
+        this->phong_shader.set_uniform(
+            "view_position", get_view_position(this->view_matrix)
+        );
+        this->phong_shader.set_uniform(
+            "material.shininess", renderable.get_material().shininess
+        );
+        this->phong_shader.set_uniform("is_cell_shading", 0);
+
+        this->quad.get_render_command()();
+    }
 }
 
 auto OpenGLRenderer::draw_skybox() -> void {

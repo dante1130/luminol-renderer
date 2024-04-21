@@ -55,7 +55,7 @@ private:
     };
 
     auto draw_geometry() -> void;
-    auto draw_scene() -> void;
+    auto draw_lighting() -> void;
     auto draw_skybox() -> void;
     auto update_lights() -> void;
     auto get_framebuffer_resize_callback() -> Window::FramebufferSizeCallback;
