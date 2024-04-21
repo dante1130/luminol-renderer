@@ -171,7 +171,7 @@ void Engine::run() {
             model_matrix = glm::scale(model_matrix, scale);
 
             this->renderer->queue_draw_with_color(
-                cube->get_render_command(), model_matrix, point_light_1_color
+                *cube, model_matrix, point_light_1_color
             );
         }
 
@@ -183,7 +183,7 @@ void Engine::run() {
             model_matrix = glm::scale(model_matrix, scale);
 
             this->renderer->queue_draw_with_color(
-                cube->get_render_command(), model_matrix, point_light_2_color
+                *cube, model_matrix, point_light_2_color
             );
         }
 
@@ -199,11 +199,7 @@ void Engine::run() {
                 glm::vec3(0.0f, 1.0f, 0.0f)
             );
 
-            constexpr auto material = Graphics::Material{.shininess = 256.0f};
-
-            this->renderer->queue_draw_with_phong(
-                model->get_render_command(), model_matrix, material
-            );
+            this->renderer->queue_draw_with_phong(*model, model_matrix);
         }
 
         this->renderer->draw();

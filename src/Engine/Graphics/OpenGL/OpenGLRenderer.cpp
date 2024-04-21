@@ -352,55 +352,51 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
 }
 
 auto OpenGLRenderer::queue_draw_with_phong(
-    const RenderCommand& render_command,
-    const glm::mat4& model_matrix,
-    const Material& material
+    const Renderable& renderable, const glm::mat4& model_matrix
 ) -> void {
-    this->draw_queue.emplace_back(
-        [this, model_matrix, render_command, material] {
-            this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
-                .model_matrix = model_matrix,
-                .view_matrix = this->view_matrix,
-                .projection_matrix = this->projection_matrix
-            });
-            render_command();
-        }
-    );
-}
-
-auto OpenGLRenderer::queue_draw_with_cell_shading(
-    const RenderCommand& render_command,
-    const glm::mat4& model_matrix,
-    const Material& material,
-    float cell_shading_levels
-) -> void {
-    Ensures(cell_shading_levels > 0);
-
-    this->draw_queue.emplace_back(
-        [this, model_matrix, render_command, material, cell_shading_levels] {
-            this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
-                .model_matrix = model_matrix,
-                .view_matrix = this->view_matrix,
-                .projection_matrix = this->projection_matrix
-            });
-
-            render_command();
-        }
-    );
-}
-
-auto OpenGLRenderer::queue_draw_with_color(
-    const RenderCommand& render_command,
-    const glm::mat4& model_matrix,
-    const glm::vec3& color
-) -> void {
-    this->draw_queue.emplace_back([this, model_matrix, render_command, color] {
+    this->draw_queue.emplace_back([this, model_matrix, &renderable] {
         this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
             .model_matrix = model_matrix,
             .view_matrix = this->view_matrix,
             .projection_matrix = this->projection_matrix
         });
-        render_command();
+        renderable.get_render_command()();
+    });
+}
+
+auto OpenGLRenderer::queue_draw_with_cell_shading(
+    const Renderable& renderable,
+    const glm::mat4& model_matrix,
+    float cell_shading_levels
+) -> void {
+    Ensures(cell_shading_levels > 0);
+
+    this->draw_queue.emplace_back(
+        [this, model_matrix, &renderable, cell_shading_levels] {
+            this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
+                .model_matrix = model_matrix,
+                .view_matrix = this->view_matrix,
+                .projection_matrix = this->projection_matrix
+            });
+
+            renderable.get_render_command()();
+        }
+    );
+}
+
+auto OpenGLRenderer::queue_draw_with_color(
+    const Renderable& renderable,
+    const glm::mat4& model_matrix,
+    const glm::vec3& color
+) -> void {
+    this->draw_queue.emplace_back([this, model_matrix, &renderable, color] {
+        this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
+            .model_matrix = model_matrix,
+            .view_matrix = this->view_matrix,
+            .projection_matrix = this->projection_matrix
+        });
+
+        renderable.get_render_command()();
     });
 }
 

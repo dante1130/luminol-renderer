@@ -25,18 +25,15 @@ public:
     auto clear_color(const glm::vec4& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
     auto queue_draw_with_phong(
-        const RenderCommand& render_command,
-        const glm::mat4& model_matrix,
-        const Material& material
+        const Renderable& renderable, const glm::mat4& model_matrix
     ) -> void override;
     auto queue_draw_with_cell_shading(
-        const RenderCommand& render_command,
+        const Renderable& renderable,
         const glm::mat4& model_matrix,
-        const Material& material,
         float cell_shading_levels
     ) -> void override;
     auto queue_draw_with_color(
-        const RenderCommand& render_command,
+        const Renderable& renderable,
         const glm::mat4& model_matrix,
         const glm::vec3& color
     ) -> void override;
