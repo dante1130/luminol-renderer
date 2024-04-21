@@ -199,7 +199,7 @@ void Engine::run() {
                 glm::vec3(0.0f, 1.0f, 0.0f)
             );
 
-            this->renderer->queue_draw_with_phong(*model, model_matrix);
+            this->renderer->queue_draw(*model, model_matrix);
         }
 
         this->renderer->draw();

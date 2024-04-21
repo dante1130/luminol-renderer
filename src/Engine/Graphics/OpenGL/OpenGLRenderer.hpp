@@ -12,8 +12,6 @@ namespace Luminol::Graphics {
 
 class OpenGLRenderer : public Renderer {
 public:
-    using DrawCall = std::function<void()>;
-
     OpenGLRenderer(Window& window);
 
     auto set_view_matrix(const glm::mat4& view_matrix) -> void override;
@@ -24,9 +22,8 @@ public:
 
     auto clear_color(const glm::vec4& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
-    auto queue_draw_with_phong(
-        const Renderable& renderable, const glm::mat4& model_matrix
-    ) -> void override;
+    auto queue_draw(const Renderable& renderable, const glm::mat4& model_matrix)
+        -> void override;
     auto queue_draw_with_cell_shading(
         const Renderable& renderable,
         const glm::mat4& model_matrix,
@@ -40,8 +37,27 @@ public:
     auto draw() -> void override;
 
 private:
-    auto update_lights() -> void;
+    struct DrawCall {
+        std::reference_wrapper<const Renderable> renderable;
+        glm::mat4 model_matrix;
+    };
+
+    struct CellShadingDrawCall {
+        std::reference_wrapper<const Renderable> renderable;
+        glm::mat4 model_matrix;
+        float cell_shading_levels;
+    };
+
+    struct ColorDrawCall {
+        std::reference_wrapper<const Renderable> renderable;
+        glm::mat4 model_matrix;
+        glm::vec3 color;
+    };
+
+    auto draw_geometry() -> void;
+    auto draw_scene() -> void;
     auto draw_skybox() -> void;
+    auto update_lights() -> void;
     auto get_framebuffer_resize_callback() -> Window::FramebufferSizeCallback;
 
     int32_t opengl_version;
@@ -50,6 +66,8 @@ private:
     std::function<int32_t()> get_window_height;
 
     std::vector<DrawCall> draw_queue;
+    std::vector<CellShadingDrawCall> cell_shading_draw_queue;
+    std::vector<ColorDrawCall> color_draw_queue;
 
     OpenGLShader color_shader;
     OpenGLShader phong_shader;

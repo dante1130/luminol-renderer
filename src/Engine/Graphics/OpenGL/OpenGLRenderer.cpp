@@ -351,17 +351,10 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
     glClear(buffer_bit_to_gl(buffer_bit));
 }
 
-auto OpenGLRenderer::queue_draw_with_phong(
+auto OpenGLRenderer::queue_draw(
     const Renderable& renderable, const glm::mat4& model_matrix
 ) -> void {
-    this->draw_queue.emplace_back([this, model_matrix, &renderable] {
-        this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
-            .model_matrix = model_matrix,
-            .view_matrix = this->view_matrix,
-            .projection_matrix = this->projection_matrix
-        });
-        renderable.get_render_command()();
-    });
+    this->draw_queue.emplace_back(renderable, model_matrix);
 }
 
 auto OpenGLRenderer::queue_draw_with_cell_shading(
@@ -371,16 +364,8 @@ auto OpenGLRenderer::queue_draw_with_cell_shading(
 ) -> void {
     Ensures(cell_shading_levels > 0);
 
-    this->draw_queue.emplace_back(
-        [this, model_matrix, &renderable, cell_shading_levels] {
-            this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
-                .model_matrix = model_matrix,
-                .view_matrix = this->view_matrix,
-                .projection_matrix = this->projection_matrix
-            });
-
-            renderable.get_render_command()();
-        }
+    this->cell_shading_draw_queue.emplace_back(
+        renderable, model_matrix, cell_shading_levels
     );
 }
 
@@ -389,30 +374,16 @@ auto OpenGLRenderer::queue_draw_with_color(
     const glm::mat4& model_matrix,
     const glm::vec3& color
 ) -> void {
-    this->draw_queue.emplace_back([this, model_matrix, &renderable, color] {
-        this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
-            .model_matrix = model_matrix,
-            .view_matrix = this->view_matrix,
-            .projection_matrix = this->projection_matrix
-        });
-
-        renderable.get_render_command()();
-    });
+    this->color_draw_queue.emplace_back(renderable, model_matrix, color);
 }
 
 auto OpenGLRenderer::draw() -> void {
-    const auto draw_scene = [this] {
-        for (const auto& draw_call : this->draw_queue) {
-            draw_call();
-        }
-    };
-
     this->update_lights();
 
     this->gbuffer_shader.bind();
     this->geometry_frame_buffer.bind();
     this->clear(BufferBit::ColorDepth);
-    draw_scene();
+    this->draw_geometry();
     this->geometry_frame_buffer.unbind();
 
     this->clear(BufferBit::ColorDepth);
@@ -421,6 +392,40 @@ auto OpenGLRenderer::draw() -> void {
     );
 
     this->draw_queue.clear();
+}
+
+auto OpenGLRenderer::draw_geometry() -> void {
+    const auto draw_with_transform = [this](const auto& draw_calls) {
+        for (const auto& draw_call : draw_calls) {
+            this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
+                .model_matrix = draw_call.model_matrix,
+                .view_matrix = this->view_matrix,
+                .projection_matrix = this->projection_matrix
+            });
+
+            draw_call.renderable.get().get_render_command()();
+        }
+    };
+
+    draw_with_transform(this->draw_queue);
+    draw_with_transform(this->cell_shading_draw_queue);
+    draw_with_transform(this->color_draw_queue);
+}
+
+auto OpenGLRenderer::draw_skybox() -> void {
+    this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
+        .view_matrix = glm::mat4{glm::mat3{this->view_matrix}},
+        .projection_matrix = this->projection_matrix
+    });
+
+    glCullFace(GL_FRONT);
+    glDepthFunc(GL_LEQUAL);
+    this->skybox_shader.bind();
+    this->skybox.bind();
+    this->cube.get_render_command()();
+    this->skybox.unbind();
+    glDepthFunc(GL_LESS);
+    glCullFace(GL_BACK);
 }
 
 auto OpenGLRenderer::update_lights() -> void {
@@ -466,22 +471,6 @@ auto OpenGLRenderer::update_lights() -> void {
     /// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     this->light_uniform_buffer.set_data(light_uniforms);
-}
-
-auto OpenGLRenderer::draw_skybox() -> void {
-    this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
-        .view_matrix = glm::mat4{glm::mat3{this->view_matrix}},
-        .projection_matrix = this->projection_matrix
-    });
-
-    glCullFace(GL_FRONT);
-    glDepthFunc(GL_LEQUAL);
-    this->skybox_shader.bind();
-    this->skybox.bind();
-    this->cube.get_render_command()();
-    this->skybox.unbind();
-    glDepthFunc(GL_LESS);
-    glCullFace(GL_BACK);
 }
 
 auto OpenGLRenderer::get_framebuffer_resize_callback()

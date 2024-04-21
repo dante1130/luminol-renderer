@@ -28,7 +28,7 @@ public:
 
     virtual auto clear_color(const glm::vec4& color) const -> void = 0;
     virtual auto clear(BufferBit buffer_bit) const -> void = 0;
-    virtual auto queue_draw_with_phong(
+    virtual auto queue_draw(
         const Renderable& renderable, const glm::mat4& model_matrix
     ) -> void = 0;
     virtual auto queue_draw_with_cell_shading(
