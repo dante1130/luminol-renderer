@@ -352,6 +352,7 @@ auto OpenGLRenderer::draw() -> void {
     this->clear(BufferBit::ColorDepth);
     this->draw_geometry();
     this->geometry_frame_buffer.unbind();
+    this->gbuffer_shader.unbind();
 
     this->hdr_frame_buffer.bind();
     this->clear(BufferBit::ColorDepth);
@@ -362,6 +363,7 @@ auto OpenGLRenderer::draw() -> void {
     this->hdr_shader.set_uniform("exposure", this->exposure);
     this->hdr_frame_buffer.bind_color_attachments();
     this->quad.get_render_command()();
+    this->hdr_shader.unbind();
 
     this->geometry_frame_buffer.blit_to_default_framebuffer(
         this->get_window_width(), this->get_window_height(), BufferBit::Depth
