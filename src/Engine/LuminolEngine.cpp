@@ -1,12 +1,42 @@
 #include "LuminolEngine.hpp"
 
+#include <random>
+
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <Engine/Graphics/Light.hpp>
 
 namespace {
 
 constexpr auto camera_initial_position = glm::vec3(5.0f, 0.0f, 0.0f);
 constexpr auto camera_initial_forward = glm::vec3(-1.0f, 0.0f, 0.0f);
 constexpr auto camera_rotation_speed = 0.1f;
+
+using namespace Luminol::Graphics;
+
+struct LightEntity {
+    glm::vec3 position;
+    glm::vec3 color;
+    std::unique_ptr<Model> model;
+};
+
+auto create_point_light(const glm::vec3& position, const glm::vec3& color)
+    -> PointLight {
+    constexpr auto specular_multiplier = 2.0f;
+    constexpr auto constant = 0.0f;
+    constexpr auto linear = 1.0f;
+    constexpr auto quadratic = 0.0f;
+
+    return PointLight{
+        .position = position,
+        .ambient = glm::vec3(0.0f),
+        .diffuse = color,
+        .specular = color * specular_multiplier,
+        .constant = constant,
+        .linear = linear,
+        .quadratic = quadratic
+    };
+}
 
 }  // namespace
 
@@ -36,69 +66,47 @@ void Engine::run() {
 
     constexpr auto directional_light = Graphics::DirectionalLight{
         .direction = glm::vec3(0.5f, -0.5f, 1.0f),
-        .ambient = glm::vec3(0.2f, 0.2f, 0.2f),
-        .diffuse = glm::vec3(1.0f, 1.0f, 1.0f),
-        .specular = glm::vec3(2.0f, 2.0f, 2.0f)
+        .ambient = glm::vec3(0.0f, 0.0f, 0.0f),
+        .diffuse = glm::vec3(0.0f, 0.0f, 0.0f),
+        .specular = glm::vec3(0.0f, 0.0f, 0.0f)
     };
 
     this->renderer->get_light_manager().update_directional_light(
         directional_light
     );
 
-    constexpr auto point_light_1_position = glm::vec3(0.0f, 1.0f, 2.0f);
-    constexpr auto point_light_1_color = glm::vec3(1.0f, 0.0f, 0.0f);
+    auto entities = std::vector<LightEntity>{};
+    entities.reserve(Graphics::max_point_lights);
 
-    {
-        constexpr auto point_light = Graphics::PointLight{
-            .position = point_light_1_position,
-            .ambient = glm::vec3(0.2f, 0.2f, 0.2f),
-            .diffuse = glm::vec3(1.0f, 0.0f, 0.0f),
-            .specular = glm::vec3(2.0f, 2.0f, 2.0f),
-            .constant = 1.0f,
-            .linear = 0.09f,
-            .quadratic = 0.032f
-        };
+    auto random = std::mt19937{std::random_device{}()};
+
+    for (auto i = 0u; i < Graphics::max_point_lights; ++i) {
+        const auto position = glm::vec3(
+            std::uniform_real_distribution<float>(-5.0f, 5.0f)(random),
+            std::uniform_real_distribution<float>(-5.0f, 5.0f)(random),
+            std::uniform_real_distribution<float>(-5.0f, 5.0f)(random)
+        );
+
+        const auto color = glm::vec3(
+            std::uniform_real_distribution<float>(0.0f, 1.0f)(random),
+            std::uniform_real_distribution<float>(0.0f, 1.0f)(random),
+            std::uniform_real_distribution<float>(0.0f, 1.0f)(random)
+        );
+
+        entities.emplace_back(
+            position,
+            color,
+            this->graphics_factory->create_model("res/models/cube/cube.obj")
+        );
 
         const auto point_light_id_opt =
-            this->renderer->get_light_manager().add_point_light(point_light);
+            this->renderer->get_light_manager().add_point_light(
+                create_point_light(position, color)
+            );
 
         if (!point_light_id_opt.has_value()) {
             throw std::runtime_error("Failed to add point light");
         }
-
-        const auto point_light_id = point_light_id_opt.value();
-
-        this->renderer->get_light_manager().update_point_light(
-            point_light_id, point_light
-        );
-    }
-
-    constexpr auto point_light_2_position = glm::vec3(0.0f, 2.0f, 0.0f);
-    constexpr auto point_light_2_color = glm::vec3(0.0f, 1.0f, 0.0f);
-
-    {
-        constexpr auto point_light = Graphics::PointLight{
-            .position = point_light_2_position,
-            .ambient = glm::vec3(0.2f, 0.2f, 0.2f),
-            .diffuse = glm::vec3(0.0f, 1.0f, 0.0f),
-            .specular = glm::vec3(2.0f, 2.0f, 2.0f),
-            .constant = 1.0f,
-            .linear = 0.09f,
-            .quadratic = 0.032f
-        };
-
-        const auto point_light_id_opt =
-            this->renderer->get_light_manager().add_point_light(point_light);
-
-        if (!point_light_id_opt.has_value()) {
-            throw std::runtime_error("Failed to add point light");
-        }
-
-        const auto point_light_id = point_light_id_opt.value();
-
-        this->renderer->get_light_manager().update_point_light(
-            point_light_id, point_light
-        );
     }
 
     const auto initial_flash_light = Graphics::SpotLight{
@@ -164,27 +172,17 @@ void Engine::run() {
         );
 
         {
-            constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);
+            for (const auto& entity : entities) {
+                constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);
 
-            auto model_matrix = glm::mat4(1.0f);
-            model_matrix = glm::translate(model_matrix, point_light_1_position);
-            model_matrix = glm::scale(model_matrix, scale);
+                auto model_matrix = glm::mat4(1.0f);
+                model_matrix = glm::translate(model_matrix, entity.position);
+                model_matrix = glm::scale(model_matrix, scale);
 
-            this->renderer->queue_draw_with_color(
-                *cube, model_matrix, point_light_1_color
-            );
-        }
-
-        {
-            constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);
-
-            auto model_matrix = glm::mat4(1.0f);
-            model_matrix = glm::translate(model_matrix, point_light_2_position);
-            model_matrix = glm::scale(model_matrix, scale);
-
-            this->renderer->queue_draw_with_color(
-                *cube, model_matrix, point_light_2_color
-            );
+                this->renderer->queue_draw_with_color(
+                    *entity.model, model_matrix, entity.color
+                );
+            }
         }
 
         {

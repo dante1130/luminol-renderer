@@ -13,7 +13,7 @@ struct DirectionalLight {
     glm::vec3 specular = {1.0f, 1.0f, 1.0f};
 };
 
-constexpr static auto max_point_lights = 128u;
+constexpr static auto max_point_lights = 256u;
 constexpr static auto default_constant = 1.0f;
 constexpr static auto default_linear = 0.09f;
 constexpr static auto default_quadratic = 0.032f;
@@ -28,7 +28,7 @@ struct PointLight {
     float quadratic = default_quadratic;
 };
 
-constexpr static auto max_spot_lights = 128u;
+constexpr static auto max_spot_lights = 256u;
 constexpr static auto default_cut_off = 0.0f;
 constexpr static auto default_outer_cut_off = 0.0f;
 
