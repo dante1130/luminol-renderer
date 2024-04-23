@@ -4,6 +4,7 @@ add_library(Luminol.Graphics
     LightManager.cpp
     Renderer.cpp
     Renderable.cpp
+    OpenGL/OpenGLBufferBit.cpp
     OpenGL/OpenGLRenderer.cpp
     OpenGL/OpenGLFactory.cpp
     OpenGL/OpenGLShader.cpp

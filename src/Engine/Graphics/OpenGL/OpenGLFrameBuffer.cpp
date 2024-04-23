@@ -3,6 +3,8 @@
 #include <gsl/gsl>
 #include <glad/gl.h>
 
+#include <Engine/Graphics/OpenGL/OpenGLBufferBit.hpp>
+
 namespace Luminol::Graphics {
 
 OpenGLFrameBuffer::OpenGLFrameBuffer(
@@ -118,7 +120,9 @@ auto OpenGLFrameBuffer::unbind_color_attachments() const -> void {
     }
 }
 
-auto OpenGLFrameBuffer::blit(int32_t width, int32_t height) const -> void {
+auto OpenGLFrameBuffer::blit_to_default_framebuffer(
+    int32_t width, int32_t height, BufferBit buffer_bit
+) const -> void {
     glBlitNamedFramebuffer(
         this->frame_buffer_id,
         0,
@@ -130,27 +134,32 @@ auto OpenGLFrameBuffer::blit(int32_t width, int32_t height) const -> void {
         0,
         width,
         height,
-        GL_COLOR_BUFFER_BIT,
+        buffer_bit_to_gl(buffer_bit),
         GL_NEAREST
     );
 }
 
-auto OpenGLFrameBuffer::blit_depth(int32_t width, int32_t height) const
-    -> void {
+auto OpenGLFrameBuffer::blit_to_framebuffer(
+    const OpenGLFrameBuffer& frame_buffer, BufferBit buffer_bit
+) const -> void {
     glBlitNamedFramebuffer(
         this->frame_buffer_id,
-        0,
+        frame_buffer.frame_buffer_id,
         0,
         0,
         this->width,
         this->height,
         0,
         0,
-        width,
-        height,
-        GL_DEPTH_BUFFER_BIT,
+        frame_buffer.get_width(),
+        frame_buffer.get_height(),
+        buffer_bit_to_gl(buffer_bit),
         GL_NEAREST
     );
+}
+
+auto OpenGLFrameBuffer::get_frame_buffer_id() const -> uint32_t {
+    return this->frame_buffer_id;
 }
 
 auto OpenGLFrameBuffer::get_width() const -> int32_t { return this->width; }

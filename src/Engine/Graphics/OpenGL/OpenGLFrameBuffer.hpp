@@ -4,6 +4,7 @@
 
 #include <glm/glm.hpp>
 
+#include <Engine/Graphics/BufferBit.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLTextureFormat.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLUniformBindingPoints.hpp>
 
@@ -37,9 +38,10 @@ public:
     auto bind_color_attachments() const -> void;
     auto unbind_color_attachments() const -> void;
 
-    auto blit(int32_t width, int32_t height) const -> void;
-    auto blit_depth(int32_t width, int32_t height) const -> void;
+    auto blit_to_default_framebuffer(int32_t width, int32_t height, BufferBit buffer_bit) const -> void;
+    auto blit_to_framebuffer(const OpenGLFrameBuffer& frame_buffer, BufferBit buffer_bit) const -> void;
 
+    [[nodiscard]] auto get_frame_buffer_id() const -> uint32_t;
     [[nodiscard]] auto get_width() const -> int32_t;
     [[nodiscard]] auto get_height() const -> int32_t;
 

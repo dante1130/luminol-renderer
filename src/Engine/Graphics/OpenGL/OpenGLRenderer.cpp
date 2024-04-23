@@ -8,6 +8,7 @@
 
 #include <Engine/Graphics/OpenGL/OpenGLError.hpp>
 #include <Engine/Graphics/OpenGL/OpenGLShader.hpp>
+#include <Engine/Graphics/OpenGL/OpenGLBufferBit.hpp>
 
 namespace {
 
@@ -37,28 +38,6 @@ auto initialize_opengl(
     glFrontFace(GL_CW);
 
     return version;
-}
-
-constexpr auto buffer_bit_to_gl(BufferBit buffer_bit) -> GLenum {
-    switch (buffer_bit) {
-        case BufferBit::Color:
-            return GL_COLOR_BUFFER_BIT;
-        case BufferBit::Depth:
-            return GL_DEPTH_BUFFER_BIT;
-        case BufferBit::Stencil:
-            return GL_STENCIL_BUFFER_BIT;
-        case BufferBit::ColorDepth:
-            return GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
-        case BufferBit::ColorStencil:
-            return GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
-        case BufferBit::DepthStencil:
-            return GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
-        case BufferBit::ColorDepthStencil:
-            return GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
-                   GL_STENCIL_BUFFER_BIT;
-    }
-
-    return 0;
 }
 
 auto create_quad_mesh() -> OpenGLMesh {
@@ -380,13 +359,12 @@ auto OpenGLRenderer::draw() -> void {
     this->hdr_frame_buffer.unbind();
 
     this->hdr_shader.bind();
-    this->clear(BufferBit::ColorDepth);
     this->hdr_shader.set_uniform("exposure", this->exposure);
     this->hdr_frame_buffer.bind_color_attachments();
     this->quad.get_render_command()();
 
-    this->geometry_frame_buffer.blit_depth(
-        this->get_window_width(), this->get_window_height()
+    this->geometry_frame_buffer.blit_to_default_framebuffer(
+        this->get_window_width(), this->get_window_height(), BufferBit::Depth
     );
 
     for (const auto& draw_call : this->color_draw_queue) {
@@ -530,6 +508,7 @@ auto OpenGLRenderer::get_framebuffer_resize_callback()
     return [this](int width, int height) {
         glViewport(0, 0, width, height);
         this->hdr_frame_buffer.resize(width, height);
+        this->geometry_frame_buffer.resize(width, height);
     };
 }
 
