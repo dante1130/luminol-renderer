@@ -357,6 +357,12 @@ auto OpenGLRenderer::draw() -> void {
     this->hdr_frame_buffer.bind();
     this->clear(BufferBit::ColorDepth);
     this->draw_lighting();
+
+    this->geometry_frame_buffer.blit_to_framebuffer(
+        this->hdr_frame_buffer, BufferBit::Depth
+    );
+    this->draw_skybox();
+
     this->hdr_frame_buffer.unbind();
 
     this->hdr_shader.bind();
