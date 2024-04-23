@@ -350,7 +350,7 @@ auto OpenGLRenderer::draw() -> void {
     this->gbuffer_shader.bind();
     this->geometry_frame_buffer.bind();
     this->clear(BufferBit::ColorDepth);
-    this->draw_geometry();
+    this->draw_gbuffer_geometry();
     this->geometry_frame_buffer.unbind();
     this->gbuffer_shader.unbind();
 
@@ -367,6 +367,7 @@ auto OpenGLRenderer::draw() -> void {
     this->hdr_shader.set_uniform("exposure", this->exposure);
     this->hdr_frame_buffer.bind_color_attachments();
     this->quad.get_render_command()();
+    this->hdr_frame_buffer.unbind_color_attachments();
     this->hdr_shader.unbind();
 
     this->geometry_frame_buffer.blit_to_default_framebuffer(
@@ -387,6 +388,8 @@ auto OpenGLRenderer::draw() -> void {
         this->color_shader.set_uniform("color", draw_call.color);
 
         draw_call.renderable.get().get_render_command()();
+
+        this->color_shader.unbind();
     }
 
     this->draw_queue.clear();
@@ -394,7 +397,7 @@ auto OpenGLRenderer::draw() -> void {
     this->cell_shading_draw_queue.clear();
 }
 
-auto OpenGLRenderer::draw_geometry() -> void {
+auto OpenGLRenderer::draw_gbuffer_geometry() -> void {
     const auto draw_with_transform = [this](const auto& draw_calls) {
         for (const auto& draw_call : draw_calls) {
             this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
@@ -426,6 +429,9 @@ auto OpenGLRenderer::draw_lighting() -> void {
         this->phong_shader.set_uniform("is_cell_shading", 0);
 
         this->quad.get_render_command()();
+
+        this->geometry_frame_buffer.unbind_color_attachments();
+        this->phong_shader.unbind();
     }
 
     for (const auto& draw_call : this->cell_shading_draw_queue) {
@@ -445,6 +451,9 @@ auto OpenGLRenderer::draw_lighting() -> void {
         );
 
         this->quad.get_render_command()();
+
+        this->geometry_frame_buffer.unbind_color_attachments();
+        this->phong_shader.unbind();
     }
 }
 
@@ -460,6 +469,7 @@ auto OpenGLRenderer::draw_skybox() -> void {
     this->skybox.bind();
     this->cube.get_render_command()();
     this->skybox.unbind();
+    this->skybox_shader.unbind();
     glDepthFunc(GL_LESS);
     glCullFace(GL_BACK);
 }

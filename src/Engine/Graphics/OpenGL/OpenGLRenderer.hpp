@@ -54,7 +54,7 @@ private:
         glm::vec3 color;
     };
 
-    auto draw_geometry() -> void;
+    auto draw_gbuffer_geometry() -> void;
     auto draw_lighting() -> void;
     auto draw_skybox() -> void;
     auto update_lights() -> void;
