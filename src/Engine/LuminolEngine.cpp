@@ -141,7 +141,7 @@ void Engine::run() {
             gsl::narrow_cast<float>(mouse_delta.delta_y)
         );
 
-        constexpr auto color = glm::vec4(0.2f, 0.3f, 0.3f, 1.0f);
+        constexpr auto color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
         this->renderer->clear_color(color);
         this->renderer->clear(Graphics::BufferBit::ColorDepth);

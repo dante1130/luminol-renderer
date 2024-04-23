@@ -32,9 +32,6 @@ auto initialize_opengl(
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CW);
@@ -164,9 +161,6 @@ auto create_phong_shader() -> OpenGLShader {
     );
     phong_shader.set_sampler_binding_point(
         "gbuffer.albedo_spec", SamplerBindingPoint::GBufferAlbedoSpec
-    );
-    phong_shader.set_sampler_binding_point(
-        "skybox", SamplerBindingPoint::Skybox
     );
     phong_shader.set_uniform_block_binding_point(
         "Light", UniformBufferBindingPoint::Light
@@ -412,7 +406,6 @@ auto OpenGLRenderer::draw_geometry() -> void {
 
     draw_with_transform(this->draw_queue);
     draw_with_transform(this->cell_shading_draw_queue);
-    draw_with_transform(this->color_draw_queue);
 }
 
 auto OpenGLRenderer::draw_lighting() -> void {
@@ -430,6 +423,37 @@ auto OpenGLRenderer::draw_lighting() -> void {
         this->phong_shader.set_uniform("is_cell_shading", 0);
 
         this->quad.get_render_command()();
+    }
+
+    for (const auto& draw_call : this->cell_shading_draw_queue) {
+        const auto& renderable = draw_call.renderable.get();
+
+        this->phong_shader.bind();
+        this->geometry_frame_buffer.bind_color_attachments();
+        this->phong_shader.set_uniform(
+            "view_position", get_view_position(this->view_matrix)
+        );
+        this->phong_shader.set_uniform(
+            "material.shininess", renderable.get_material().shininess
+        );
+        this->phong_shader.set_uniform("is_cell_shading", 1);
+        this->phong_shader.set_uniform(
+            "cell_shading_levels", draw_call.cell_shading_levels
+        );
+
+        this->quad.get_render_command()();
+    }
+
+    for (const auto& draw_call : this->color_draw_queue) {
+        const auto& renderable = draw_call.renderable.get();
+
+        this->color_shader.bind();
+        this->color_shader.set_uniform(
+            "view_position", get_view_position(this->view_matrix)
+        );
+        this->color_shader.set_uniform("color", draw_call.color);
+
+        renderable.get_render_command()();
     }
 }
 

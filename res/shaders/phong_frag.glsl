@@ -84,7 +84,7 @@ vec3 calculate_diffuse(
     vec3 normal
 )
 {
-    float diff = max(dot(normalize(normal), light_direction), 0.0);
+    float diff = max(dot(normal, light_direction), 0.0);
 
     if (is_cell_shading_enabled)
     {
@@ -106,7 +106,7 @@ vec3 calculate_specular(
 {
     const vec3 view_direction = normalize(view_position - frag_pos);
     const vec3 half_direction = normalize(light_direction + view_direction);
-    float spec = pow(max(dot(normalize(normal), half_direction), 0.0), material_shininess);
+    float spec = pow(max(dot(normal, half_direction), 0.0), material_shininess);
 
     if (is_cell_shading_enabled)
     {
@@ -132,8 +132,8 @@ vec3 calculate_directional_light(
     const vec3 diffuse = calculate_diffuse(
             light_direction,
             light.diffuse,
-            albedo,
             frag_pos,
+            albedo,
             normal
         );
 
@@ -166,8 +166,8 @@ vec3 calculate_point_light(
     const vec3 diffuse = calculate_diffuse(
             light_direction,
             light.diffuse,
-            albedo,
             frag_pos,
+            albedo,
             normal
         );
 
@@ -184,7 +184,7 @@ vec3 calculate_point_light(
     const float distance = length(light.position - frag_pos);
     const float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
 
-    return (ambient + diffuse + specular) * attenuation;
+    return ambient + ((diffuse + specular) * attenuation);
 }
 
 vec3 calculate_spot_light(
@@ -212,8 +212,8 @@ vec3 calculate_spot_light(
     const vec3 diffuse = calculate_diffuse(
             light_direction,
             light.diffuse,
-            albedo,
             frag_pos,
+            albedo,
             normal
         );
 
