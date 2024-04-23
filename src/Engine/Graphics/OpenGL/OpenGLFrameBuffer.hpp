@@ -38,6 +38,7 @@ public:
     auto unbind_color_attachments() const -> void;
 
     auto blit(int32_t width, int32_t height) const -> void;
+    auto blit_depth(int32_t width, int32_t height) const -> void;
 
     [[nodiscard]] auto get_width() const -> int32_t;
     [[nodiscard]] auto get_height() const -> int32_t;

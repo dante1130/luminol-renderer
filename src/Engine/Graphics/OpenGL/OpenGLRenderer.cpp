@@ -371,7 +371,6 @@ auto OpenGLRenderer::draw() -> void {
     this->gbuffer_shader.bind();
     this->geometry_frame_buffer.bind();
     this->clear(BufferBit::ColorDepth);
-    this->draw_skybox();
     this->draw_geometry();
     this->geometry_frame_buffer.unbind();
 
@@ -385,6 +384,26 @@ auto OpenGLRenderer::draw() -> void {
     this->hdr_shader.set_uniform("exposure", this->exposure);
     this->hdr_frame_buffer.bind_color_attachments();
     this->quad.get_render_command()();
+
+    this->geometry_frame_buffer.blit_depth(
+        this->get_window_width(), this->get_window_height()
+    );
+
+    for (const auto& draw_call : this->color_draw_queue) {
+        this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
+            .model_matrix = draw_call.model_matrix,
+            .view_matrix = this->view_matrix,
+            .projection_matrix = this->projection_matrix
+        });
+
+        this->color_shader.bind();
+        this->color_shader.set_uniform(
+            "view_position", get_view_position(this->view_matrix)
+        );
+        this->color_shader.set_uniform("color", draw_call.color);
+
+        draw_call.renderable.get().get_render_command()();
+    }
 
     this->draw_queue.clear();
     this->color_draw_queue.clear();
@@ -442,18 +461,6 @@ auto OpenGLRenderer::draw_lighting() -> void {
         );
 
         this->quad.get_render_command()();
-    }
-
-    for (const auto& draw_call : this->color_draw_queue) {
-        const auto& renderable = draw_call.renderable.get();
-
-        this->color_shader.bind();
-        this->color_shader.set_uniform(
-            "view_position", get_view_position(this->view_matrix)
-        );
-        this->color_shader.set_uniform("color", draw_call.color);
-
-        renderable.get_render_command()();
     }
 }
 

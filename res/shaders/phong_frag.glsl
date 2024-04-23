@@ -51,7 +51,6 @@ layout(std140, binding = 1) uniform Light
 
 struct Material
 {
-    sampler2D texture_emissive;
     float shininess;
 };
 
@@ -240,11 +239,7 @@ void main()
     const vec3 albedo = texture(gbuffer.albedo_spec, tex_coords_out).rgb;
     float specular = texture(gbuffer.albedo_spec, tex_coords_out).a;
 
-    const vec3 emission = texture(material.texture_emissive, tex_coords_out).rgb;
-
-    vec3 light_result = emission;
-
-    light_result += calculate_directional_light(
+    vec3 light_result = calculate_directional_light(
             directional_light,
             normal,
             view_position,

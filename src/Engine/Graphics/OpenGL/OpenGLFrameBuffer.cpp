@@ -135,6 +135,24 @@ auto OpenGLFrameBuffer::blit(int32_t width, int32_t height) const -> void {
     );
 }
 
+auto OpenGLFrameBuffer::blit_depth(int32_t width, int32_t height) const
+    -> void {
+    glBlitNamedFramebuffer(
+        this->frame_buffer_id,
+        0,
+        0,
+        0,
+        this->width,
+        this->height,
+        0,
+        0,
+        width,
+        height,
+        GL_DEPTH_BUFFER_BIT,
+        GL_NEAREST
+    );
+}
+
 auto OpenGLFrameBuffer::get_width() const -> int32_t { return this->width; }
 
 auto OpenGLFrameBuffer::get_height() const -> int32_t { return this->height; }
