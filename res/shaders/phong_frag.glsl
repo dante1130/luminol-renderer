@@ -232,24 +232,6 @@ vec3 calculate_spot_light(
     return ambient + ((diffuse + specular) * attenuation) * intensity;
 }
 
-bool is_in_light_volume(
-    vec3 frag_pos,
-    vec3 light_diffuse,
-    vec3 light_position,
-    float light_constant,
-    float light_linear,
-    float light_quadratic
-)
-{
-    const float max_diffuse = max(max(light_diffuse.r, light_diffuse.g), light_diffuse.b);
-
-    const float radius = (-light_linear +
-            sqrt(light_linear * light_linear - 4 * light_quadratic *
-                        (light_constant - (256.0 / 5.0) * max_diffuse))) / (2 * light_quadratic);
-
-    return length(light_position - frag_pos) < radius;
-}
-
 void main()
 {
     const vec3 frag_pos = texture(gbuffer.position, tex_coords_out).rgb;
@@ -268,18 +250,6 @@ void main()
 
     for (uint i = 0; i < point_lights_count; i++)
     {
-        if (!is_in_light_volume(
-                frag_pos,
-                point_lights[i].diffuse,
-                point_lights[i].position,
-                point_lights[i].constant,
-                point_lights[i].linear,
-                point_lights[i].quadratic
-            ))
-        {
-            continue;
-        }
-
         light_result += calculate_point_light(
                 point_lights[i],
                 normal,
@@ -292,18 +262,6 @@ void main()
 
     for (uint i = 0; i < spot_lights_count; i++)
     {
-        if (!is_in_light_volume(
-                frag_pos,
-                spot_lights[i].diffuse,
-                spot_lights[i].position,
-                spot_lights[i].constant,
-                spot_lights[i].linear,
-                spot_lights[i].quadratic
-            ))
-        {
-            continue;
-        }
-
         light_result += calculate_spot_light(
                 spot_lights[i],
                 normal,
