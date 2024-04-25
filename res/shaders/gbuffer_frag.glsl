@@ -2,7 +2,8 @@
 
 layout(location = 0) out vec4 gbuffer_position;
 layout(location = 1) out vec4 gbuffer_normal;
-layout(location = 2) out vec4 gbuffer_albedo_spec;
+layout(location = 2) out vec4 gbuffer_emissive;
+layout(location = 3) out vec4 gbuffer_albedo_spec;
 
 in vec2 tex_coords_out;
 in vec3 frag_pos_out;
@@ -30,6 +31,7 @@ void main()
 {
     gbuffer_position = vec4(frag_pos_out, 1.0);
     gbuffer_normal = vec4(calculate_normal(material.texture_normal, tex_coords_out, tangent_space_matrix_out), 1.0);
-    gbuffer_albedo_spec.rgb = texture(material.texture_diffuse, tex_coords_out).rgb + texture(material.texture_emissive, tex_coords_out).rgb;
+    gbuffer_albedo_spec.rgb = texture(material.texture_diffuse, tex_coords_out).rgb;
     gbuffer_albedo_spec.a = texture(material.texture_specular, tex_coords_out).r;
+    gbuffer_emissive = vec4(texture(material.texture_emissive, tex_coords_out).rgb, 1.0);
 }

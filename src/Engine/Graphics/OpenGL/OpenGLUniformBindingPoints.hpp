@@ -16,6 +16,7 @@ enum class SamplerBindingPoint {
     HDRFramebuffer,
     GBufferPosition,
     GBufferNormal,
+    GBufferEmissive,
     GBufferAlbedoSpec,
 };
 

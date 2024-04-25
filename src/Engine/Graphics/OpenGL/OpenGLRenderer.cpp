@@ -139,6 +139,9 @@ auto create_phong_shader() -> OpenGLShader {
         "gbuffer.normal", SamplerBindingPoint::GBufferNormal
     );
     phong_shader.set_sampler_binding_point(
+        "gbuffer.emissive", SamplerBindingPoint::GBufferEmissive
+    );
+    phong_shader.set_sampler_binding_point(
         "gbuffer.albedo_spec", SamplerBindingPoint::GBufferAlbedoSpec
     );
     phong_shader.set_uniform_block_binding_point(
@@ -243,6 +246,11 @@ auto create_geometry_frame_buffer(int32_t width, int32_t height)
                 .internal_format = TextureInternalFormat::RGBA16F,
                 .format = TextureFormat::RGBA,
                 .binding_point = SamplerBindingPoint::GBufferNormal,
+            },
+            OpenGLFrameBufferAttachment{
+                .internal_format = TextureInternalFormat::RGBA16F,
+                .format = TextureFormat::RGBA,
+                .binding_point = SamplerBindingPoint::GBufferEmissive,
             },
             OpenGLFrameBufferAttachment{
                 .internal_format = TextureInternalFormat::RGBA8,

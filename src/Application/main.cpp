@@ -83,16 +83,16 @@ auto main() -> int {
 
     constexpr auto directional_light = Graphics::DirectionalLight{
         .direction = glm::vec3(0.5f, -0.5f, 1.0f),
-        .ambient = glm::vec3(0.05f),
-        .diffuse = glm::vec3(0.4f),
-        .specular = glm::vec3(0.5f)
+        .ambient = glm::vec3(0.0f),
+        .diffuse = glm::vec3(0.0f),
+        .specular = glm::vec3(0.0f)
     };
 
     luminol_engine.get_renderer().get_light_manager().update_directional_light(
         directional_light
     );
 
-    constexpr auto lights_count = 64u;
+    constexpr auto lights_count = 0u;
 
     auto entities = std::vector<LightEntity>{};
     entities.reserve(lights_count);
