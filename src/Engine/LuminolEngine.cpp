@@ -79,39 +79,4 @@ auto Engine::get_renderer() -> Graphics::Renderer& {
     return *this->renderer;
 }
 
-auto Engine::get_delta_time_seconds() const -> double {
-    return this->delta_time_seconds;
-}
-
-auto Engine::handle_key_events() -> void {
-    const auto delta_time_seconds_f =
-        gsl::narrow_cast<float>(this->delta_time_seconds);
-
-    if (this->window.is_key_event('W', KeyEvent::Press)) {
-        this->camera.move(
-            Graphics::CameraMovement::Forward, delta_time_seconds_f
-        );
-    }
-
-    if (this->window.is_key_event('S', KeyEvent::Press)) {
-        this->camera.move(
-            Graphics::CameraMovement::Backward, delta_time_seconds_f
-        );
-    }
-
-    if (this->window.is_key_event('A', KeyEvent::Press)) {
-        this->camera.move(Graphics::CameraMovement::Left, delta_time_seconds_f);
-    }
-
-    if (this->window.is_key_event('D', KeyEvent::Press)) {
-        this->camera.move(
-            Graphics::CameraMovement::Right, delta_time_seconds_f
-        );
-    }
-
-    if (this->window.is_key_event('Q', KeyEvent::Press)) {
-        this->window.close();
-    }
-}
-
 }  // namespace Luminol

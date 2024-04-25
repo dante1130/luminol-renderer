@@ -4,9 +4,11 @@
 #include <glm/ext/matrix_transform.hpp>
 
 #include <Engine/LuminolEngine.hpp>
+#include <Engine/Utilities/Timer.hpp>
 
 namespace {
 
+using namespace Luminol;
 using namespace Luminol::Graphics;
 
 struct LightEntity {
@@ -33,12 +35,43 @@ auto create_point_light(const glm::vec3& position, const glm::vec3& color)
     };
 }
 
+auto handle_key_events(Engine& engine, float delta_time_seconds) -> void {
+    if (engine.get_window().is_key_event('W', KeyEvent::Press)) {
+        engine.get_camera().move(
+            Graphics::CameraMovement::Forward, delta_time_seconds
+        );
+    }
+
+    if (engine.get_window().is_key_event('S', KeyEvent::Press)) {
+        engine.get_camera().move(
+            Graphics::CameraMovement::Backward, delta_time_seconds
+        );
+    }
+
+    if (engine.get_window().is_key_event('A', KeyEvent::Press)) {
+        engine.get_camera().move(
+            Graphics::CameraMovement::Left, delta_time_seconds
+        );
+    }
+
+    if (engine.get_window().is_key_event('D', KeyEvent::Press)) {
+        engine.get_camera().move(
+            Graphics::CameraMovement::Right, delta_time_seconds
+        );
+    }
+
+    if (engine.get_window().is_key_event('Q', KeyEvent::Press)) {
+        engine.get_window().close();
+    }
+}
+
 }  // namespace
 
-using namespace Luminol;
-
 auto main() -> int {
+    using namespace Luminol;
+
     auto luminol_engine = Luminol::Engine(Luminol::Properties{});
+    auto timer = Utilities::Timer{};
 
     constexpr auto exposure = 2.0f;
     luminol_engine.get_renderer().set_exposure(exposure);
@@ -126,10 +159,19 @@ auto main() -> int {
 
     const auto flash_light_id = flash_light_id_opt.value();
 
+    auto last_frame_time_seconds = 0.0;
+
     while (!luminol_engine.get_window().should_close()) {
+        const auto current_frame_time_seconds = timer.elapsed_seconds();
+        const auto delta_time_seconds =
+            current_frame_time_seconds - last_frame_time_seconds;
+        last_frame_time_seconds = current_frame_time_seconds;
+
         luminol_engine.get_window().poll_events();
 
-        luminol_engine.handle_key_events();
+        handle_key_events(
+            luminol_engine, gsl::narrow_cast<float>(delta_time_seconds)
+        );
 
         const auto mouse_delta = luminol_engine.get_window().get_mouse_delta();
         luminol_engine.get_camera().rotate(

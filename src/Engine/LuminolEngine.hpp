@@ -8,7 +8,6 @@
 #include <Engine/Graphics/Camera.hpp>
 #include <Engine/Graphics/Renderer.hpp>
 #include <Engine/Graphics/GraphicsFactory.hpp>
-#include <Engine/Utilities/Timer.hpp>
 
 namespace Luminol {
 
@@ -38,19 +37,11 @@ public:
     [[nodiscard]] auto get_graphics_factory() const
         -> const Graphics::GraphicsFactory&;
 
-    [[nodiscard]] auto get_delta_time_seconds() const -> double;
-
-    auto handle_key_events() -> void;
-
 private:
     Window window;
     Graphics::Camera camera;
     std::unique_ptr<Graphics::GraphicsFactory> graphics_factory = nullptr;
     std::unique_ptr<Graphics::Renderer> renderer = nullptr;
-    Utilities::Timer timer;
-
-    double delta_time_seconds = {0.0};
-    double last_frame_time_seconds = {0.0};
 };
 
 }  // namespace Luminol
