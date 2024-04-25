@@ -75,12 +75,14 @@ void Engine::run() {
         directional_light
     );
 
+    constexpr auto lights_count = 64u;
+
     auto entities = std::vector<LightEntity>{};
-    entities.reserve(Graphics::max_point_lights);
+    entities.reserve(lights_count);
 
     auto random = std::mt19937{std::random_device{}()};
 
-    for (auto i = 0u; i < Graphics::max_point_lights; ++i) {
+    for (auto i = 0u; i < lights_count; ++i) {
         const auto position = glm::vec3(
             std::uniform_real_distribution<float>(-5.0f, 5.0f)(random),
             std::uniform_real_distribution<float>(-5.0f, 5.0f)(random),
@@ -171,18 +173,16 @@ void Engine::run() {
             flash_light_id, flash_light
         );
 
-        {
-            for (const auto& entity : entities) {
-                constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);
+        for (const auto& entity : entities) {
+            constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);
 
-                auto model_matrix = glm::mat4(1.0f);
-                model_matrix = glm::translate(model_matrix, entity.position);
-                model_matrix = glm::scale(model_matrix, scale);
+            auto model_matrix = glm::mat4(1.0f);
+            model_matrix = glm::translate(model_matrix, entity.position);
+            model_matrix = glm::scale(model_matrix, scale);
 
-                this->renderer->queue_draw_with_color(
-                    *entity.model, model_matrix, entity.color
-                );
-            }
+            this->renderer->queue_draw_with_color(
+                *entity.model, model_matrix, entity.color
+            );
         }
 
         {
