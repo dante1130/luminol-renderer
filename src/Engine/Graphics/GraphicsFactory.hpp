@@ -26,18 +26,18 @@ public:
     [[nodiscard]] static auto create(GraphicsApi api)
         -> std::unique_ptr<GraphicsFactory>;
 
-    [[nodiscard]] virtual auto create_renderer(Window& window)
+    [[nodiscard]] virtual auto create_renderer(Window& window) const
         -> std::unique_ptr<Renderer> = 0;
 
     [[nodiscard]] virtual auto create_mesh(
         gsl::span<const float> vertices,
         gsl::span<const uint32_t> indices,
         const TexturePaths& texture_paths
-    ) -> std::unique_ptr<Mesh> = 0;
+    ) const -> std::unique_ptr<Mesh> = 0;
 
     [[nodiscard]] virtual auto create_model(
         const std::filesystem::path& model_path
-    ) -> std::unique_ptr<Model> = 0;
+    ) const -> std::unique_ptr<Model> = 0;
 
     [[nodiscard]] virtual auto get_graphics_api() const -> GraphicsApi = 0;
 };

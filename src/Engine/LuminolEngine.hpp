@@ -25,11 +25,24 @@ struct Properties {
 class Engine {
 public:
     Engine(const Properties& properties);
-    void run();
 
-private:
+    [[nodiscard]] auto get_window() const -> const Window&;
+    [[nodiscard]] auto get_window() -> Window&;
+
+    [[nodiscard]] auto get_camera() const -> const Graphics::Camera&;
+    [[nodiscard]] auto get_camera() -> Graphics::Camera&;
+
+    [[nodiscard]] auto get_renderer() const -> const Graphics::Renderer&;
+    [[nodiscard]] auto get_renderer() -> Graphics::Renderer&;
+
+    [[nodiscard]] auto get_graphics_factory() const
+        -> const Graphics::GraphicsFactory&;
+
+    [[nodiscard]] auto get_delta_time_seconds() const -> double;
+
     auto handle_key_events() -> void;
 
+private:
     Window window;
     Graphics::Camera camera;
     std::unique_ptr<Graphics::GraphicsFactory> graphics_factory = nullptr;
