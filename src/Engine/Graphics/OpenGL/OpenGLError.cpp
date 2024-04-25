@@ -79,6 +79,10 @@ auto APIENTRY gl_debug_message_callback(
     const char* message,
     const void* /*user_param*/
 ) -> void {
+    if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
+		return;
+	}
+
     const auto source_str = source_to_string(source);
     const auto type_str = type_to_string(type);
     const auto severity_str = severity_to_string(severity);
