@@ -80,15 +80,11 @@ auto main() -> int {
         "res/models/mech_drone/scene.gltf"
     );
 
-    const auto cube = luminol_engine.get_graphics_factory().create_model(
-        "res/models/cube/cube.obj"
-    );
-
     constexpr auto directional_light = Graphics::DirectionalLight{
         .direction = glm::vec3(0.5f, -0.5f, 1.0f),
-        .ambient = glm::vec3(0.0f, 0.0f, 0.0f),
-        .diffuse = glm::vec3(0.0f, 0.0f, 0.0f),
-        .specular = glm::vec3(0.0f, 0.0f, 0.0f)
+        .ambient = glm::vec3(0.05f),
+        .diffuse = glm::vec3(0.4f),
+        .specular = glm::vec3(0.5f)
     };
 
     luminol_engine.get_renderer().get_light_manager().update_directional_light(
