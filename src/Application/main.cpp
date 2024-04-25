@@ -1,3 +1,4 @@
+#include <iostream>
 #include <random>
 
 #include <glm/glm.hpp>
@@ -125,7 +126,8 @@ auto main() -> int {
             );
 
         if (!point_light_id_opt.has_value()) {
-            throw std::runtime_error("Failed to add point light");
+            std::cerr << "Failed to add point light\n";
+            return 1;
         }
     }
 
@@ -150,7 +152,8 @@ auto main() -> int {
         );
 
     if (!flash_light_id_opt.has_value()) {
-        throw std::runtime_error("Failed to add spot light");
+        std::cerr << "Failed to add flash light\n";
+        return 1;
     }
 
     const auto flash_light_id = flash_light_id_opt.value();
