@@ -49,24 +49,16 @@ layout(std140, binding = 1) uniform Light
     uint spot_lights_count;
 };
 
-struct Material
-{
-    float shininess;
-};
-
 struct GeometryBuffer
 {
     sampler2D position;
     sampler2D normal;
-    sampler2D emissive;
+    sampler2D emissive_shininess;
     sampler2D albedo_spec;
 };
 
 uniform vec3 view_position;
-uniform Material material;
 uniform GeometryBuffer gbuffer;
-uniform bool is_cell_shading_enabled;
-uniform float cell_shading_levels;
 
 vec3 calculate_ambient(
     vec3 light_ambient,
@@ -86,11 +78,6 @@ vec3 calculate_diffuse(
 {
     float diff = max(dot(normal, light_direction), 0.0);
 
-    if (is_cell_shading_enabled)
-    {
-        diff = floor(diff * cell_shading_levels) / cell_shading_levels;
-    }
-
     return light_diffuse * diff * albedo;
 }
 
@@ -108,11 +95,6 @@ vec3 calculate_specular(
     const vec3 half_direction = normalize(light_direction + view_direction);
     float spec = pow(max(dot(normal, half_direction), 0.0), material_shininess);
 
-    if (is_cell_shading_enabled)
-    {
-        spec = floor(spec * cell_shading_levels) / cell_shading_levels;
-    }
-
     return light_specular * spec * material_specular;
 }
 
@@ -122,7 +104,8 @@ vec3 calculate_directional_light(
     vec3 view_position,
     vec3 frag_pos,
     vec3 albedo,
-    float material_specular
+    float material_specular,
+    float material_shininess
 )
 {
     const vec3 light_direction = normalize(-light.direction);
@@ -142,7 +125,7 @@ vec3 calculate_directional_light(
             view_position,
             light.specular,
             material_specular,
-            material.shininess,
+            material_shininess,
             frag_pos,
             normal
         );
@@ -156,7 +139,8 @@ vec3 calculate_point_light(
     vec3 view_position,
     vec3 frag_pos,
     vec3 albedo,
-    float material_specular
+    float material_specular,
+    float material_shininess
 )
 {
     const vec3 light_direction = normalize(light.position - frag_pos);
@@ -176,7 +160,7 @@ vec3 calculate_point_light(
             view_position,
             light.specular,
             material_specular,
-            material.shininess,
+            material_shininess,
             frag_pos,
             normal
         );
@@ -193,7 +177,8 @@ vec3 calculate_spot_light(
     vec3 view_position,
     vec3 frag_pos,
     vec3 albedo,
-    float material_specular
+    float material_specular,
+    float material_shininess
 )
 {
     const vec3 light_direction = normalize(light.position - frag_pos);
@@ -222,7 +207,7 @@ vec3 calculate_spot_light(
             view_position,
             light.specular,
             material_specular,
-            material.shininess,
+            material_shininess,
             frag_pos,
             normal
         );
@@ -237,9 +222,10 @@ void main()
 {
     const vec3 frag_pos = texture(gbuffer.position, tex_coords_out).rgb;
     const vec3 normal = texture(gbuffer.normal, tex_coords_out).rgb;
-    const vec3 emission = texture(gbuffer.emissive, tex_coords_out).rgb;
+    const vec3 emission = texture(gbuffer.emissive_shininess, tex_coords_out).rgb;
+    const float shininess = texture(gbuffer.emissive_shininess, tex_coords_out).a;
     const vec3 albedo = texture(gbuffer.albedo_spec, tex_coords_out).rgb;
-    float specular = texture(gbuffer.albedo_spec, tex_coords_out).a;
+    const float specular = texture(gbuffer.albedo_spec, tex_coords_out).a;
 
     vec3 light_result = emission;
 
@@ -249,7 +235,8 @@ void main()
             view_position,
             frag_pos,
             albedo,
-            specular
+            specular,
+            shininess
         );
 
     for (uint i = 0; i < point_lights_count; i++)
@@ -260,7 +247,8 @@ void main()
                 view_position,
                 frag_pos,
                 albedo,
-                specular
+                specular,
+                shininess
             );
     }
 
@@ -272,7 +260,8 @@ void main()
                 view_position,
                 frag_pos,
                 albedo,
-                specular
+                specular,
+                shininess
             );
     }
 

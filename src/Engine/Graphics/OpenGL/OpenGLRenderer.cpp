@@ -139,7 +139,7 @@ auto create_phong_shader() -> OpenGLShader {
         "gbuffer.normal", SamplerBindingPoint::GBufferNormal
     );
     phong_shader.set_sampler_binding_point(
-        "gbuffer.emissive", SamplerBindingPoint::GBufferEmissive
+        "gbuffer.emissive_shininess", SamplerBindingPoint::GBufferEmissiveShininess
     );
     phong_shader.set_sampler_binding_point(
         "gbuffer.albedo_spec", SamplerBindingPoint::GBufferAlbedoSpec
@@ -250,7 +250,7 @@ auto create_geometry_frame_buffer(int32_t width, int32_t height)
             OpenGLFrameBufferAttachment{
                 .internal_format = TextureInternalFormat::RGBA16F,
                 .format = TextureFormat::RGBA,
-                .binding_point = SamplerBindingPoint::GBufferEmissive,
+                .binding_point = SamplerBindingPoint::GBufferEmissiveShininess,
             },
             OpenGLFrameBufferAttachment{
                 .internal_format = TextureInternalFormat::RGBA8,
@@ -332,18 +332,6 @@ auto OpenGLRenderer::queue_draw(
     this->draw_queue.emplace_back(renderable, model_matrix);
 }
 
-auto OpenGLRenderer::queue_draw_with_cell_shading(
-    const Renderable& renderable,
-    const glm::mat4& model_matrix,
-    float cell_shading_levels
-) -> void {
-    Ensures(cell_shading_levels > 0);
-
-    this->cell_shading_draw_queue.emplace_back(
-        renderable, model_matrix, cell_shading_levels
-    );
-}
-
 auto OpenGLRenderer::queue_draw_with_color(
     const Renderable& renderable,
     const glm::mat4& model_matrix,
@@ -402,67 +390,37 @@ auto OpenGLRenderer::draw() -> void {
 
     this->draw_queue.clear();
     this->color_draw_queue.clear();
-    this->cell_shading_draw_queue.clear();
 }
 
 auto OpenGLRenderer::draw_gbuffer_geometry() -> void {
-    const auto draw_with_transform = [this](const auto& draw_calls) {
-        for (const auto& draw_call : draw_calls) {
-            this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
-                .model_matrix = draw_call.model_matrix,
-                .view_matrix = this->view_matrix,
-                .projection_matrix = this->projection_matrix
-            });
-
-            draw_call.renderable.get().get_render_command()();
-        }
-    };
-
-    draw_with_transform(this->draw_queue);
-    draw_with_transform(this->cell_shading_draw_queue);
-}
-
-auto OpenGLRenderer::draw_lighting() -> void {
     for (const auto& draw_call : this->draw_queue) {
         const auto& renderable = draw_call.renderable.get();
 
-        this->phong_shader.bind();
-        this->geometry_frame_buffer.bind_color_attachments();
-        this->phong_shader.set_uniform(
-            "view_position", get_view_position(this->view_matrix)
-        );
-        this->phong_shader.set_uniform(
+        this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
+            .model_matrix = draw_call.model_matrix,
+            .view_matrix = this->view_matrix,
+            .projection_matrix = this->projection_matrix
+        });
+
+        this->gbuffer_shader.set_uniform(
             "material.shininess", renderable.get_material().shininess
         );
-        this->phong_shader.set_uniform("is_cell_shading", 0);
 
-        this->quad.get_render_command()();
-
-        this->geometry_frame_buffer.unbind_color_attachments();
-        this->phong_shader.unbind();
+        draw_call.renderable.get().get_render_command()();
     }
+}
 
-    for (const auto& draw_call : this->cell_shading_draw_queue) {
-        const auto& renderable = draw_call.renderable.get();
+auto OpenGLRenderer::draw_lighting() -> void {
+    this->phong_shader.bind();
+    this->geometry_frame_buffer.bind_color_attachments();
+    this->phong_shader.set_uniform(
+        "view_position", get_view_position(this->view_matrix)
+    );
 
-        this->phong_shader.bind();
-        this->geometry_frame_buffer.bind_color_attachments();
-        this->phong_shader.set_uniform(
-            "view_position", get_view_position(this->view_matrix)
-        );
-        this->phong_shader.set_uniform(
-            "material.shininess", renderable.get_material().shininess
-        );
-        this->phong_shader.set_uniform("is_cell_shading", 1);
-        this->phong_shader.set_uniform(
-            "cell_shading_levels", draw_call.cell_shading_levels
-        );
+    this->quad.get_render_command()();
 
-        this->quad.get_render_command()();
-
-        this->geometry_frame_buffer.unbind_color_attachments();
-        this->phong_shader.unbind();
-    }
+    this->geometry_frame_buffer.unbind_color_attachments();
+    this->phong_shader.unbind();
 }
 
 auto OpenGLRenderer::draw_skybox() -> void {

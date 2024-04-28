@@ -92,7 +92,7 @@ auto main() -> int {
         directional_light
     );
 
-    constexpr auto lights_count = 64u;
+    constexpr auto lights_count = 256u;
 
     auto entities = std::vector<LightEntity>{};
     entities.reserve(lights_count);

@@ -24,11 +24,6 @@ public:
     auto clear(BufferBit buffer_bit) const -> void override;
     auto queue_draw(const Renderable& renderable, const glm::mat4& model_matrix)
         -> void override;
-    auto queue_draw_with_cell_shading(
-        const Renderable& renderable,
-        const glm::mat4& model_matrix,
-        float cell_shading_levels
-    ) -> void override;
     auto queue_draw_with_color(
         const Renderable& renderable,
         const glm::mat4& model_matrix,
@@ -39,13 +34,7 @@ public:
 private:
     struct DrawCall {
         std::reference_wrapper<const Renderable> renderable;
-        glm::mat4 model_matrix;
-    };
-
-    struct CellShadingDrawCall {
-        std::reference_wrapper<const Renderable> renderable;
-        glm::mat4 model_matrix;
-        float cell_shading_levels;
+        glm::mat4 model_matrix{};
     };
 
     struct ColorDrawCall {
@@ -66,7 +55,6 @@ private:
     std::function<int32_t()> get_window_height;
 
     std::vector<DrawCall> draw_queue;
-    std::vector<CellShadingDrawCall> cell_shading_draw_queue;
     std::vector<ColorDrawCall> color_draw_queue;
 
     OpenGLShader color_shader;

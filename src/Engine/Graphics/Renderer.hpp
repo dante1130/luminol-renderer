@@ -31,11 +31,6 @@ public:
     virtual auto queue_draw(
         const Renderable& renderable, const glm::mat4& model_matrix
     ) -> void = 0;
-    virtual auto queue_draw_with_cell_shading(
-        const Renderable& renderable,
-        const glm::mat4& model_matrix,
-        float cell_shading_levels
-    ) -> void = 0;
     virtual auto queue_draw_with_color(
         const Renderable& renderable,
         const glm::mat4& model_matrix,
