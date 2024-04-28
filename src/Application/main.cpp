@@ -77,9 +77,13 @@ auto main() -> int {
     constexpr auto exposure = 2.0f;
     luminol_engine.get_renderer().set_exposure(exposure);
 
-    const auto model = luminol_engine.get_graphics_factory().create_model(
+    auto model = luminol_engine.get_graphics_factory().create_model(
         "res/models/mech_drone/scene.gltf"
     );
+
+    constexpr auto shininess = 256.0f;
+
+    model->set_material(Material{.shininess = shininess});
 
     constexpr auto directional_light = Graphics::DirectionalLight{
         .direction = glm::vec3(0.5f, -0.5f, 1.0f),

@@ -139,7 +139,8 @@ auto create_phong_shader() -> OpenGLShader {
         "gbuffer.normal", SamplerBindingPoint::GBufferNormal
     );
     phong_shader.set_sampler_binding_point(
-        "gbuffer.emissive_shininess", SamplerBindingPoint::GBufferEmissiveShininess
+        "gbuffer.emissive_shininess",
+        SamplerBindingPoint::GBufferEmissiveShininess
     );
     phong_shader.set_sampler_binding_point(
         "gbuffer.albedo_spec", SamplerBindingPoint::GBufferAlbedoSpec
