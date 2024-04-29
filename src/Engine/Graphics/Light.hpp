@@ -12,9 +12,6 @@ struct DirectionalLight {
 };
 
 constexpr static auto max_point_lights = 256u;
-constexpr static auto default_constant = 1.0f;
-constexpr static auto default_linear = 0.09f;
-constexpr static auto default_quadratic = 0.032f;
 
 struct PointLight {
     glm::vec3 position = {0.0f, 0.0f, 0.0f};
@@ -28,12 +25,7 @@ constexpr static auto default_outer_cut_off = 0.0f;
 struct SpotLight {
     glm::vec3 position = {0.0f, 0.0f, 0.0f};
     glm::vec3 direction = {0.0f, 0.0f, 0.0f};
-    glm::vec3 ambient = {1.0f, 1.0f, 1.0f};
-    glm::vec3 diffuse = {1.0f, 1.0f, 1.0f};
-    glm::vec3 specular = {1.0f, 1.0f, 1.0f};
-    float constant = default_constant;
-    float linear = default_linear;
-    float quadratic = default_quadratic;
+    glm::vec3 color = {1.0f, 1.0f, 1.0f};
     float cut_off = 0.0f;
     float outer_cut_off = 0.0f;
 };

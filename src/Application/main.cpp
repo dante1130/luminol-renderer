@@ -72,7 +72,7 @@ auto main() -> int {
         directional_light
     );
 
-    constexpr auto lights_count = 256u;
+    constexpr auto lights_count = 0u;
 
     auto entities = std::vector<LightEntity>{};
     entities.reserve(lights_count);
@@ -117,12 +117,7 @@ auto main() -> int {
     const auto initial_flash_light = Graphics::SpotLight{
         .position = luminol_engine.get_camera().get_position(),
         .direction = luminol_engine.get_camera().get_forward(),
-        .ambient = glm::vec3(0.0f, 0.0f, 0.0f),
-        .diffuse = glm::vec3(1.0f, 1.0f, 1.0f),
-        .specular = glm::vec3(2.0f, 2.0f, 2.0f),
-        .constant = 1.0f,
-        .linear = 0.09f,
-        .quadratic = 0.032f,
+        .color = glm::vec3(1.0f, 1.0f, 1.0f),
         .cut_off = glm::cos(glm::radians(12.5f)),
         .outer_cut_off = glm::cos(glm::radians(17.5f))
     };

@@ -34,14 +34,10 @@ struct PointLight {
 struct SpotLight {
     PaddedVec3 position = {glm::vec3{0.0f, 0.0f, 0.0f}};   // 16 bytes
     PaddedVec3 direction = {glm::vec3{0.0f, 0.0f, 0.0f}};  // 16 bytes
-    PaddedVec3 ambient = {glm::vec3{1.0f, 1.0f, 1.0f}};    // 16 bytes
-    PaddedVec3 diffuse = {glm::vec3{1.0f, 1.0f, 1.0f}};    // 16 bytes
-    glm::vec3 specular = {glm::vec3{1.0f, 1.0f, 1.0f}};    // 12 bytes
-    float constant = default_constant;                     // 4 bytes
-    float linear = default_linear;                         // 4 bytes
-    float quadratic = default_quadratic;                   // 4 bytes
+    glm::vec3 color = glm::vec3{1.0f, 1.0f, 1.0f};         // 12 bytes
     float cut_off = default_cut_off;                       // 4 bytes
     float outer_cut_off = default_outer_cut_off;           // 4 bytes
+    glm::vec3 padding = glm::vec3{0.0f, 0.0f, 0.0f};       // 12 bytes
 };
 
 struct Light {

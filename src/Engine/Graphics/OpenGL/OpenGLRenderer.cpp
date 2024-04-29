@@ -463,12 +463,7 @@ auto OpenGLRenderer::update_lights() -> void {
         light_uniforms.spot_lights[i] = {
             .position = {light_data.spot_lights[i].position},
             .direction = {light_data.spot_lights[i].direction},
-            .ambient = {light_data.spot_lights[i].ambient},
-            .diffuse = {light_data.spot_lights[i].diffuse},
-            .specular = {light_data.spot_lights[i].specular},
-            .constant = light_data.spot_lights[i].constant,
-            .linear = light_data.spot_lights[i].linear,
-            .quadratic = light_data.spot_lights[i].quadratic,
+            .color = {light_data.spot_lights[i].color},
             .cut_off = light_data.spot_lights[i].cut_off,
             .outer_cut_off = light_data.spot_lights[i].outer_cut_off,
         };

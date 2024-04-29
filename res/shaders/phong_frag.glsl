@@ -23,12 +23,7 @@ struct SpotLight
 {
     vec3 position;
     vec3 direction;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    float constant;
-    float linear;
-    float quadratic;
+    vec3 color;
     float cut_off;
     float outer_cut_off;
 };
@@ -94,44 +89,6 @@ float geometry_smith(vec3 normal, vec3 view_direction, vec3 light_direction, flo
 vec3 fresnel_schlick(float cos_theta, vec3 f0)
 {
     return f0 + (1.0 - f0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
-}
-
-vec3 calculate_ambient(
-    vec3 light_ambient,
-    vec3 albedo
-)
-{
-    return light_ambient * albedo;
-}
-
-vec3 calculate_diffuse(
-    vec3 light_direction,
-    vec3 light_diffuse,
-    vec3 frag_pos,
-    vec3 albedo,
-    vec3 normal
-)
-{
-    float diff = max(dot(normal, light_direction), 0.0);
-
-    return light_diffuse * diff * albedo;
-}
-
-vec3 calculate_specular(
-    vec3 light_direction,
-    vec3 view_position,
-    vec3 light_specular,
-    float material_specular,
-    float material_shininess,
-    vec3 frag_pos,
-    vec3 normal
-)
-{
-    const vec3 view_direction = normalize(view_position - frag_pos);
-    const vec3 half_direction = normalize(light_direction + view_direction);
-    float spec = pow(max(dot(normal, half_direction), 0.0), material_shininess);
-
-    return light_specular * spec * material_specular;
 }
 
 vec3 calculate_specular_brdf(
@@ -243,8 +200,9 @@ vec3 calculate_spot_light(
     vec3 view_position,
     vec3 frag_pos,
     vec3 albedo,
-    float material_specular,
-    float material_shininess
+    vec3 f0,
+    float metallic,
+    float roughness
 )
 {
     const vec3 light_direction = normalize(light.position - frag_pos);
@@ -253,35 +211,40 @@ vec3 calculate_spot_light(
     const float epsilon = light.cut_off - light.outer_cut_off;
     const float intensity = clamp((theta - light.outer_cut_off) / epsilon, 0.0, 1.0);
 
-    const vec3 ambient = calculate_ambient(light.ambient, albedo);
-
     if (intensity <= 0.0)
     {
-        return ambient;
+        return vec3(0.0);
     }
 
-    const vec3 diffuse = calculate_diffuse(
-            light_direction,
-            light.diffuse,
-            frag_pos,
-            albedo,
-            normal
-        );
-
-    const vec3 specular = calculate_specular(
-            light_direction,
-            view_position,
-            light.specular,
-            material_specular,
-            material_shininess,
-            frag_pos,
-            normal
-        );
-
     const float distance = length(light.position - frag_pos);
-    const float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+    const float attenuation = 1.0 / (distance * distance);
 
-    return ambient + ((diffuse + specular) * attenuation) * intensity;
+    const vec3 radiance = light.color * attenuation;
+
+    const vec3 half_direction = normalize(light_direction + view_position);
+
+    const vec3 fresnel = fresnel_schlick(max(dot(half_direction, view_position), 0.0), f0);
+
+    const vec3 specular = calculate_specular_brdf(
+            fresnel,
+            light_direction,
+            half_direction,
+            normal,
+            view_position,
+            f0,
+            metallic,
+            roughness
+        );
+
+    const vec3 k_s = fresnel;
+    vec3 k_d = 1.0 - k_s;
+    k_d *= 1.0 - metallic;
+
+    const float n_dot_l = max(dot(normal, light_direction), 0.0);
+
+    const vec3 Lo = (k_d * albedo / PI + specular) * radiance * n_dot_l * intensity;
+
+    return Lo;
 }
 
 void main()
@@ -294,15 +257,10 @@ void main()
     const float roughness = texture(gbuffer.normal_roughness, tex_coords_out).a;
     const float ao = texture(gbuffer.emissive_ao, tex_coords_out).a;
 
-    const float specular = 1.0f;
-
-    const float shininess = 256.0f;
-
     vec3 f0 = vec3(0.04);
     f0 = mix(f0, albedo, metallic);
 
     vec3 Lo = vec3(0.0);
-    vec3 light_result = emission;
 
     Lo += calculate_directional_light(
             directional_light,
@@ -331,14 +289,15 @@ void main()
 
     for (uint i = 0; i < spot_lights_count; i++)
     {
-        light_result += calculate_spot_light(
+        Lo += calculate_spot_light(
                 spot_lights[i],
                 normal,
                 view_position,
                 frag_pos,
                 albedo,
-                specular,
-                shininess
+                f0,
+                metallic,
+                roughness
             );
     }
 
