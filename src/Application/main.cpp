@@ -60,7 +60,7 @@ auto main() -> int {
     luminol_engine.get_renderer().set_exposure(exposure);
 
     auto model = luminol_engine.get_graphics_factory().create_model(
-        "res/models/survival_guitar_backpack/scene.gltf"
+        "res/models/geisha/scene.gltf"
     );
 
     constexpr auto directional_light = Graphics::DirectionalLight{
@@ -100,11 +100,13 @@ auto main() -> int {
             )
         );
 
+        constexpr auto intensity = 1.0f;
+
         const auto point_light_id_opt =
             luminol_engine.get_renderer().get_light_manager().add_point_light(
                 PointLight{
                     .position = position,
-                    .color = color,
+                    .color = color * intensity,
                 }
             );
 
@@ -193,7 +195,7 @@ auto main() -> int {
         }
 
         {
-            constexpr auto scale = glm::vec3(0.01f, 0.01f, 0.01f);
+            constexpr auto scale = glm::vec3(1.0f);
 
             auto model_matrix = glm::mat4(1.0f);
             model_matrix = glm::scale(model_matrix, scale);
