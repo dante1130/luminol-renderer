@@ -32,10 +32,10 @@ vec3 calculate_normal(sampler2D material_texture_normal, vec2 tex_coords, mat3 t
 void main()
 {
     gbuffer_position_metallic.rgb = frag_pos_out;
-    gbuffer_position_metallic.a = texture(material.texture_metallic, tex_coords_out).r;
+    gbuffer_position_metallic.a = texture(material.texture_metallic, tex_coords_out).g;
 
     gbuffer_normal_roughness.rgb = calculate_normal(material.texture_normal, tex_coords_out, tangent_space_matrix_out);
-    gbuffer_normal_roughness.a = texture(material.texture_roughness, tex_coords_out).r;
+    gbuffer_normal_roughness.a = texture(material.texture_roughness, tex_coords_out).b;
 
     gbuffer_emissive_ao.rgb = texture(material.texture_emissive, tex_coords_out).rgb;
     gbuffer_emissive_ao.a = texture(material.texture_ao, tex_coords_out).r;

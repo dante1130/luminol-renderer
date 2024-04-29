@@ -267,6 +267,10 @@ void main()
     const vec3 normal = texture(gbuffer.normal_roughness, tex_coords_out).rgb;
     const vec3 emission = texture(gbuffer.emissive_ao, tex_coords_out).rgb;
     const vec3 albedo = texture(gbuffer.albedo, tex_coords_out).rgb;
+    const float metallic = texture(gbuffer.position_metallic, tex_coords_out).a;
+    const float roughness = texture(gbuffer.normal_roughness, tex_coords_out).a;
+    const float ao = texture(gbuffer.emissive_ao, tex_coords_out).a;
+
     const float specular = 1.0f;
 
     const float shininess = 256.0f;

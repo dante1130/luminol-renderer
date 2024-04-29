@@ -67,6 +67,16 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
             ),
             .normal_texture = load_first_texture_or_nothing(
                 mesh_data.normal_texture_paths, model_data.textures_map
+            ),
+            .metallic_texture = load_first_texture_or_nothing(
+                mesh_data.metallic_texture_paths, model_data.textures_map
+            ),
+            .roughness_texture = load_first_texture_or_nothing(
+                mesh_data.roughness_texture_paths, model_data.textures_map
+            ),
+            .ambient_occlusion_texture = load_first_texture_or_nothing(
+                mesh_data.ambient_occlusion_texture_paths,
+                model_data.textures_map
             )
         };
 

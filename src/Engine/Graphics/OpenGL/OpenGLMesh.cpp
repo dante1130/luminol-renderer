@@ -90,6 +90,15 @@ OpenGLMesh::OpenGLMesh(
       )},
       normal_texture{load_texture_from_path(
           texture_paths.normal_texture_path, ColorSpace::Linear
+      )},
+      metallic_texture{load_texture_from_path(
+          texture_paths.metallic_texture_path, ColorSpace::Linear
+      )},
+      roughness_texture{load_texture_from_path(
+          texture_paths.roughness_texture_path, ColorSpace::Linear
+      )},
+      ambient_occlusion_texture{load_texture_from_path(
+          texture_paths.ambient_occlusion_texture_path, ColorSpace::Linear
       )} {}
 
 OpenGLMesh::OpenGLMesh(
@@ -106,6 +115,15 @@ OpenGLMesh::OpenGLMesh(
       )},
       normal_texture{load_texture_from_image(
           texture_images.normal_texture, ColorSpace::Linear
+      )},
+      metallic_texture{load_texture_from_image(
+          texture_images.metallic_texture, ColorSpace::Linear
+      )},
+      roughness_texture{load_texture_from_image(
+          texture_images.roughness_texture, ColorSpace::Linear
+      )},
+      ambient_occlusion_texture{load_texture_from_image(
+          texture_images.ambient_occlusion_texture, ColorSpace::Linear
       )} {}
 
 auto OpenGLMesh::draw() const -> void {
@@ -120,6 +138,23 @@ auto OpenGLMesh::draw() const -> void {
 
     if (this->normal_texture.has_value()) {
         this->normal_texture->get().bind(SamplerBindingPoint::TextureNormal);
+    }
+
+    if (this->metallic_texture.has_value()) {
+        this->metallic_texture->get().bind(SamplerBindingPoint::TextureMetallic
+        );
+    }
+
+    if (this->roughness_texture.has_value()) {
+        this->roughness_texture->get().bind(
+            SamplerBindingPoint::TextureRoughness
+        );
+    }
+
+    if (this->ambient_occlusion_texture.has_value()) {
+        this->ambient_occlusion_texture->get().bind(
+            SamplerBindingPoint::TextureAO
+        );
     }
 
     this->vertex_array_object.bind();
@@ -143,6 +178,24 @@ auto OpenGLMesh::draw() const -> void {
 
     if (this->normal_texture.has_value()) {
         this->normal_texture->get().unbind(SamplerBindingPoint::TextureNormal);
+    }
+
+    if (this->metallic_texture.has_value()) {
+        this->metallic_texture->get().unbind(
+            SamplerBindingPoint::TextureMetallic
+        );
+    }
+
+    if (this->roughness_texture.has_value()) {
+        this->roughness_texture->get().unbind(
+            SamplerBindingPoint::TextureRoughness
+        );
+    }
+
+    if (this->ambient_occlusion_texture.has_value()) {
+        this->ambient_occlusion_texture->get().unbind(
+            SamplerBindingPoint::TextureAO
+        );
     }
 }
 

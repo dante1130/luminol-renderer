@@ -12,6 +12,9 @@ struct TextureImages {
     std::optional<Utilities::ImageLoader::Image> diffuse_texture;
     std::optional<Utilities::ImageLoader::Image> emissive_texture;
     std::optional<Utilities::ImageLoader::Image> normal_texture;
+    std::optional<Utilities::ImageLoader::Image> metallic_texture;
+    std::optional<Utilities::ImageLoader::Image> roughness_texture;
+    std::optional<Utilities::ImageLoader::Image> ambient_occlusion_texture;
 };
 
 class OpenGLMesh : public Mesh {
@@ -43,6 +46,9 @@ private:
     TextureRefOptional diffuse_texture = std::nullopt;
     TextureRefOptional emissive_texture = std::nullopt;
     TextureRefOptional normal_texture = std::nullopt;
+    TextureRefOptional metallic_texture = std::nullopt;
+    TextureRefOptional roughness_texture = std::nullopt;
+    TextureRefOptional ambient_occlusion_texture = std::nullopt;
 };
 
 }  // namespace Luminol::Graphics

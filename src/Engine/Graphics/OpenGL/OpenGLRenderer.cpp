@@ -210,6 +210,15 @@ auto create_gbuffer_shader() -> OpenGLShader {
     gbuffer_shader.set_sampler_binding_point(
         "material.texture_normal", SamplerBindingPoint::TextureNormal
     );
+    gbuffer_shader.set_sampler_binding_point(
+        "material.texture_metallic", SamplerBindingPoint::TextureMetallic
+    );
+    gbuffer_shader.set_sampler_binding_point(
+        "material.texture_roughness", SamplerBindingPoint::TextureRoughness
+    );
+    gbuffer_shader.set_sampler_binding_point(
+        "material.texture_ao", SamplerBindingPoint::TextureAO
+    );
     gbuffer_shader.unbind();
 
     return gbuffer_shader;
