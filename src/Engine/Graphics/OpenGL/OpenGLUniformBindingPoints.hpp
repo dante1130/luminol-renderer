@@ -11,11 +11,14 @@ enum class SamplerBindingPoint {
     TextureDiffuse = 0,
     TextureEmissive,
     TextureNormal,
+    TextureMetallic,
+    TextureRoughness,
+    TextureAO,
     Skybox,
     HDRFramebuffer,
-    GBufferPosition,
-    GBufferNormal,
-    GBufferEmissive,
+    GBufferPositionMetallic,
+    GBufferNormalRoughness,
+    GBufferEmissiveAO,
     GBufferAlbedo,
 };
 

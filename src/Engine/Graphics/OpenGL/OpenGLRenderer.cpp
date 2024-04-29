@@ -133,13 +133,13 @@ auto create_phong_shader() -> OpenGLShader {
 
     phong_shader.bind();
     phong_shader.set_sampler_binding_point(
-        "gbuffer.position", SamplerBindingPoint::GBufferPosition
+        "gbuffer.position_metallic", SamplerBindingPoint::GBufferPositionMetallic
     );
     phong_shader.set_sampler_binding_point(
-        "gbuffer.normal", SamplerBindingPoint::GBufferNormal
+        "gbuffer.normal_roughness", SamplerBindingPoint::GBufferNormalRoughness
     );
     phong_shader.set_sampler_binding_point(
-        "gbuffer.emissive", SamplerBindingPoint::GBufferEmissive
+        "gbuffer.emissive_ao", SamplerBindingPoint::GBufferEmissiveAO
     );
     phong_shader.set_sampler_binding_point(
         "gbuffer.albedo", SamplerBindingPoint::GBufferAlbedo
@@ -235,19 +235,19 @@ auto create_geometry_frame_buffer(int32_t width, int32_t height)
         height,
         {
             OpenGLFrameBufferAttachment{
-                .internal_format = TextureInternalFormat::RGB16F,
-                .format = TextureFormat::RGB,
-                .binding_point = SamplerBindingPoint::GBufferPosition,
+                .internal_format = TextureInternalFormat::RGBA16F,
+                .format = TextureFormat::RGBA,
+                .binding_point = SamplerBindingPoint::GBufferPositionMetallic,
             },
             OpenGLFrameBufferAttachment{
-                .internal_format = TextureInternalFormat::RGB16F,
-                .format = TextureFormat::RGB,
-                .binding_point = SamplerBindingPoint::GBufferNormal,
+                .internal_format = TextureInternalFormat::RGBA16F,
+                .format = TextureFormat::RGBA,
+                .binding_point = SamplerBindingPoint::GBufferNormalRoughness,
             },
             OpenGLFrameBufferAttachment{
-                .internal_format = TextureInternalFormat::RGB16F,
-                .format = TextureFormat::RGB,
-                .binding_point = SamplerBindingPoint::GBufferEmissive,
+                .internal_format = TextureInternalFormat::RGBA16F,
+                .format = TextureFormat::RGBA,
+                .binding_point = SamplerBindingPoint::GBufferEmissiveAO,
             },
             OpenGLFrameBufferAttachment{
                 .internal_format = TextureInternalFormat::RGB8,

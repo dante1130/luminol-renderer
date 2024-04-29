@@ -51,9 +51,9 @@ layout(std140, binding = 1) uniform Light
 
 struct GeometryBuffer
 {
-    sampler2D position;
-    sampler2D normal;
-    sampler2D emissive;
+    sampler2D position_metallic;
+    sampler2D normal_roughness;
+    sampler2D emissive_ao;
     sampler2D albedo;
 };
 
@@ -263,9 +263,9 @@ vec3 calculate_spot_light(
 
 void main()
 {
-    const vec3 frag_pos = texture(gbuffer.position, tex_coords_out).rgb;
-    const vec3 normal = texture(gbuffer.normal, tex_coords_out).rgb;
-    const vec3 emission = texture(gbuffer.emissive, tex_coords_out).rgb;
+    const vec3 frag_pos = texture(gbuffer.position_metallic, tex_coords_out).rgb;
+    const vec3 normal = texture(gbuffer.normal_roughness, tex_coords_out).rgb;
+    const vec3 emission = texture(gbuffer.emissive_ao, tex_coords_out).rgb;
     const vec3 albedo = texture(gbuffer.albedo, tex_coords_out).rgb;
     const float specular = 1.0f;
 
