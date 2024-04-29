@@ -60,6 +60,49 @@ struct GeometryBuffer
 uniform vec3 view_position;
 uniform GeometryBuffer gbuffer;
 
+const float PI = 3.14159265359;
+
+float distribution_ggx(vec3 normal, vec3 half_direction, float roughness)
+{
+    const float a = roughness * roughness;
+    const float numerator = a * a;
+
+    const float n_dot_h = max(dot(normal, half_direction), 0.0);
+    const float n_dot_h_2 = n_dot_h * n_dot_h;
+
+    float denominator = (n_dot_h_2 * (numerator - 1.0) + 1.0);
+    denominator = PI * denominator * denominator;
+
+    return numerator / denominator;
+}
+
+float geometry_schlick_ggx(float n_dot_v, float roughness)
+{
+    const float r = (roughness + 1.0);
+    const float k = (r * r) / 8.0;
+
+    const float numerator = n_dot_v;
+    const float denominator = n_dot_v * (1.0 - k) + k;
+
+    return numerator / denominator;
+}
+
+float geometry_smith(vec3 normal, vec3 view_direction, vec3 light_direction, float roughness)
+{
+    const float n_dot_v = max(dot(normal, view_direction), 0.0);
+    const float n_dot_l = max(dot(normal, light_direction), 0.0);
+
+    const float ggx1 = geometry_schlick_ggx(n_dot_v, roughness);
+    const float ggx2 = geometry_schlick_ggx(n_dot_l, roughness);
+
+    return ggx1 * ggx2;
+}
+
+vec3 fresnel_schlick(float cos_theta, vec3 f0)
+{
+    return f0 + (1.0 - f0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
+}
+
 vec3 calculate_ambient(
     vec3 light_ambient,
     vec3 albedo
