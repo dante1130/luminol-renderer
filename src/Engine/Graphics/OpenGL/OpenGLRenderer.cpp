@@ -239,13 +239,13 @@ auto create_geometry_frame_buffer(int32_t width, int32_t height)
         height,
         {
             OpenGLFrameBufferAttachment{
-                .internal_format = TextureInternalFormat::RGBA16F,
-                .format = TextureFormat::RGBA,
+                .internal_format = TextureInternalFormat::RGB16F,
+                .format = TextureFormat::RGB,
                 .binding_point = SamplerBindingPoint::GBufferPosition,
             },
             OpenGLFrameBufferAttachment{
-                .internal_format = TextureInternalFormat::RGBA16F,
-                .format = TextureFormat::RGBA,
+                .internal_format = TextureInternalFormat::RGB16F,
+                .format = TextureFormat::RGB,
                 .binding_point = SamplerBindingPoint::GBufferNormal,
             },
             OpenGLFrameBufferAttachment{

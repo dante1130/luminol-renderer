@@ -1,7 +1,7 @@
 #version 460 core
 
-layout(location = 0) out vec4 gbuffer_position;
-layout(location = 1) out vec4 gbuffer_normal;
+layout(location = 0) out vec3 gbuffer_position;
+layout(location = 1) out vec3 gbuffer_normal;
 layout(location = 2) out vec4 gbuffer_emissive_shininess;
 layout(location = 3) out vec4 gbuffer_albedo_spec;
 
@@ -30,8 +30,8 @@ vec3 calculate_normal(sampler2D material_texture_normal, vec2 tex_coords, mat3 t
 
 void main()
 {
-    gbuffer_position = vec4(frag_pos_out, 1.0);
-    gbuffer_normal = vec4(calculate_normal(material.texture_normal, tex_coords_out, tangent_space_matrix_out), 1.0);
+    gbuffer_position = frag_pos_out;
+    gbuffer_normal = calculate_normal(material.texture_normal, tex_coords_out, tangent_space_matrix_out);
     gbuffer_albedo_spec.rgb = texture(material.texture_diffuse, tex_coords_out).rgb;
     gbuffer_albedo_spec.a = texture(material.texture_specular, tex_coords_out).r;
     gbuffer_emissive_shininess.rgb = texture(material.texture_emissive, tex_coords_out).rgb;
