@@ -10,20 +10,13 @@ const uint MAX_SPOT_LIGHTS = 256;
 struct DirectionalLight
 {
     vec3 direction;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
+    vec3 color;
 };
 
 struct PointLight
 {
     vec3 position;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    float constant;
-    float linear;
-    float quadratic;
+    vec3 color;
 };
 
 struct SpotLight
@@ -172,7 +165,7 @@ vec3 calculate_directional_light(
     float roughness
 )
 {
-    const vec3 radiance = light.diffuse;
+    const vec3 radiance = light.color;
 
     const vec3 light_direction = normalize(-light.direction);
     const vec3 half_direction = normalize(light_direction + view_position);
@@ -207,36 +200,41 @@ vec3 calculate_point_light(
     vec3 view_position,
     vec3 frag_pos,
     vec3 albedo,
-    float material_specular,
-    float material_shininess
+    vec3 f0,
+    float metallic,
+    float roughness
 )
 {
-    const vec3 light_direction = normalize(light.position - frag_pos);
-
-    const vec3 ambient = calculate_ambient(light.ambient, albedo);
-
-    const vec3 diffuse = calculate_diffuse(
-            light_direction,
-            light.diffuse,
-            frag_pos,
-            albedo,
-            normal
-        );
-
-    const vec3 specular = calculate_specular(
-            light_direction,
-            view_position,
-            light.specular,
-            material_specular,
-            material_shininess,
-            frag_pos,
-            normal
-        );
-
     const float distance = length(light.position - frag_pos);
-    const float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+    const float attenuation = 1.0 / (distance * distance);
 
-    return ambient + ((diffuse + specular) * attenuation);
+    const vec3 radiance = light.color * attenuation;
+
+    const vec3 light_direction = normalize(light.position - frag_pos);
+    const vec3 half_direction = normalize(light_direction + view_position);
+
+    const vec3 fresnel = fresnel_schlick(max(dot(half_direction, view_position), 0.0), f0);
+
+    const vec3 specular = calculate_specular_brdf(
+            fresnel,
+            light_direction,
+            half_direction,
+            normal,
+            view_position,
+            f0,
+            metallic,
+            roughness
+        );
+
+    const vec3 k_s = fresnel;
+    vec3 k_d = 1.0 - k_s;
+    k_d *= 1.0 - metallic;
+
+    const float n_dot_l = max(dot(normal, light_direction), 0.0);
+
+    const vec3 Lo = (k_d * albedo / PI + specular) * radiance * n_dot_l;
+
+    return Lo;
 }
 
 vec3 calculate_spot_light(
@@ -319,14 +317,15 @@ void main()
 
     for (uint i = 0; i < point_lights_count; i++)
     {
-        light_result += calculate_point_light(
+        Lo += calculate_point_light(
                 point_lights[i],
                 normal,
                 view_position,
                 frag_pos,
                 albedo,
-                specular,
-                shininess
+                f0,
+                metallic,
+                roughness
             );
     }
 
@@ -344,7 +343,7 @@ void main()
     }
 
     const vec3 ambient = vec3(0.03) * albedo * ao;
-    const vec3 color = ambient + Lo;
+    const vec3 color = ambient + Lo + emission;
 
     frag_color = vec4(color, 1.0);
 }

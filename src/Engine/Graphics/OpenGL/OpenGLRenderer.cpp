@@ -446,9 +446,7 @@ auto OpenGLRenderer::update_lights() -> void {
     auto light_uniforms = OpenGLUniforms::Light{
         .directional_light =
             {.direction = {light_data.directional_light.direction},
-             .ambient = {light_data.directional_light.ambient},
-             .diffuse = {light_data.directional_light.diffuse},
-             .specular = {light_data.directional_light.specular}},
+             .color = {light_data.directional_light.color}},
         .point_light_count = light_data.point_light_count,
         .spot_light_count = light_data.spot_light_count
     };
@@ -457,12 +455,7 @@ auto OpenGLRenderer::update_lights() -> void {
     for (size_t i = 0; i < light_data.point_light_count; ++i) {
         light_uniforms.point_lights[i] = {
             .position = {light_data.point_lights[i].position},
-            .ambient = {light_data.point_lights[i].ambient},
-            .diffuse = {light_data.point_lights[i].diffuse},
-            .specular = {light_data.point_lights[i].specular},
-            .constant = light_data.point_lights[i].constant,
-            .linear = light_data.point_lights[i].linear,
-            .quadratic = light_data.point_lights[i].quadratic,
+            .color = {light_data.point_lights[i].color},
         };
     }
 

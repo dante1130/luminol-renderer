@@ -28,10 +28,7 @@ LightManager::LightManager()
 auto LightManager::update_directional_light(
     const DirectionalLight& directional_light
 ) -> void {
-    this->light_data.directional_light.direction = directional_light.direction;
-    this->light_data.directional_light.ambient = directional_light.ambient;
-    this->light_data.directional_light.diffuse = directional_light.diffuse;
-    this->light_data.directional_light.specular = directional_light.specular;
+    this->light_data.directional_light = directional_light;
 }
 
 auto LightManager::add_point_light(const PointLight& point_light)

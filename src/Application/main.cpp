@@ -18,24 +18,6 @@ struct LightEntity {
     std::unique_ptr<Model> model;
 };
 
-auto create_point_light(const glm::vec3& position, const glm::vec3& color)
-    -> PointLight {
-    constexpr auto specular_multiplier = 2.0f;
-    constexpr auto constant = 0.0f;
-    constexpr auto linear = 1.0f;
-    constexpr auto quadratic = 0.0f;
-
-    return PointLight{
-        .position = position,
-        .ambient = glm::vec3(0.0f),
-        .diffuse = color,
-        .specular = color * specular_multiplier,
-        .constant = constant,
-        .linear = linear,
-        .quadratic = quadratic
-    };
-}
-
 auto handle_key_events(Engine& engine, float delta_time_seconds) -> void {
     if (engine.get_window().is_key_event('W', KeyEvent::Press)) {
         engine.get_camera().move(
@@ -83,16 +65,14 @@ auto main() -> int {
 
     constexpr auto directional_light = Graphics::DirectionalLight{
         .direction = glm::vec3(0.5f, -0.5f, 1.0f),
-        .ambient = glm::vec3(0.05f),
-        .diffuse = glm::vec3(5.0f),
-        .specular = glm::vec3(0.5f)
+        .color = glm::vec3(1.0f, 1.0f, 1.0f),
     };
 
     luminol_engine.get_renderer().get_light_manager().update_directional_light(
         directional_light
     );
 
-    constexpr auto lights_count = 0u;
+    constexpr auto lights_count = 256u;
 
     auto entities = std::vector<LightEntity>{};
     entities.reserve(lights_count);
@@ -101,9 +81,9 @@ auto main() -> int {
 
     for (auto i = 0u; i < lights_count; ++i) {
         const auto position = glm::vec3(
-            std::uniform_real_distribution<float>(-5.0f, 5.0f)(random),
-            std::uniform_real_distribution<float>(-5.0f, 5.0f)(random),
-            std::uniform_real_distribution<float>(-5.0f, 5.0f)(random)
+            std::uniform_real_distribution<float>(-2.5f, 2.5f)(random),
+            std::uniform_real_distribution<float>(-2.5f, 2.5f)(random),
+            std::uniform_real_distribution<float>(-2.5f, 2.5f)(random)
         );
 
         const auto color = glm::vec3(
@@ -122,7 +102,10 @@ auto main() -> int {
 
         const auto point_light_id_opt =
             luminol_engine.get_renderer().get_light_manager().add_point_light(
-                create_point_light(position, color)
+                PointLight{
+                    .position = position,
+                    .color = color,
+                }
             );
 
         if (!point_light_id_opt.has_value()) {
