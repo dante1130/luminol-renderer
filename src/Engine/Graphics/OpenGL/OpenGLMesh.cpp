@@ -85,9 +85,6 @@ OpenGLMesh::OpenGLMesh(
       diffuse_texture{load_texture_from_path(
           texture_paths.diffuse_texture_path, ColorSpace::SRGB
       )},
-      specular_texture{load_texture_from_path(
-          texture_paths.specular_texture_path, ColorSpace::Linear
-      )},
       emissive_texture{load_texture_from_path(
           texture_paths.emissive_texture_path, ColorSpace::SRGB
       )},
@@ -104,9 +101,6 @@ OpenGLMesh::OpenGLMesh(
       diffuse_texture{load_texture_from_image(
           texture_images.diffuse_texture, ColorSpace::SRGB
       )},
-      specular_texture{load_texture_from_image(
-          texture_images.specular_texture, ColorSpace::Linear
-      )},
       emissive_texture{load_texture_from_image(
           texture_images.emissive_texture, ColorSpace::SRGB
       )},
@@ -117,11 +111,6 @@ OpenGLMesh::OpenGLMesh(
 auto OpenGLMesh::draw() const -> void {
     if (this->diffuse_texture.has_value()) {
         this->diffuse_texture->get().bind(SamplerBindingPoint::TextureDiffuse);
-    }
-
-    if (this->specular_texture.has_value()) {
-        this->specular_texture->get().bind(SamplerBindingPoint::TextureSpecular
-        );
     }
 
     if (this->emissive_texture.has_value()) {
@@ -144,12 +133,6 @@ auto OpenGLMesh::draw() const -> void {
     if (this->emissive_texture.has_value()) {
         this->emissive_texture->get().unbind(
             SamplerBindingPoint::TextureEmissive
-        );
-    }
-
-    if (this->specular_texture.has_value()) {
-        this->specular_texture->get().unbind(
-            SamplerBindingPoint::TextureSpecular
         );
     }
 

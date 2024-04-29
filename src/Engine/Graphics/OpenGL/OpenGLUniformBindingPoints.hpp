@@ -9,7 +9,6 @@ enum class UniformBufferBindingPoint {
 
 enum class SamplerBindingPoint {
     TextureDiffuse = 0,
-    TextureSpecular,
     TextureEmissive,
     TextureNormal,
     Skybox,
@@ -17,7 +16,7 @@ enum class SamplerBindingPoint {
     GBufferPosition,
     GBufferNormal,
     GBufferEmissive,
-    GBufferAlbedoSpec,
+    GBufferAlbedo,
 };
 
 }  // namespace Luminol::Graphics

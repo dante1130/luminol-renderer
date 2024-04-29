@@ -18,7 +18,6 @@ struct MeshData {
     std::vector<uint32_t> indices;
 
     std::vector<std::filesystem::path> diffuse_texture_paths;
-    std::vector<std::filesystem::path> specular_texture_paths;
     std::vector<std::filesystem::path> emissive_texture_paths;
     std::vector<std::filesystem::path> normal_texture_paths;
 

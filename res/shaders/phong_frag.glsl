@@ -54,7 +54,7 @@ struct GeometryBuffer
     sampler2D position;
     sampler2D normal;
     sampler2D emissive;
-    sampler2D albedo_spec;
+    sampler2D albedo;
 };
 
 uniform vec3 view_position;
@@ -266,8 +266,8 @@ void main()
     const vec3 frag_pos = texture(gbuffer.position, tex_coords_out).rgb;
     const vec3 normal = texture(gbuffer.normal, tex_coords_out).rgb;
     const vec3 emission = texture(gbuffer.emissive, tex_coords_out).rgb;
-    const vec3 albedo = texture(gbuffer.albedo_spec, tex_coords_out).rgb;
-    const float specular = texture(gbuffer.albedo_spec, tex_coords_out).a;
+    const vec3 albedo = texture(gbuffer.albedo, tex_coords_out).rgb;
+    const float specular = 1.0f;
 
     const float shininess = 256.0f;
 

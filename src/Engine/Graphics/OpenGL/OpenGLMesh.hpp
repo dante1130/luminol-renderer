@@ -10,7 +10,6 @@ namespace Luminol::Graphics {
 
 struct TextureImages {
     std::optional<Utilities::ImageLoader::Image> diffuse_texture;
-    std::optional<Utilities::ImageLoader::Image> specular_texture;
     std::optional<Utilities::ImageLoader::Image> emissive_texture;
     std::optional<Utilities::ImageLoader::Image> normal_texture;
 };
@@ -42,7 +41,6 @@ private:
     OpenGLVertexArrayObject vertex_array_object;
 
     TextureRefOptional diffuse_texture = std::nullopt;
-    TextureRefOptional specular_texture = std::nullopt;
     TextureRefOptional emissive_texture = std::nullopt;
     TextureRefOptional normal_texture = std::nullopt;
 };

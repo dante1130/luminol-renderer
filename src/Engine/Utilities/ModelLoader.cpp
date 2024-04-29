@@ -147,9 +147,6 @@ auto load_mesh(
         .diffuse_texture_paths = load_textures(
             mesh, materials, aiTextureType_DIFFUSE, directory, textures_map
         ),
-        .specular_texture_paths = load_textures(
-            mesh, materials, aiTextureType_SPECULAR, directory, textures_map
-        ),
         .emissive_texture_paths = load_textures(
             mesh, materials, aiTextureType_EMISSIVE, directory, textures_map
         ),

@@ -142,7 +142,7 @@ auto create_phong_shader() -> OpenGLShader {
         "gbuffer.emissive", SamplerBindingPoint::GBufferEmissive
     );
     phong_shader.set_sampler_binding_point(
-        "gbuffer.albedo_spec", SamplerBindingPoint::GBufferAlbedoSpec
+        "gbuffer.albedo", SamplerBindingPoint::GBufferAlbedo
     );
     phong_shader.set_uniform_block_binding_point(
         "Light", UniformBufferBindingPoint::Light
@@ -208,9 +208,6 @@ auto create_gbuffer_shader() -> OpenGLShader {
         "material.texture_emissive", SamplerBindingPoint::TextureEmissive
     );
     gbuffer_shader.set_sampler_binding_point(
-        "material.texture_specular", SamplerBindingPoint::TextureSpecular
-    );
-    gbuffer_shader.set_sampler_binding_point(
         "material.texture_normal", SamplerBindingPoint::TextureNormal
     );
     gbuffer_shader.unbind();
@@ -253,9 +250,9 @@ auto create_geometry_frame_buffer(int32_t width, int32_t height)
                 .binding_point = SamplerBindingPoint::GBufferEmissive,
             },
             OpenGLFrameBufferAttachment{
-                .internal_format = TextureInternalFormat::RGBA8,
-                .format = TextureFormat::RGBA,
-                .binding_point = SamplerBindingPoint::GBufferAlbedoSpec,
+                .internal_format = TextureInternalFormat::RGB8,
+                .format = TextureFormat::RGB,
+                .binding_point = SamplerBindingPoint::GBufferAlbedo,
             },
         }
     }};
