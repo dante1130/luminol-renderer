@@ -141,39 +141,64 @@ vec3 calculate_specular(
     return light_specular * spec * material_specular;
 }
 
+vec3 calculate_specular_brdf(
+    vec3 fresnel,
+    vec3 light_direction,
+    vec3 half_direction,
+    vec3 normal,
+    vec3 view_position,
+    vec3 f0,
+    float metallic,
+    float roughness
+)
+{
+    const float normal_distribution = distribution_ggx(normal, half_direction, roughness);
+    const float geometry = geometry_smith(normal, view_position, light_direction, roughness);
+
+    const vec3 numerator = normal_distribution * geometry * fresnel;
+    const float denominator = 4.0 * max(dot(normal, view_position), 0.0) * max(dot(normal, light_direction), 0.0) + 0.0001;
+
+    return numerator / denominator;
+}
+
 vec3 calculate_directional_light(
     DirectionalLight light,
     vec3 normal,
     vec3 view_position,
     vec3 frag_pos,
     vec3 albedo,
-    float material_specular,
-    float material_shininess
+    vec3 f0,
+    float metallic,
+    float roughness
 )
 {
+    const vec3 radiance = light.diffuse;
+
     const vec3 light_direction = normalize(-light.direction);
+    const vec3 half_direction = normalize(light_direction + view_position);
 
-    const vec3 ambient = calculate_ambient(light.ambient, albedo);
+    const vec3 fresnel = fresnel_schlick(max(dot(half_direction, view_position), 0.0), f0);
 
-    const vec3 diffuse = calculate_diffuse(
+    const vec3 specular = calculate_specular_brdf(
+            fresnel,
             light_direction,
-            light.diffuse,
-            frag_pos,
-            albedo,
-            normal
-        );
-
-    const vec3 specular = calculate_specular(
-            light_direction,
+            half_direction,
+            normal,
             view_position,
-            light.specular,
-            material_specular,
-            material_shininess,
-            frag_pos,
-            normal
+            f0,
+            metallic,
+            roughness
         );
 
-    return ambient + diffuse + specular;
+    const vec3 k_s = fresnel;
+    vec3 k_d = 1.0 - k_s;
+    k_d *= 1.0 - metallic;
+
+    const float n_dot_l = max(dot(normal, light_direction), 0.0);
+
+    const vec3 Lo = (k_d * albedo / PI + specular) * radiance * n_dot_l;
+
+    return Lo;
 }
 
 vec3 calculate_point_light(
@@ -275,16 +300,21 @@ void main()
 
     const float shininess = 256.0f;
 
+    vec3 f0 = vec3(0.04);
+    f0 = mix(f0, albedo, metallic);
+
+    vec3 Lo = vec3(0.0);
     vec3 light_result = emission;
 
-    light_result += calculate_directional_light(
+    Lo += calculate_directional_light(
             directional_light,
             normal,
             view_position,
             frag_pos,
             albedo,
-            specular,
-            shininess
+            f0,
+            metallic,
+            roughness
         );
 
     for (uint i = 0; i < point_lights_count; i++)
@@ -313,5 +343,8 @@ void main()
             );
     }
 
-    frag_color = vec4(light_result, 1.0);
+    const vec3 ambient = vec3(0.03) * albedo * ao;
+    const vec3 color = ambient + Lo;
+
+    frag_color = vec4(color, 1.0);
 }

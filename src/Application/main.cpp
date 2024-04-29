@@ -84,7 +84,7 @@ auto main() -> int {
     constexpr auto directional_light = Graphics::DirectionalLight{
         .direction = glm::vec3(0.5f, -0.5f, 1.0f),
         .ambient = glm::vec3(0.05f),
-        .diffuse = glm::vec3(0.4f),
+        .diffuse = glm::vec3(5.0f),
         .specular = glm::vec3(0.5f)
     };
 
@@ -92,7 +92,7 @@ auto main() -> int {
         directional_light
     );
 
-    constexpr auto lights_count = 256u;
+    constexpr auto lights_count = 0u;
 
     auto entities = std::vector<LightEntity>{};
     entities.reserve(lights_count);
@@ -216,15 +216,9 @@ auto main() -> int {
 
         {
             constexpr auto scale = glm::vec3(0.01f, 0.01f, 0.01f);
-            constexpr auto rotation_degrees = 180.0f;
 
             auto model_matrix = glm::mat4(1.0f);
             model_matrix = glm::scale(model_matrix, scale);
-            model_matrix = glm::rotate(
-                model_matrix,
-                glm::radians(rotation_degrees),
-                glm::vec3(0.0f, 1.0f, 0.0f)
-            );
 
             luminol_engine.get_renderer().queue_draw(*model, model_matrix);
         }
