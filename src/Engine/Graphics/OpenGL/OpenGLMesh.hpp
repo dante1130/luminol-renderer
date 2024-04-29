@@ -36,7 +36,7 @@ public:
         const TextureImages& texture_images
     );
 
-    [[nodiscard]] auto get_render_command() const -> RenderCommand override;
+    auto draw() const -> void override;
 
 private:
     OpenGLVertexArrayObject vertex_array_object;

@@ -362,7 +362,7 @@ auto OpenGLRenderer::draw() -> void {
     this->hdr_shader.bind();
     this->hdr_shader.set_uniform("exposure", this->exposure);
     this->hdr_frame_buffer.bind_color_attachments();
-    this->quad.get_render_command()();
+    this->quad.draw();
     this->hdr_frame_buffer.unbind_color_attachments();
     this->hdr_shader.unbind();
 
@@ -383,7 +383,7 @@ auto OpenGLRenderer::draw() -> void {
         );
         this->color_shader.set_uniform("color", draw_call.color);
 
-        draw_call.renderable.get().get_render_command()();
+        draw_call.renderable.get().draw();
 
         this->color_shader.unbind();
     }
@@ -400,7 +400,7 @@ auto OpenGLRenderer::draw_gbuffer_geometry() -> void {
             .projection_matrix = this->projection_matrix
         });
 
-        draw_call.renderable.get().get_render_command()();
+        draw_call.renderable.get().draw();
     }
 }
 
@@ -411,7 +411,7 @@ auto OpenGLRenderer::draw_lighting() -> void {
         "view_position", get_view_position(this->view_matrix)
     );
 
-    this->quad.get_render_command()();
+    this->quad.draw();
 
     this->geometry_frame_buffer.unbind_color_attachments();
     this->phong_shader.unbind();
@@ -427,7 +427,7 @@ auto OpenGLRenderer::draw_skybox() -> void {
     glDepthFunc(GL_LEQUAL);
     this->skybox_shader.bind();
     this->skybox.bind();
-    this->cube.get_render_command()();
+    this->cube.draw();
     this->skybox.unbind();
     this->skybox_shader.unbind();
     glDepthFunc(GL_LESS);

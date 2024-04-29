@@ -79,12 +79,10 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
     }
 }
 
-auto OpenGLModel::get_render_command() const -> RenderCommand {
-    return [this]() {
-        for (const auto& mesh : this->meshes) {
-            mesh.get_render_command()();
-        }
-    };
+auto OpenGLModel::draw() const -> void {
+    for (const auto& mesh : this->meshes) {
+        mesh.draw();
+    }
 }
 
 }  // namespace Luminol::Graphics

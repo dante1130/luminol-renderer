@@ -114,63 +114,53 @@ OpenGLMesh::OpenGLMesh(
           texture_images.normal_texture, ColorSpace::Linear
       )} {}
 
-auto OpenGLMesh::get_render_command() const -> RenderCommand {
-    return [this]() {
-        if (this->diffuse_texture.has_value()) {
-            this->diffuse_texture->get().bind(
-                SamplerBindingPoint::TextureDiffuse
-            );
-        }
+auto OpenGLMesh::draw() const -> void {
+    if (this->diffuse_texture.has_value()) {
+        this->diffuse_texture->get().bind(SamplerBindingPoint::TextureDiffuse);
+    }
 
-        if (this->specular_texture.has_value()) {
-            this->specular_texture->get().bind(
-                SamplerBindingPoint::TextureSpecular
-            );
-        }
-
-        if (this->emissive_texture.has_value()) {
-            this->emissive_texture->get().bind(
-                SamplerBindingPoint::TextureEmissive
-            );
-        }
-
-        if (this->normal_texture.has_value()) {
-            this->normal_texture->get().bind(SamplerBindingPoint::TextureNormal
-            );
-        }
-
-        this->vertex_array_object.bind();
-        glDrawElements(
-            GL_TRIANGLES,
-            this->vertex_array_object.get_index_count(),
-            GL_UNSIGNED_INT,
-            nullptr
+    if (this->specular_texture.has_value()) {
+        this->specular_texture->get().bind(SamplerBindingPoint::TextureSpecular
         );
+    }
 
-        if (this->emissive_texture.has_value()) {
-            this->emissive_texture->get().unbind(
-                SamplerBindingPoint::TextureEmissive
-            );
-        }
+    if (this->emissive_texture.has_value()) {
+        this->emissive_texture->get().bind(SamplerBindingPoint::TextureEmissive
+        );
+    }
 
-        if (this->specular_texture.has_value()) {
-            this->specular_texture->get().unbind(
-                SamplerBindingPoint::TextureSpecular
-            );
-        }
+    if (this->normal_texture.has_value()) {
+        this->normal_texture->get().bind(SamplerBindingPoint::TextureNormal);
+    }
 
-        if (this->diffuse_texture.has_value()) {
-            this->diffuse_texture->get().unbind(
-                SamplerBindingPoint::TextureDiffuse
-            );
-        }
+    this->vertex_array_object.bind();
+    glDrawElements(
+        GL_TRIANGLES,
+        this->vertex_array_object.get_index_count(),
+        GL_UNSIGNED_INT,
+        nullptr
+    );
 
-        if (this->normal_texture.has_value()) {
-            this->normal_texture->get().unbind(
-                SamplerBindingPoint::TextureNormal
-            );
-        }
-    };
+    if (this->emissive_texture.has_value()) {
+        this->emissive_texture->get().unbind(
+            SamplerBindingPoint::TextureEmissive
+        );
+    }
+
+    if (this->specular_texture.has_value()) {
+        this->specular_texture->get().unbind(
+            SamplerBindingPoint::TextureSpecular
+        );
+    }
+
+    if (this->diffuse_texture.has_value()) {
+        this->diffuse_texture->get().unbind(SamplerBindingPoint::TextureDiffuse
+        );
+    }
+
+    if (this->normal_texture.has_value()) {
+        this->normal_texture->get().unbind(SamplerBindingPoint::TextureNormal);
+    }
 }
 
 }  // namespace Luminol::Graphics

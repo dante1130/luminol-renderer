@@ -15,7 +15,7 @@ public:
     auto operator=(const Renderable&) -> Renderable& = delete;
     auto operator=(Renderable&&) -> Renderable& = default;
 
-    [[nodiscard]] virtual auto get_render_command() const -> RenderCommand = 0;
+    virtual auto draw() const -> void = 0;
 };
 
 }  // namespace Luminol::Graphics
