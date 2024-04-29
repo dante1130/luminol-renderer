@@ -2,7 +2,7 @@
 
 layout(location = 0) out vec3 gbuffer_position;
 layout(location = 1) out vec3 gbuffer_normal;
-layout(location = 2) out vec4 gbuffer_emissive_shininess;
+layout(location = 2) out vec4 gbuffer_emissive;
 layout(location = 3) out vec4 gbuffer_albedo_spec;
 
 in vec2 tex_coords_out;
@@ -15,7 +15,6 @@ struct Material {
     sampler2D texture_emissive;
     sampler2D texture_specular;
     sampler2D texture_normal;
-    float shininess;
 };
 
 uniform Material material;
@@ -34,6 +33,5 @@ void main()
     gbuffer_normal = calculate_normal(material.texture_normal, tex_coords_out, tangent_space_matrix_out);
     gbuffer_albedo_spec.rgb = texture(material.texture_diffuse, tex_coords_out).rgb;
     gbuffer_albedo_spec.a = texture(material.texture_specular, tex_coords_out).r;
-    gbuffer_emissive_shininess.rgb = texture(material.texture_emissive, tex_coords_out).rgb;
-    gbuffer_emissive_shininess.a = material.shininess;
+    gbuffer_emissive.rgb = texture(material.texture_emissive, tex_coords_out).rgb;
 }

@@ -139,8 +139,7 @@ auto create_phong_shader() -> OpenGLShader {
         "gbuffer.normal", SamplerBindingPoint::GBufferNormal
     );
     phong_shader.set_sampler_binding_point(
-        "gbuffer.emissive_shininess",
-        SamplerBindingPoint::GBufferEmissiveShininess
+        "gbuffer.emissive", SamplerBindingPoint::GBufferEmissive
     );
     phong_shader.set_sampler_binding_point(
         "gbuffer.albedo_spec", SamplerBindingPoint::GBufferAlbedoSpec
@@ -249,9 +248,9 @@ auto create_geometry_frame_buffer(int32_t width, int32_t height)
                 .binding_point = SamplerBindingPoint::GBufferNormal,
             },
             OpenGLFrameBufferAttachment{
-                .internal_format = TextureInternalFormat::RGBA16F,
-                .format = TextureFormat::RGBA,
-                .binding_point = SamplerBindingPoint::GBufferEmissiveShininess,
+                .internal_format = TextureInternalFormat::RGB16F,
+                .format = TextureFormat::RGB,
+                .binding_point = SamplerBindingPoint::GBufferEmissive,
             },
             OpenGLFrameBufferAttachment{
                 .internal_format = TextureInternalFormat::RGBA8,
@@ -395,17 +394,11 @@ auto OpenGLRenderer::draw() -> void {
 
 auto OpenGLRenderer::draw_gbuffer_geometry() -> void {
     for (const auto& draw_call : this->draw_queue) {
-        const auto& renderable = draw_call.renderable.get();
-
         this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
             .model_matrix = draw_call.model_matrix,
             .view_matrix = this->view_matrix,
             .projection_matrix = this->projection_matrix
         });
-
-        this->gbuffer_shader.set_uniform(
-            "material.shininess", renderable.get_material().shininess
-        );
 
         draw_call.renderable.get().get_render_command()();
     }

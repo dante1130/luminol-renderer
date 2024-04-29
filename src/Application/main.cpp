@@ -78,12 +78,8 @@ auto main() -> int {
     luminol_engine.get_renderer().set_exposure(exposure);
 
     auto model = luminol_engine.get_graphics_factory().create_model(
-        "res/models/mech_drone/scene.gltf"
+        "res/models/survival_guitar_backpack/scene.gltf"
     );
-
-    constexpr auto shininess = 256.0f;
-
-    model->set_material(Material{.shininess = shininess});
 
     constexpr auto directional_light = Graphics::DirectionalLight{
         .direction = glm::vec3(0.5f, -0.5f, 1.0f),
@@ -219,7 +215,7 @@ auto main() -> int {
         }
 
         {
-            constexpr auto scale = glm::vec3(5.0f, 5.0f, 5.0f);
+            constexpr auto scale = glm::vec3(0.01f, 0.01f, 0.01f);
             constexpr auto rotation_degrees = 180.0f;
 
             auto model_matrix = glm::mat4(1.0f);
