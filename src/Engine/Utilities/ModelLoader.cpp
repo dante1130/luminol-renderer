@@ -155,6 +155,23 @@ auto load_mesh(
         ),
         .normal_texture_paths = load_textures(
             mesh, materials, aiTextureType_NORMALS, directory, textures_map
+        ),
+        .metallic_texture_paths = load_textures(
+            mesh, materials, aiTextureType_METALNESS, directory, textures_map
+        ),
+        .roughness_texture_paths = load_textures(
+            mesh,
+            materials,
+            aiTextureType_DIFFUSE_ROUGHNESS,
+            directory,
+            textures_map
+        ),
+        .ambient_occlusion_texture_paths = load_textures(
+            mesh,
+            materials,
+            aiTextureType_AMBIENT_OCCLUSION,
+            directory,
+            textures_map
         )
     };
 }

@@ -21,6 +21,10 @@ struct MeshData {
     std::vector<std::filesystem::path> specular_texture_paths;
     std::vector<std::filesystem::path> emissive_texture_paths;
     std::vector<std::filesystem::path> normal_texture_paths;
+
+    std::vector<std::filesystem::path> metallic_texture_paths;
+    std::vector<std::filesystem::path> roughness_texture_paths;
+    std::vector<std::filesystem::path> ambient_occlusion_texture_paths;
 };
 
 struct ModelData {
