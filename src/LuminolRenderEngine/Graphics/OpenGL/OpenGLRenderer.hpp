@@ -58,7 +58,7 @@ private:
     std::vector<ColorDrawCall> color_draw_queue;
 
     OpenGLShader color_shader;
-    OpenGLShader phong_shader;
+    OpenGLShader pbr_shader;
     OpenGLShader skybox_shader;
     OpenGLShader hdr_shader;
     OpenGLShader gbuffer_shader;

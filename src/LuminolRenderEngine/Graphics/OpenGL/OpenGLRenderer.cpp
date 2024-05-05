@@ -72,8 +72,7 @@ auto create_quad_mesh() -> OpenGLMesh {
             .tex_coords = glm::vec2{1.0f, 1.0f},
             .normal = glm::vec3{0.0f, 0.0f, 1.0f},
             .tangent = glm::vec3{1.0f, 0.0f, 0.0f},
-        }
-    };
+        }};
 
     // Draw in counter-clockwise order
     constexpr auto indices = std::array{0u, 3u, 2u, 2u, 1u, 0u};
@@ -123,34 +122,34 @@ auto create_color_shader() -> OpenGLShader {
     return color_shader;
 }
 
-auto create_phong_shader() -> OpenGLShader {
-    auto phong_shader = OpenGLShader{ShaderPaths{
+auto create_pbr_shader() -> OpenGLShader {
+    auto pbr_shader = OpenGLShader{ShaderPaths{
         .vertex_shader_path =
-            std::filesystem::path{"res/shaders/phong_vert.glsl"},
+            std::filesystem::path{"res/shaders/pbr_vert.glsl"},
         .fragment_shader_path =
-            std::filesystem::path{"res/shaders/phong_frag.glsl"},
+            std::filesystem::path{"res/shaders/pbr_frag.glsl"},
     }};
 
-    phong_shader.bind();
-    phong_shader.set_sampler_binding_point(
+    pbr_shader.bind();
+    pbr_shader.set_sampler_binding_point(
         "gbuffer.position_metallic",
         SamplerBindingPoint::GBufferPositionMetallic
     );
-    phong_shader.set_sampler_binding_point(
+    pbr_shader.set_sampler_binding_point(
         "gbuffer.normal_roughness", SamplerBindingPoint::GBufferNormalRoughness
     );
-    phong_shader.set_sampler_binding_point(
+    pbr_shader.set_sampler_binding_point(
         "gbuffer.emissive_ao", SamplerBindingPoint::GBufferEmissiveAO
     );
-    phong_shader.set_sampler_binding_point(
+    pbr_shader.set_sampler_binding_point(
         "gbuffer.albedo", SamplerBindingPoint::GBufferAlbedo
     );
-    phong_shader.set_uniform_block_binding_point(
+    pbr_shader.set_uniform_block_binding_point(
         "Light", UniformBufferBindingPoint::Light
     );
-    phong_shader.unbind();
+    pbr_shader.unbind();
 
-    return phong_shader;
+    return pbr_shader;
 }
 
 auto create_skybox_shader() -> OpenGLShader {
@@ -283,7 +282,7 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       get_window_width{[&window]() { return window.get_width(); }},
       get_window_height{[&window]() { return window.get_height(); }},
       color_shader{create_color_shader()},
-      phong_shader{create_phong_shader()},
+      pbr_shader{create_pbr_shader()},
       skybox_shader{create_skybox_shader()},
       hdr_shader{create_hdr_shader()},
       gbuffer_shader{create_gbuffer_shader()},
@@ -414,16 +413,16 @@ auto OpenGLRenderer::draw_gbuffer_geometry() -> void {
 }
 
 auto OpenGLRenderer::draw_lighting() -> void {
-    this->phong_shader.bind();
+    this->pbr_shader.bind();
     this->geometry_frame_buffer.bind_color_attachments();
-    this->phong_shader.set_uniform(
+    this->pbr_shader.set_uniform(
         "view_position", get_view_position(this->view_matrix)
     );
 
     this->quad.draw();
 
     this->geometry_frame_buffer.unbind_color_attachments();
-    this->phong_shader.unbind();
+    this->pbr_shader.unbind();
 }
 
 auto OpenGLRenderer::draw_skybox() -> void {
