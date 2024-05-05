@@ -16,8 +16,8 @@ auto create_texture(
 
     glTextureParameteri(texture_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTextureParameteri(texture_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTextureParameteri(texture_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(texture_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(texture_id, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTextureParameteri(texture_id, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     const auto internal_format =
         color_space == ColorSpace::SRGB
