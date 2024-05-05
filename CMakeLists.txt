@@ -2,9 +2,6 @@ cmake_minimum_required(VERSION 3.25.1)
 
 project(glfw-opengl-cmake-starter)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -13,28 +10,6 @@ set(LUMINOL_RENDER_ENGINE_RES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/res)
 set(LUMINOL_RENDER_ENGINE_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_subdirectory(${LUMINOL_RENDER_ENGINE_LIB_DIR})
-
-if(MSVC)
-    set(CMAKE_WARNING_FLAGS
-
-        # Enable all warnings.
-        /W4
-
-        # Treat warnings as errors.
-        /WX
-
-        # Disable warnings about name shadowing.
-        # this-> naming convention is used for members
-        # without any prefix so this warning generates
-        # a lot of noise.
-        /wd4458
-    )
-else()
-    set(CMAKE_WARNING_FLAGS -Wall -Wextra -Wpedantic -Werror)
-endif()
-
-add_compile_options(${CMAKE_WARNING_FLAGS})
-
 add_subdirectory(${LUMINOL_RENDER_ENGINE_SRC_DIR})
 
 add_custom_target(
