@@ -60,7 +60,7 @@ auto main() -> int {
     luminol_engine.get_renderer().set_exposure(exposure);
 
     auto model = luminol_engine.get_graphics_factory().create_model(
-        "res/models/geisha/scene.gltf"
+        "res/models/cut_fish/scene.gltf"
     );
 
     constexpr auto directional_light = Graphics::DirectionalLight{
