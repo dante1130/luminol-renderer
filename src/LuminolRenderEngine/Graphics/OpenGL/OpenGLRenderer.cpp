@@ -72,7 +72,8 @@ auto create_quad_mesh() -> OpenGLMesh {
             .tex_coords = glm::vec2{1.0f, 1.0f},
             .normal = glm::vec3{0.0f, 0.0f, 1.0f},
             .tangent = glm::vec3{1.0f, 0.0f, 0.0f},
-        }};
+        }
+    };
 
     // Draw in counter-clockwise order
     constexpr auto indices = std::array{0u, 3u, 2u, 2u, 1u, 0u};
@@ -189,41 +190,6 @@ auto create_hdr_shader() -> OpenGLShader {
     return hdr_shader;
 }
 
-auto create_gbuffer_shader() -> OpenGLShader {
-    auto gbuffer_shader = OpenGLShader{ShaderPaths{
-        .vertex_shader_path =
-            std::filesystem::path{"res/shaders/gbuffer_vert.glsl"},
-        .fragment_shader_path =
-            std::filesystem::path{"res/shaders/gbuffer_frag.glsl"},
-    }};
-
-    gbuffer_shader.bind();
-    gbuffer_shader.set_uniform_block_binding_point(
-        "Transform", UniformBufferBindingPoint::Transform
-    );
-    gbuffer_shader.set_sampler_binding_point(
-        "material.texture_diffuse", SamplerBindingPoint::TextureDiffuse
-    );
-    gbuffer_shader.set_sampler_binding_point(
-        "material.texture_emissive", SamplerBindingPoint::TextureEmissive
-    );
-    gbuffer_shader.set_sampler_binding_point(
-        "material.texture_normal", SamplerBindingPoint::TextureNormal
-    );
-    gbuffer_shader.set_sampler_binding_point(
-        "material.texture_metallic", SamplerBindingPoint::TextureMetallic
-    );
-    gbuffer_shader.set_sampler_binding_point(
-        "material.texture_roughness", SamplerBindingPoint::TextureRoughness
-    );
-    gbuffer_shader.set_sampler_binding_point(
-        "material.texture_ao", SamplerBindingPoint::TextureAO
-    );
-    gbuffer_shader.unbind();
-
-    return gbuffer_shader;
-}
-
 auto create_hdr_frame_buffer(int32_t width, int32_t height)
     -> OpenGLFrameBuffer {
     return OpenGLFrameBuffer{OpenGLFrameBufferDescriptor{
@@ -234,36 +200,6 @@ auto create_hdr_frame_buffer(int32_t width, int32_t height)
             .format = TextureFormat::RGBA,
             .binding_point = SamplerBindingPoint::HDRFramebuffer,
         }},
-    }};
-}
-
-auto create_geometry_frame_buffer(int32_t width, int32_t height)
-    -> OpenGLFrameBuffer {
-    return OpenGLFrameBuffer{OpenGLFrameBufferDescriptor{
-        width,
-        height,
-        {
-            OpenGLFrameBufferAttachment{
-                .internal_format = TextureInternalFormat::RGBA16F,
-                .format = TextureFormat::RGBA,
-                .binding_point = SamplerBindingPoint::GBufferPositionMetallic,
-            },
-            OpenGLFrameBufferAttachment{
-                .internal_format = TextureInternalFormat::RGBA16F,
-                .format = TextureFormat::RGBA,
-                .binding_point = SamplerBindingPoint::GBufferNormalRoughness,
-            },
-            OpenGLFrameBufferAttachment{
-                .internal_format = TextureInternalFormat::RGBA16F,
-                .format = TextureFormat::RGBA,
-                .binding_point = SamplerBindingPoint::GBufferEmissiveAO,
-            },
-            OpenGLFrameBufferAttachment{
-                .internal_format = TextureInternalFormat::RGB8,
-                .format = TextureFormat::RGB,
-                .binding_point = SamplerBindingPoint::GBufferAlbedo,
-            },
-        },
     }};
 }
 
@@ -281,15 +217,14 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       )},
       get_window_width{[&window]() { return window.get_width(); }},
       get_window_height{[&window]() { return window.get_height(); }},
+      gbuffer_render_pass{OpenGLGBufferRenderPass{
+          this->get_window_width(), this->get_window_height()
+      }},
       color_shader{create_color_shader()},
       pbr_shader{create_pbr_shader()},
       skybox_shader{create_skybox_shader()},
       hdr_shader{create_hdr_shader()},
-      gbuffer_shader{create_gbuffer_shader()},
       hdr_frame_buffer{create_hdr_frame_buffer(
-          this->get_window_width(), this->get_window_height()
-      )},
-      geometry_frame_buffer{create_geometry_frame_buffer(
           this->get_window_width(), this->get_window_height()
       )},
       transform_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Transform>{
@@ -312,6 +247,19 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       quad{create_quad_mesh()},
       view_matrix{glm::mat4{1.0f}},
       projection_matrix{glm::mat4{1.0f}} {}
+
+auto OpenGLRenderer::get_transform_uniform_buffer()
+    -> OpenGLUniformBuffer<OpenGLUniforms::Transform>& {
+    return this->transform_uniform_buffer;
+}
+
+auto OpenGLRenderer::get_view_matrix() const -> const glm::mat4& {
+    return this->view_matrix;
+}
+
+auto OpenGLRenderer::get_projection_matrix() const -> const glm::mat4& {
+    return this->projection_matrix;
+}
 
 auto OpenGLRenderer::set_view_matrix(const glm::mat4& view_matrix) -> void {
     this->view_matrix = view_matrix;
@@ -351,17 +299,12 @@ auto OpenGLRenderer::queue_draw_with_color(
 auto OpenGLRenderer::draw() -> void {
     this->update_lights();
 
-    this->gbuffer_shader.bind();
-    this->geometry_frame_buffer.bind();
-    this->clear(BufferBit::ColorDepth);
-    this->draw_gbuffer_geometry();
-    this->geometry_frame_buffer.unbind();
-    this->gbuffer_shader.unbind();
+    this->gbuffer_render_pass.draw(*this, this->draw_queue);
 
     this->hdr_frame_buffer.bind();
     this->clear(BufferBit::ColorDepth);
     this->draw_lighting();
-    this->geometry_frame_buffer.blit_to_framebuffer(
+    this->gbuffer_render_pass.get_gbuffer_frame_buffer().blit_to_framebuffer(
         this->hdr_frame_buffer, BufferBit::Depth
     );
     this->draw_skybox();
@@ -374,9 +317,12 @@ auto OpenGLRenderer::draw() -> void {
     this->hdr_frame_buffer.unbind_color_attachments();
     this->hdr_shader.unbind();
 
-    this->geometry_frame_buffer.blit_to_default_framebuffer(
-        this->get_window_width(), this->get_window_height(), BufferBit::Depth
-    );
+    this->gbuffer_render_pass.get_gbuffer_frame_buffer()
+        .blit_to_default_framebuffer(
+            this->get_window_width(),
+            this->get_window_height(),
+            BufferBit::Depth
+        );
 
     for (const auto& draw_call : this->color_draw_queue) {
         this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
@@ -414,14 +360,16 @@ auto OpenGLRenderer::draw_gbuffer_geometry() -> void {
 
 auto OpenGLRenderer::draw_lighting() -> void {
     this->pbr_shader.bind();
-    this->geometry_frame_buffer.bind_color_attachments();
+    this->gbuffer_render_pass.get_gbuffer_frame_buffer().bind_color_attachments(
+    );
     this->pbr_shader.set_uniform(
         "view_position", get_view_position(this->view_matrix)
     );
 
     this->quad.draw();
 
-    this->geometry_frame_buffer.unbind_color_attachments();
+    this->gbuffer_render_pass.get_gbuffer_frame_buffer()
+        .unbind_color_attachments();
     this->pbr_shader.unbind();
 }
 
@@ -480,7 +428,9 @@ auto OpenGLRenderer::get_framebuffer_resize_callback()
     return [this](int width, int height) {
         glViewport(0, 0, width, height);
         this->hdr_frame_buffer.resize(width, height);
-        this->geometry_frame_buffer.resize(width, height);
+        this->gbuffer_render_pass.get_gbuffer_frame_buffer().resize(
+            width, height
+        );
     };
 }
 

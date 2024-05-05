@@ -7,12 +7,19 @@
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLFrameBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLSkybox.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLModel.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLGBufferRenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLDrawCall.hpp>
 
 namespace Luminol::Graphics {
 
 class OpenGLRenderer : public Renderer {
 public:
     OpenGLRenderer(Window& window);
+
+    [[nodiscard]] auto get_transform_uniform_buffer()
+        -> OpenGLUniformBuffer<OpenGLUniforms::Transform>&;
+    [[nodiscard]] auto get_view_matrix() const -> const glm::mat4&;
+    [[nodiscard]] auto get_projection_matrix() const -> const glm::mat4&;
 
     auto set_view_matrix(const glm::mat4& view_matrix) -> void override;
     auto set_projection_matrix(const glm::mat4& projection_matrix)
@@ -32,17 +39,6 @@ public:
     auto draw() -> void override;
 
 private:
-    struct DrawCall {
-        std::reference_wrapper<const Renderable> renderable;
-        glm::mat4 model_matrix{};
-    };
-
-    struct ColorDrawCall {
-        std::reference_wrapper<const Renderable> renderable;
-        glm::mat4 model_matrix;
-        glm::vec3 color;
-    };
-
     auto draw_gbuffer_geometry() -> void;
     auto draw_lighting() -> void;
     auto draw_skybox() -> void;
@@ -57,14 +53,14 @@ private:
     std::vector<DrawCall> draw_queue;
     std::vector<ColorDrawCall> color_draw_queue;
 
+    OpenGLGBufferRenderPass gbuffer_render_pass;
+
     OpenGLShader color_shader;
     OpenGLShader pbr_shader;
     OpenGLShader skybox_shader;
     OpenGLShader hdr_shader;
-    OpenGLShader gbuffer_shader;
 
     OpenGLFrameBuffer hdr_frame_buffer;
-    OpenGLFrameBuffer geometry_frame_buffer;
 
     OpenGLUniformBuffer<OpenGLUniforms::Transform> transform_uniform_buffer;
     OpenGLUniformBuffer<OpenGLUniforms::Light> light_uniform_buffer;
