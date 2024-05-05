@@ -1,20 +1,20 @@
-# glfw-opengl-cmake-starter
+# luminol-renderer
 
-OpenGL starter project with GLFW using CMake.
+A simple renderer in OpenGL. This project is still a WIP.
 
-Note: This project currently uses `glad` to generate OpenGL 4.1 Core. Edit `lib/CMakeLists.txt` if you want to change this.
+![backpack-img](https://i.imgur.com/45Uv648.png)
+![fish-img](https://i.imgur.com/000SIRB.png)
+![katana-img](https://i.imgur.com/LliKnfI.png)
+![geisha-img](https://i.imgur.com/JiF8oLw.png)
 
 ## Index
 
 * [Prerequisites](#prerequisites)
 * [Cloning the repository](#cloning)
-* [Generating the project](#generate-project)
-  * [Ninja](#ninja)
-* [Building](#building)
 
 ## Prerequisites
 
-To use project template, you need to install the following:
+You need to install the following:
 
 - [Git](https://git-scm.com/downloads)
 - [CMake](https://cmake.org/download/) (minimum version of 3.25.1)
@@ -31,36 +31,5 @@ pip install jinja2
 In a terminal with Git installed, clone the repository by typing in the following command in a directory where you want your project:
 
 ```bash
-$ git clone --recurse-submodules https://github.com/dante1130/glfw-opengl-cmake-starter
+$ git clone --recurse-submodules https://github.com/dante1130/luminol-renderer
 ```
-
-## Generating the project
-
-CMake generates the project files for a subset of buildsystem that you may want to use.
-
-I recommend using Ninja so I'll use that as an example.
-
-See here for a list of all CMake generators: https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html
-
-Alternatively, most modern IDEs like Visual Studio and CLion have CMake support, so you may use your IDE to generate instead.
-
-### Ninja
-
-To generate for the Ninja buildsystem, run the following command:
-
-```bash
-$ cmake -S . -B build -G "Ninja"
-```
-
-In the `build` directory, you will see that the files for the Ninja buildsystem has been generated.
-
-## Building
-
-```bash
-$ cmake --build build
-```
-
-The compiled executable will now be in `build/bin`.
-
-Alternatively, most modern IDEs like Visual Studio and CLion have CMake support, so you may use your IDE to build instead.
-
