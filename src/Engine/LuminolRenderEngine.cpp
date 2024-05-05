@@ -1,4 +1,4 @@
-#include "LuminolEngine.hpp"
+#include "LuminolRenderEngine.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -14,7 +14,7 @@ constexpr auto camera_rotation_speed = 0.1f;
 
 namespace Luminol {
 
-Engine::Engine(const Properties& properties)
+RenderEngine::RenderEngine(const Properties& properties)
     : window(properties.width, properties.height, properties.title),
       camera(Graphics::CameraProperties{
           .position = camera_initial_position,
@@ -25,24 +25,27 @@ Engine::Engine(const Properties& properties)
       )),
       renderer(this->graphics_factory->create_renderer(this->window)) {}
 
-auto Engine::get_window() const -> const Window& { return this->window; }
+auto RenderEngine::get_window() const -> const Window& { return this->window; }
 
-auto Engine::get_window() -> Window& { return this->window; }
+auto RenderEngine::get_window() -> Window& { return this->window; }
 
-auto Engine::get_camera() const -> const Graphics::Camera& {
+auto RenderEngine::get_camera() const -> const Graphics::Camera& {
     return this->camera;
 }
 
-auto Engine::get_camera() -> Graphics::Camera& { return this->camera; }
+auto RenderEngine::get_camera() -> Graphics::Camera& { return this->camera; }
 
-auto Engine::get_graphics_factory() const -> const Graphics::GraphicsFactory& {
+auto RenderEngine::get_graphics_factory() const
+    -> const Graphics::GraphicsFactory& {
     return *this->graphics_factory;
 }
 
-auto Engine::get_renderer() const -> const Graphics::Renderer& {
+auto RenderEngine::get_renderer() const -> const Graphics::Renderer& {
     return *this->renderer;
 }
 
-auto Engine::get_renderer() -> Graphics::Renderer& { return *this->renderer; }
+auto RenderEngine::get_renderer() -> Graphics::Renderer& {
+    return *this->renderer;
+}
 
 }  // namespace Luminol

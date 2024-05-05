@@ -21,9 +21,9 @@ struct Properties {
     Graphics::GraphicsApi graphics_api = {Graphics::GraphicsApi::OpenGL};
 };
 
-class Engine {
+class RenderEngine {
 public:
-    Engine(const Properties& properties);
+    RenderEngine(const Properties& properties);
 
     [[nodiscard]] auto get_window() const -> const Window&;
     [[nodiscard]] auto get_window() -> Window&;

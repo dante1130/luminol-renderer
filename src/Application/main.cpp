@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
-#include <Engine/LuminolEngine.hpp>
+#include <Engine/LuminolRenderEngine.hpp>
 #include <Engine/Utilities/Timer.hpp>
 
 namespace {
@@ -18,7 +18,7 @@ struct LightEntity {
     std::unique_ptr<Model> model;
 };
 
-auto handle_key_events(Engine& engine, float delta_time_seconds) -> void {
+auto handle_key_events(RenderEngine& engine, float delta_time_seconds) -> void {
     if (engine.get_window().is_key_event('W', KeyEvent::Press)) {
         engine.get_camera().move(
             Graphics::CameraMovement::Forward, delta_time_seconds
@@ -53,7 +53,7 @@ auto handle_key_events(Engine& engine, float delta_time_seconds) -> void {
 auto main() -> int {
     using namespace Luminol;
 
-    auto luminol_engine = Luminol::Engine(Luminol::Properties{});
+    auto luminol_engine = Luminol::RenderEngine(Luminol::Properties{});
     auto timer = Utilities::Timer{};
 
     constexpr auto exposure = 2.0f;

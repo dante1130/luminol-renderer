@@ -5,7 +5,7 @@ target_sources(Application PRIVATE
 )
 
 target_link_libraries(Application PRIVATE
-    LuminolEngine
+    LuminolRenderEngine
 )
 
 target_include_directories(Application PRIVATE

@@ -2,17 +2,17 @@ add_subdirectory(Window)
 add_subdirectory(Graphics)
 add_subdirectory(Utilities)
 
-add_library(LuminolEngine
-    LuminolEngine.cpp
+add_library(LuminolRenderEngine
+    LuminolRenderEngine.cpp
 )
 
-target_link_libraries(LuminolEngine PUBLIC
+target_link_libraries(LuminolRenderEngine PUBLIC
     glm
     Luminol.Window
     Luminol.Graphics
     Luminol.Utilities
 )
 
-target_include_directories(LuminolEngine PRIVATE
+target_include_directories(LuminolRenderEngine PRIVATE
     ${SRC_DIR}
 )
