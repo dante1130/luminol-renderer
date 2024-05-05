@@ -4,7 +4,7 @@ add_library(Luminol.Utilities
     Timer.cpp
 )
 
-target_link_libraries(Luminol.Utilities PRIVATE 
+target_link_libraries(Luminol.Utilities PRIVATE
     stb
     glm
     GSL
@@ -12,6 +12,5 @@ target_link_libraries(Luminol.Utilities PRIVATE
 )
 
 target_include_directories(Luminol.Utilities PUBLIC
-    ${SRC_DIR}
+    ${LUMINOL_RENDER_ENGINE_SRC_DIR}
 )
-

@@ -20,5 +20,5 @@ target_link_libraries(LuminolRenderEngine PUBLIC
 )
 
 target_include_directories(LuminolRenderEngine PUBLIC
-    ${SRC_DIR}
+    ${LUMINOL_RENDER_ENGINE_SRC_DIR}
 )

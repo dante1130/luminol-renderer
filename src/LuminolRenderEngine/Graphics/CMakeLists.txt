@@ -28,5 +28,5 @@ target_link_libraries(Luminol.Graphics PUBLIC
 )
 
 target_include_directories(Luminol.Graphics PUBLIC
-    ${SRC_DIR}
+    ${LUMINOL_RENDER_ENGINE_SRC_DIR}
 )
