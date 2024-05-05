@@ -133,7 +133,8 @@ auto create_phong_shader() -> OpenGLShader {
 
     phong_shader.bind();
     phong_shader.set_sampler_binding_point(
-        "gbuffer.position_metallic", SamplerBindingPoint::GBufferPositionMetallic
+        "gbuffer.position_metallic",
+        SamplerBindingPoint::GBufferPositionMetallic
     );
     phong_shader.set_sampler_binding_point(
         "gbuffer.normal_roughness", SamplerBindingPoint::GBufferNormalRoughness
