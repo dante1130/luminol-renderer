@@ -1,16 +1,25 @@
 # luminol-renderer
 
-A simple renderer in OpenGL. This project is still a WIP.
+A simple renderer using OpenGL. This project is still a WIP.
 
-![backpack-img](https://i.imgur.com/45Uv648.png)
-![fish-img](https://i.imgur.com/000SIRB.png)
-![katana-img](https://i.imgur.com/LliKnfI.png)
-![geisha-img](https://i.imgur.com/JiF8oLw.png)
+Features:
+
+- Physically based rendering
+- Deferred shading
+- Light casters
+  - Directional light
+  - 256 point lights
+  - 256 spot lights
+- Model loading
+- Skybox
+- HDR
+- First person camera
 
 ## Index
 
 * [Prerequisites](#prerequisites)
 * [Cloning the repository](#cloning)
+* [Rendering samples](#rendering-samples)
 
 ## Prerequisites
 
@@ -33,3 +42,11 @@ In a terminal with Git installed, clone the repository by typing in the followin
 ```bash
 $ git clone --recurse-submodules https://github.com/dante1130/luminol-renderer
 ```
+
+## Rendering samples
+
+![backpack-img](https://i.imgur.com/45Uv648.png)
+![fish-img](https://i.imgur.com/000SIRB.png)
+![katana-img](https://i.imgur.com/LliKnfI.png)
+![geisha-img](https://i.imgur.com/JiF8oLw.png)
+
