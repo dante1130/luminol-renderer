@@ -80,7 +80,6 @@ auto create_skybox_shader() -> OpenGLShader {
     return skybox_shader;
 }
 
-
 auto get_view_position(const glm::mat4& view_matrix) -> glm::vec3 {
     return glm::inverse(view_matrix)[3];
 }
@@ -136,9 +135,7 @@ auto OpenGLRenderer::get_projection_matrix() const -> const glm::mat4& {
     return this->projection_matrix;
 }
 
-auto OpenGLRenderer::get_exposure() const -> float {
-    return this->exposure;
-}
+auto OpenGLRenderer::get_exposure() const -> float { return this->exposure; }
 
 auto OpenGLRenderer::set_view_matrix(const glm::mat4& view_matrix) -> void {
     this->view_matrix = view_matrix;
@@ -179,7 +176,9 @@ auto OpenGLRenderer::draw() -> void {
     this->update_lights();
 
     this->gbuffer_render_pass.draw(*this, this->draw_queue);
-    this->lighting_render_pass.draw(*this, this->gbuffer_render_pass.get_gbuffer_frame_buffer());
+    this->lighting_render_pass.draw(
+        *this, this->gbuffer_render_pass.get_gbuffer_frame_buffer()
+    );
 
     this->gbuffer_render_pass.get_gbuffer_frame_buffer()
         .blit_to_default_framebuffer(
