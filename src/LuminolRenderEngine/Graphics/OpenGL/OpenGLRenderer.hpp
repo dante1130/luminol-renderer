@@ -8,6 +8,7 @@
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLSkybox.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLModel.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLGBufferRenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLLightingRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLDrawCall.hpp>
 
 namespace Luminol::Graphics {
@@ -20,6 +21,7 @@ public:
         -> OpenGLUniformBuffer<OpenGLUniforms::Transform>&;
     [[nodiscard]] auto get_view_matrix() const -> const glm::mat4&;
     [[nodiscard]] auto get_projection_matrix() const -> const glm::mat4&;
+    [[nodiscard]] auto get_exposure() const -> float;
 
     auto set_view_matrix(const glm::mat4& view_matrix) -> void override;
     auto set_projection_matrix(const glm::mat4& projection_matrix)
@@ -39,8 +41,6 @@ public:
     auto draw() -> void override;
 
 private:
-    auto draw_gbuffer_geometry() -> void;
-    auto draw_lighting() -> void;
     auto draw_skybox() -> void;
     auto update_lights() -> void;
     auto get_framebuffer_resize_callback() -> Window::FramebufferSizeCallback;
@@ -54,20 +54,16 @@ private:
     std::vector<ColorDrawCall> color_draw_queue;
 
     OpenGLGBufferRenderPass gbuffer_render_pass;
+    OpenGLLightingRenderPass lighting_render_pass;
 
     OpenGLShader color_shader;
-    OpenGLShader pbr_shader;
     OpenGLShader skybox_shader;
-    OpenGLShader hdr_shader;
-
-    OpenGLFrameBuffer hdr_frame_buffer;
 
     OpenGLUniformBuffer<OpenGLUniforms::Transform> transform_uniform_buffer;
     OpenGLUniformBuffer<OpenGLUniforms::Light> light_uniform_buffer;
 
     OpenGLSkybox skybox;
     OpenGLModel cube;
-    OpenGLMesh quad;
 
     float exposure = 1.0f;
 

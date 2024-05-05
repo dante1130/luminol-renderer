@@ -40,69 +40,6 @@ auto initialize_opengl(
     return version;
 }
 
-auto create_quad_mesh() -> OpenGLMesh {
-    struct Vertex {
-        glm::vec3 position;
-        glm::vec2 tex_coords;
-        glm::vec3 normal;
-        glm::vec3 tangent;
-    };
-
-    constexpr auto vertices = std::array{
-        Vertex{
-            .position = glm::vec3{-1.0f, 1.0f, 0.0f},
-            .tex_coords = glm::vec2{0.0f, 1.0f},
-            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
-            .tangent = glm::vec3{1.0f, 0.0f, 0.0f},
-        },
-        Vertex{
-            .position = glm::vec3{-1.0f, -1.0f, 0.0f},
-            .tex_coords = glm::vec2{0.0f, 0.0f},
-            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
-            .tangent = glm::vec3{1.0f, 0.0f, 0.0f},
-        },
-        Vertex{
-            .position = glm::vec3{1.0f, -1.0f, 0.0f},
-            .tex_coords = glm::vec2{1.0f, 0.0f},
-            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
-            .tangent = glm::vec3{1.0f, 0.0f, 0.0f},
-        },
-        Vertex{
-            .position = glm::vec3{1.0f, 1.0f, 0.0f},
-            .tex_coords = glm::vec2{1.0f, 1.0f},
-            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
-            .tangent = glm::vec3{1.0f, 0.0f, 0.0f},
-        }
-    };
-
-    // Draw in counter-clockwise order
-    constexpr auto indices = std::array{0u, 3u, 2u, 2u, 1u, 0u};
-
-    constexpr auto component_count = 11u;
-
-    auto vertices_float = std::vector<float>{};
-    vertices_float.reserve(vertices.size() * component_count);
-
-    for (const auto& vertex : vertices) {
-        vertices_float.push_back(vertex.position.x);
-        vertices_float.push_back(vertex.position.y);
-        vertices_float.push_back(vertex.position.z);
-
-        vertices_float.push_back(vertex.tex_coords.x);
-        vertices_float.push_back(vertex.tex_coords.y);
-
-        vertices_float.push_back(vertex.normal.x);
-        vertices_float.push_back(vertex.normal.y);
-        vertices_float.push_back(vertex.normal.z);
-
-        vertices_float.push_back(vertex.tangent.x);
-        vertices_float.push_back(vertex.tangent.y);
-        vertices_float.push_back(vertex.tangent.z);
-    }
-
-    return OpenGLMesh{vertices_float, indices};
-}
-
 auto create_color_shader() -> OpenGLShader {
     auto color_shader = OpenGLShader{ShaderPaths{
         .vertex_shader_path =
@@ -121,36 +58,6 @@ auto create_color_shader() -> OpenGLShader {
     color_shader.unbind();
 
     return color_shader;
-}
-
-auto create_pbr_shader() -> OpenGLShader {
-    auto pbr_shader = OpenGLShader{ShaderPaths{
-        .vertex_shader_path =
-            std::filesystem::path{"res/shaders/pbr_vert.glsl"},
-        .fragment_shader_path =
-            std::filesystem::path{"res/shaders/pbr_frag.glsl"},
-    }};
-
-    pbr_shader.bind();
-    pbr_shader.set_sampler_binding_point(
-        "gbuffer.position_metallic",
-        SamplerBindingPoint::GBufferPositionMetallic
-    );
-    pbr_shader.set_sampler_binding_point(
-        "gbuffer.normal_roughness", SamplerBindingPoint::GBufferNormalRoughness
-    );
-    pbr_shader.set_sampler_binding_point(
-        "gbuffer.emissive_ao", SamplerBindingPoint::GBufferEmissiveAO
-    );
-    pbr_shader.set_sampler_binding_point(
-        "gbuffer.albedo", SamplerBindingPoint::GBufferAlbedo
-    );
-    pbr_shader.set_uniform_block_binding_point(
-        "Light", UniformBufferBindingPoint::Light
-    );
-    pbr_shader.unbind();
-
-    return pbr_shader;
 }
 
 auto create_skybox_shader() -> OpenGLShader {
@@ -173,35 +80,6 @@ auto create_skybox_shader() -> OpenGLShader {
     return skybox_shader;
 }
 
-auto create_hdr_shader() -> OpenGLShader {
-    auto hdr_shader = OpenGLShader{ShaderPaths{
-        .vertex_shader_path =
-            std::filesystem::path{"res/shaders/hdr_vert.glsl"},
-        .fragment_shader_path =
-            std::filesystem::path{"res/shaders/hdr_frag.glsl"},
-    }};
-
-    hdr_shader.bind();
-    hdr_shader.set_sampler_binding_point(
-        "hdr_framebuffer", SamplerBindingPoint::HDRFramebuffer
-    );
-    hdr_shader.unbind();
-
-    return hdr_shader;
-}
-
-auto create_hdr_frame_buffer(int32_t width, int32_t height)
-    -> OpenGLFrameBuffer {
-    return OpenGLFrameBuffer{OpenGLFrameBufferDescriptor{
-        width,
-        height,
-        {OpenGLFrameBufferAttachment{
-            .internal_format = TextureInternalFormat::RGBA16F,
-            .format = TextureFormat::RGBA,
-            .binding_point = SamplerBindingPoint::HDRFramebuffer,
-        }},
-    }};
-}
 
 auto get_view_position(const glm::mat4& view_matrix) -> glm::vec3 {
     return glm::inverse(view_matrix)[3];
@@ -220,13 +98,11 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       gbuffer_render_pass{OpenGLGBufferRenderPass{
           this->get_window_width(), this->get_window_height()
       }},
-      color_shader{create_color_shader()},
-      pbr_shader{create_pbr_shader()},
-      skybox_shader{create_skybox_shader()},
-      hdr_shader{create_hdr_shader()},
-      hdr_frame_buffer{create_hdr_frame_buffer(
+      lighting_render_pass{OpenGLLightingRenderPass{
           this->get_window_width(), this->get_window_height()
-      )},
+      }},
+      color_shader{create_color_shader()},
+      skybox_shader{create_skybox_shader()},
       transform_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Transform>{
           OpenGLUniforms::Transform{},
           UniformBufferBindingPoint::Transform,
@@ -244,7 +120,6 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
           .right = std::filesystem::path{"res/skybox/default/right.jpg"},
       }}},
       cube{"res/models/cube/cube.obj"},
-      quad{create_quad_mesh()},
       view_matrix{glm::mat4{1.0f}},
       projection_matrix{glm::mat4{1.0f}} {}
 
@@ -259,6 +134,10 @@ auto OpenGLRenderer::get_view_matrix() const -> const glm::mat4& {
 
 auto OpenGLRenderer::get_projection_matrix() const -> const glm::mat4& {
     return this->projection_matrix;
+}
+
+auto OpenGLRenderer::get_exposure() const -> float {
+    return this->exposure;
 }
 
 auto OpenGLRenderer::set_view_matrix(const glm::mat4& view_matrix) -> void {
@@ -300,22 +179,7 @@ auto OpenGLRenderer::draw() -> void {
     this->update_lights();
 
     this->gbuffer_render_pass.draw(*this, this->draw_queue);
-
-    this->hdr_frame_buffer.bind();
-    this->clear(BufferBit::ColorDepth);
-    this->draw_lighting();
-    this->gbuffer_render_pass.get_gbuffer_frame_buffer().blit_to_framebuffer(
-        this->hdr_frame_buffer, BufferBit::Depth
-    );
-    this->draw_skybox();
-    this->hdr_frame_buffer.unbind();
-
-    this->hdr_shader.bind();
-    this->hdr_shader.set_uniform("exposure", this->exposure);
-    this->hdr_frame_buffer.bind_color_attachments();
-    this->quad.draw();
-    this->hdr_frame_buffer.unbind_color_attachments();
-    this->hdr_shader.unbind();
+    this->lighting_render_pass.draw(*this, this->gbuffer_render_pass.get_gbuffer_frame_buffer());
 
     this->gbuffer_render_pass.get_gbuffer_frame_buffer()
         .blit_to_default_framebuffer(
@@ -344,33 +208,6 @@ auto OpenGLRenderer::draw() -> void {
 
     this->draw_queue.clear();
     this->color_draw_queue.clear();
-}
-
-auto OpenGLRenderer::draw_gbuffer_geometry() -> void {
-    for (const auto& draw_call : this->draw_queue) {
-        this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
-            .model_matrix = draw_call.model_matrix,
-            .view_matrix = this->view_matrix,
-            .projection_matrix = this->projection_matrix,
-        });
-
-        draw_call.renderable.get().draw();
-    }
-}
-
-auto OpenGLRenderer::draw_lighting() -> void {
-    this->pbr_shader.bind();
-    this->gbuffer_render_pass.get_gbuffer_frame_buffer().bind_color_attachments(
-    );
-    this->pbr_shader.set_uniform(
-        "view_position", get_view_position(this->view_matrix)
-    );
-
-    this->quad.draw();
-
-    this->gbuffer_render_pass.get_gbuffer_frame_buffer()
-        .unbind_color_attachments();
-    this->pbr_shader.unbind();
 }
 
 auto OpenGLRenderer::draw_skybox() -> void {
@@ -427,10 +264,10 @@ auto OpenGLRenderer::get_framebuffer_resize_callback()
     -> Window::FramebufferSizeCallback {
     return [this](int width, int height) {
         glViewport(0, 0, width, height);
-        this->hdr_frame_buffer.resize(width, height);
         this->gbuffer_render_pass.get_gbuffer_frame_buffer().resize(
             width, height
         );
+        this->lighting_render_pass.get_hdr_frame_buffer().resize(width, height);
     };
 }
 

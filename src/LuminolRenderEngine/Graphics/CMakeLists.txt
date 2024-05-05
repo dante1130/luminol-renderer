@@ -19,6 +19,7 @@ add_library(Luminol.Graphics
     OpenGL/OpenGLError.cpp
     OpenGL/OpenGLFrameBuffer.cpp
     OpenGL/OpenGLGBufferRenderPass.cpp
+    OpenGL/OpenGLLightingRenderPass.cpp
 )
 
 target_compile_features(Luminol.Graphics PRIVATE cxx_std_20)
