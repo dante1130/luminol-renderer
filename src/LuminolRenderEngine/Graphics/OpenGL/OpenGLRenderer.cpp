@@ -40,26 +40,6 @@ auto initialize_opengl(
     return version;
 }
 
-auto create_color_shader() -> OpenGLShader {
-    auto color_shader = OpenGLShader{ShaderPaths{
-        .vertex_shader_path =
-            std::filesystem::path{"res/shaders/color_vert.glsl"},
-        .fragment_shader_path =
-            std::filesystem::path{"res/shaders/color_frag.glsl"},
-    }};
-
-    color_shader.bind();
-    color_shader.set_sampler_binding_point(
-        "texture_diffuse", SamplerBindingPoint::TextureDiffuse
-    );
-    color_shader.set_uniform_block_binding_point(
-        "Transform", UniformBufferBindingPoint::Transform
-    );
-    color_shader.unbind();
-
-    return color_shader;
-}
-
 auto create_skybox_shader() -> OpenGLShader {
     auto skybox_shader = OpenGLShader{ShaderPaths{
         .vertex_shader_path =
@@ -80,10 +60,6 @@ auto create_skybox_shader() -> OpenGLShader {
     return skybox_shader;
 }
 
-auto get_view_position(const glm::mat4& view_matrix) -> glm::vec3 {
-    return glm::inverse(view_matrix)[3];
-}
-
 }  // namespace
 
 namespace Luminol::Graphics {
@@ -100,7 +76,6 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       lighting_render_pass{OpenGLLightingRenderPass{
           this->get_window_width(), this->get_window_height()
       }},
-      color_shader{create_color_shader()},
       skybox_shader{create_skybox_shader()},
       transform_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Transform>{
           OpenGLUniforms::Transform{},
@@ -187,23 +162,7 @@ auto OpenGLRenderer::draw() -> void {
             BufferBit::Depth
         );
 
-    for (const auto& draw_call : this->color_draw_queue) {
-        this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
-            .model_matrix = draw_call.model_matrix,
-            .view_matrix = this->view_matrix,
-            .projection_matrix = this->projection_matrix,
-        });
-
-        this->color_shader.bind();
-        this->color_shader.set_uniform(
-            "view_position", get_view_position(this->view_matrix)
-        );
-        this->color_shader.set_uniform("color", draw_call.color);
-
-        draw_call.renderable.get().draw();
-
-        this->color_shader.unbind();
-    }
+    this->color_render_pass.draw(*this, this->color_draw_queue);
 
     this->draw_queue.clear();
     this->color_draw_queue.clear();

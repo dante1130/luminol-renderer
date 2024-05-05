@@ -9,6 +9,7 @@
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLModel.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLGBufferRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLLightingRenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLColorRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLDrawCall.hpp>
 
 namespace Luminol::Graphics {
@@ -55,8 +56,8 @@ private:
 
     OpenGLGBufferRenderPass gbuffer_render_pass;
     OpenGLLightingRenderPass lighting_render_pass;
+    OpenGLColorRenderPass color_render_pass;
 
-    OpenGLShader color_shader;
     OpenGLShader skybox_shader;
 
     OpenGLUniformBuffer<OpenGLUniforms::Transform> transform_uniform_buffer;
