@@ -82,7 +82,7 @@ auto main() -> int {
     for (auto i = 0u; i < lights_count; ++i) {
         const auto position = glm::vec3(
             std::uniform_real_distribution<float>(-5.0f, 5.0f)(random),
-            std::uniform_real_distribution<float>(-5.0f, 5.0f)(random),
+            std::uniform_real_distribution<float>(-5.0f, 5.0f)(random) + 5.0f,
             std::uniform_real_distribution<float>(-5.0f, 5.0f)(random)
         );
 
