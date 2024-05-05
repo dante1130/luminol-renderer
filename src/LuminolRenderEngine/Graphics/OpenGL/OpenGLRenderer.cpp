@@ -53,22 +53,27 @@ auto create_quad_mesh() -> OpenGLMesh {
             .position = glm::vec3{-1.0f, 1.0f, 0.0f},
             .tex_coords = glm::vec2{0.0f, 1.0f},
             .normal = glm::vec3{0.0f, 0.0f, 1.0f},
-            .tangent = glm::vec3{1.0f, 0.0f, 0.0f}},
+            .tangent = glm::vec3{1.0f, 0.0f, 0.0f},
+        },
         Vertex{
             .position = glm::vec3{-1.0f, -1.0f, 0.0f},
             .tex_coords = glm::vec2{0.0f, 0.0f},
             .normal = glm::vec3{0.0f, 0.0f, 1.0f},
-            .tangent = glm::vec3{1.0f, 0.0f, 0.0f}},
+            .tangent = glm::vec3{1.0f, 0.0f, 0.0f},
+        },
         Vertex{
             .position = glm::vec3{1.0f, -1.0f, 0.0f},
             .tex_coords = glm::vec2{1.0f, 0.0f},
             .normal = glm::vec3{0.0f, 0.0f, 1.0f},
-            .tangent = glm::vec3{1.0f, 0.0f, 0.0f}},
+            .tangent = glm::vec3{1.0f, 0.0f, 0.0f},
+        },
         Vertex{
             .position = glm::vec3{1.0f, 1.0f, 0.0f},
             .tex_coords = glm::vec2{1.0f, 1.0f},
             .normal = glm::vec3{0.0f, 0.0f, 1.0f},
-            .tangent = glm::vec3{1.0f, 0.0f, 0.0f}}};
+            .tangent = glm::vec3{1.0f, 0.0f, 0.0f},
+        }
+    };
 
     // Draw in counter-clockwise order
     constexpr auto indices = std::array{0u, 3u, 2u, 2u, 1u, 0u};
@@ -103,7 +108,8 @@ auto create_color_shader() -> OpenGLShader {
         .vertex_shader_path =
             std::filesystem::path{"res/shaders/color_vert.glsl"},
         .fragment_shader_path =
-            std::filesystem::path{"res/shaders/color_frag.glsl"}}};
+            std::filesystem::path{"res/shaders/color_frag.glsl"},
+    }};
 
     color_shader.bind();
     color_shader.set_sampler_binding_point(
@@ -122,7 +128,8 @@ auto create_phong_shader() -> OpenGLShader {
         .vertex_shader_path =
             std::filesystem::path{"res/shaders/phong_vert.glsl"},
         .fragment_shader_path =
-            std::filesystem::path{"res/shaders/phong_frag.glsl"}}};
+            std::filesystem::path{"res/shaders/phong_frag.glsl"},
+    }};
 
     phong_shader.bind();
     phong_shader.set_sampler_binding_point(
@@ -151,7 +158,8 @@ auto create_skybox_shader() -> OpenGLShader {
         .vertex_shader_path =
             std::filesystem::path{"res/shaders/skybox_vert.glsl"},
         .fragment_shader_path =
-            std::filesystem::path{"res/shaders/skybox_frag.glsl"}}};
+            std::filesystem::path{"res/shaders/skybox_frag.glsl"},
+    }};
 
     skybox_shader.bind();
     skybox_shader.set_sampler_binding_point(
@@ -170,7 +178,8 @@ auto create_hdr_shader() -> OpenGLShader {
         .vertex_shader_path =
             std::filesystem::path{"res/shaders/hdr_vert.glsl"},
         .fragment_shader_path =
-            std::filesystem::path{"res/shaders/hdr_frag.glsl"}}};
+            std::filesystem::path{"res/shaders/hdr_frag.glsl"},
+    }};
 
     hdr_shader.bind();
     hdr_shader.set_sampler_binding_point(
@@ -225,7 +234,8 @@ auto create_hdr_frame_buffer(int32_t width, int32_t height)
             .internal_format = TextureInternalFormat::RGBA16F,
             .format = TextureFormat::RGBA,
             .binding_point = SamplerBindingPoint::HDRFramebuffer,
-        }}}};
+        }},
+    }};
 }
 
 auto create_geometry_frame_buffer(int32_t width, int32_t height)
@@ -254,7 +264,8 @@ auto create_geometry_frame_buffer(int32_t width, int32_t height)
                 .format = TextureFormat::RGB,
                 .binding_point = SamplerBindingPoint::GBufferAlbedo,
             },
-        }}};
+        },
+    }};
 }
 
 auto get_view_position(const glm::mat4& view_matrix) -> glm::vec3 {
@@ -283,16 +294,21 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
           this->get_window_width(), this->get_window_height()
       )},
       transform_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Transform>{
-          OpenGLUniforms::Transform{}, UniformBufferBindingPoint::Transform}},
+          OpenGLUniforms::Transform{},
+          UniformBufferBindingPoint::Transform,
+      }},
       light_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Light>{
-          OpenGLUniforms::Light{}, UniformBufferBindingPoint::Light}},
+          OpenGLUniforms::Light{},
+          UniformBufferBindingPoint::Light,
+      }},
       skybox{OpenGLSkybox{SkyboxPaths{
           .front = std::filesystem::path{"res/skybox/default/front.jpg"},
           .back = std::filesystem::path{"res/skybox/default/back.jpg"},
           .top = std::filesystem::path{"res/skybox/default/top.jpg"},
           .bottom = std::filesystem::path{"res/skybox/default/bottom.jpg"},
           .left = std::filesystem::path{"res/skybox/default/left.jpg"},
-          .right = std::filesystem::path{"res/skybox/default/right.jpg"}}}},
+          .right = std::filesystem::path{"res/skybox/default/right.jpg"},
+      }}},
       cube{"res/models/cube/cube.obj"},
       quad{create_quad_mesh()},
       view_matrix{glm::mat4{1.0f}},
@@ -367,7 +383,8 @@ auto OpenGLRenderer::draw() -> void {
         this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
             .model_matrix = draw_call.model_matrix,
             .view_matrix = this->view_matrix,
-            .projection_matrix = this->projection_matrix});
+            .projection_matrix = this->projection_matrix,
+        });
 
         this->color_shader.bind();
         this->color_shader.set_uniform(
@@ -389,7 +406,8 @@ auto OpenGLRenderer::draw_gbuffer_geometry() -> void {
         this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
             .model_matrix = draw_call.model_matrix,
             .view_matrix = this->view_matrix,
-            .projection_matrix = this->projection_matrix});
+            .projection_matrix = this->projection_matrix,
+        });
 
         draw_call.renderable.get().draw();
     }
@@ -411,7 +429,8 @@ auto OpenGLRenderer::draw_lighting() -> void {
 auto OpenGLRenderer::draw_skybox() -> void {
     this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
         .view_matrix = glm::mat4{glm::mat3{this->view_matrix}},
-        .projection_matrix = this->projection_matrix});
+        .projection_matrix = this->projection_matrix,
+    });
 
     glCullFace(GL_FRONT);
     glDepthFunc(GL_LEQUAL);
@@ -432,7 +451,8 @@ auto OpenGLRenderer::update_lights() -> void {
             {.direction = {light_data.directional_light.direction},
              .color = {light_data.directional_light.color}},
         .point_light_count = light_data.point_light_count,
-        .spot_light_count = light_data.spot_light_count};
+        .spot_light_count = light_data.spot_light_count,
+    };
 
     /// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (size_t i = 0; i < light_data.point_light_count; ++i) {
