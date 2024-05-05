@@ -4,8 +4,8 @@
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
-#include <Engine/LuminolRenderEngine.hpp>
-#include <Engine/Utilities/Timer.hpp>
+#include <LuminolRenderEngine/LuminolRenderEngine.hpp>
+#include <LuminolRenderEngine/Utilities/Timer.hpp>
 
 namespace {
 
