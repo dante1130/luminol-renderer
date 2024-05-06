@@ -184,7 +184,9 @@ auto load_model(const std::filesystem::path& path) -> std::optional<ModelData> {
         aiProcess_Triangulate | aiProcess_JoinIdenticalVertices |
             aiProcess_MakeLeftHanded | aiProcess_FlipWindingOrder |
             aiProcess_FlipUVs | aiProcess_PreTransformVertices |
-            aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace
+            aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace |
+            aiProcess_OptimizeMeshes | aiProcess_SortByPType |
+            aiProcess_RemoveRedundantMaterials | aiProcess_ImproveCacheLocality
     );
 
     if (scene == nullptr || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) == 1) {
