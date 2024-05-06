@@ -28,9 +28,6 @@ public:
     [[nodiscard]] auto get_window() const -> const Window&;
     [[nodiscard]] auto get_window() -> Window&;
 
-    [[nodiscard]] auto get_camera() const -> const Graphics::Camera&;
-    [[nodiscard]] auto get_camera() -> Graphics::Camera&;
-
     [[nodiscard]] auto get_renderer() const -> const Graphics::Renderer&;
     [[nodiscard]] auto get_renderer() -> Graphics::Renderer&;
 
@@ -39,7 +36,6 @@ public:
 
 private:
     Window window;
-    Graphics::Camera camera;
     std::unique_ptr<Graphics::GraphicsFactory> graphics_factory = nullptr;
     std::unique_ptr<Graphics::Renderer> renderer = nullptr;
 };

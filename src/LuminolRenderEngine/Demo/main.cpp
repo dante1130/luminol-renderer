@@ -5,6 +5,7 @@
 #include <glm/ext/matrix_transform.hpp>
 
 #include <LuminolRenderEngine/LuminolRenderEngine.hpp>
+#include <LuminolRenderEngine/Graphics/Camera.hpp>
 #include <LuminolRenderEngine/Utilities/Timer.hpp>
 
 namespace {
@@ -18,29 +19,23 @@ struct LightEntity {
     std::unique_ptr<Model> model;
 };
 
-auto handle_key_events(RenderEngine& engine, float delta_time_seconds) -> void {
+auto handle_key_events(
+    RenderEngine& engine, Camera& camera, float delta_time_seconds
+) -> void {
     if (engine.get_window().is_key_event('W', KeyEvent::Press)) {
-        engine.get_camera().move(
-            Graphics::CameraMovement::Forward, delta_time_seconds
-        );
+        camera.move(Graphics::CameraMovement::Forward, delta_time_seconds);
     }
 
     if (engine.get_window().is_key_event('S', KeyEvent::Press)) {
-        engine.get_camera().move(
-            Graphics::CameraMovement::Backward, delta_time_seconds
-        );
+        camera.move(Graphics::CameraMovement::Backward, delta_time_seconds);
     }
 
     if (engine.get_window().is_key_event('A', KeyEvent::Press)) {
-        engine.get_camera().move(
-            Graphics::CameraMovement::Left, delta_time_seconds
-        );
+        camera.move(Graphics::CameraMovement::Left, delta_time_seconds);
     }
 
     if (engine.get_window().is_key_event('D', KeyEvent::Press)) {
-        engine.get_camera().move(
-            Graphics::CameraMovement::Right, delta_time_seconds
-        );
+        camera.move(Graphics::CameraMovement::Right, delta_time_seconds);
     }
 
     if (engine.get_window().is_key_event('Q', KeyEvent::Press)) {
@@ -53,7 +48,16 @@ auto handle_key_events(RenderEngine& engine, float delta_time_seconds) -> void {
 auto main() -> int {
     using namespace Luminol;
 
+    constexpr auto camera_initial_position = glm::vec3(5.0f, 0.0f, 0.0f);
+    constexpr auto camera_initial_forward = glm::vec3(-1.0f, 0.0f, 0.0f);
+    constexpr auto camera_rotation_speed = 0.1f;
+
     auto luminol_engine = Luminol::RenderEngine(Luminol::Properties{});
+    auto camera = Graphics::Camera{CameraProperties{
+        .position = camera_initial_position,
+        .forward = camera_initial_forward,
+        .rotation_speed = camera_rotation_speed,
+    }};
     auto timer = Utilities::Timer{};
 
     constexpr auto exposure = 2.0f;
@@ -117,8 +121,8 @@ auto main() -> int {
     }
 
     const auto initial_flash_light = Graphics::SpotLight{
-        .position = luminol_engine.get_camera().get_position(),
-        .direction = luminol_engine.get_camera().get_forward(),
+        .position = camera.get_position(),
+        .direction = camera.get_forward(),
         .color = glm::vec3(1.0f, 1.0f, 1.0f),
         .cut_off = glm::cos(glm::radians(12.5f)),
         .outer_cut_off = glm::cos(glm::radians(17.5f))
@@ -149,11 +153,11 @@ auto main() -> int {
         luminol_engine.get_window().poll_events();
 
         handle_key_events(
-            luminol_engine, gsl::narrow_cast<float>(delta_time_seconds)
+            luminol_engine, camera, gsl::narrow_cast<float>(delta_time_seconds)
         );
 
         const auto mouse_delta = luminol_engine.get_window().get_mouse_delta();
-        luminol_engine.get_camera().rotate(
+        camera.rotate(
             gsl::narrow_cast<float>(mouse_delta.delta_x),
             gsl::narrow_cast<float>(mouse_delta.delta_y)
         );
@@ -163,20 +167,18 @@ auto main() -> int {
         luminol_engine.get_renderer().clear_color(color);
         luminol_engine.get_renderer().clear(Graphics::BufferBit::ColorDepth);
 
-        luminol_engine.get_camera().set_aspect_ratio(
+        camera.set_aspect_ratio(
             static_cast<float>(luminol_engine.get_window().get_width()) /
             static_cast<float>(luminol_engine.get_window().get_height())
         );
 
-        luminol_engine.get_renderer().set_view_matrix(
-            luminol_engine.get_camera().get_view_matrix()
-        );
+        luminol_engine.get_renderer().set_view_matrix(camera.get_view_matrix());
         luminol_engine.get_renderer().set_projection_matrix(
-            luminol_engine.get_camera().get_projection_matrix()
+            camera.get_projection_matrix()
         );
 
-        flash_light.position = luminol_engine.get_camera().get_position();
-        flash_light.direction = luminol_engine.get_camera().get_forward();
+        flash_light.position = camera.get_position();
+        flash_light.direction = camera.get_forward();
 
         luminol_engine.get_renderer().get_light_manager().update_spot_light(
             flash_light_id, flash_light
