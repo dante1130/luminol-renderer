@@ -40,26 +40,6 @@ auto initialize_opengl(
     return version;
 }
 
-auto create_skybox_shader() -> OpenGLShader {
-    auto skybox_shader = OpenGLShader{ShaderPaths{
-        .vertex_shader_path =
-            std::filesystem::path{"res/shaders/skybox_vert.glsl"},
-        .fragment_shader_path =
-            std::filesystem::path{"res/shaders/skybox_frag.glsl"},
-    }};
-
-    skybox_shader.bind();
-    skybox_shader.set_sampler_binding_point(
-        "skybox", SamplerBindingPoint::Skybox
-    );
-    skybox_shader.set_uniform_block_binding_point(
-        "Transform", UniformBufferBindingPoint::Transform
-    );
-    skybox_shader.unbind();
-
-    return skybox_shader;
-}
-
 }  // namespace
 
 namespace Luminol::Graphics {
@@ -76,7 +56,6 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       lighting_render_pass{OpenGLLightingRenderPass{
           this->get_window_width(), this->get_window_height()
       }},
-      skybox_shader{create_skybox_shader()},
       transform_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Transform>{
           OpenGLUniforms::Transform{},
           UniformBufferBindingPoint::Transform,
@@ -93,7 +72,6 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
           .left = std::filesystem::path{"res/skybox/default/left.jpg"},
           .right = std::filesystem::path{"res/skybox/default/right.jpg"},
       }}},
-      cube{"res/models/cube/cube.obj"},
       view_matrix{glm::mat4{1.0f}},
       projection_matrix{glm::mat4{1.0f}} {}
 
@@ -152,7 +130,9 @@ auto OpenGLRenderer::draw() -> void {
 
     this->gbuffer_render_pass.draw(*this, this->draw_queue);
     this->lighting_render_pass.draw(
-        *this, this->gbuffer_render_pass.get_gbuffer_frame_buffer()
+        *this,
+        this->gbuffer_render_pass.get_gbuffer_frame_buffer(),
+        this->skybox
     );
 
     this->gbuffer_render_pass.get_gbuffer_frame_buffer()
@@ -166,23 +146,6 @@ auto OpenGLRenderer::draw() -> void {
 
     this->draw_queue.clear();
     this->color_draw_queue.clear();
-}
-
-auto OpenGLRenderer::draw_skybox() -> void {
-    this->transform_uniform_buffer.set_data(OpenGLUniforms::Transform{
-        .view_matrix = glm::mat4{glm::mat3{this->view_matrix}},
-        .projection_matrix = this->projection_matrix,
-    });
-
-    glCullFace(GL_FRONT);
-    glDepthFunc(GL_LEQUAL);
-    this->skybox_shader.bind();
-    this->skybox.bind();
-    this->cube.draw();
-    this->skybox.unbind();
-    this->skybox_shader.unbind();
-    glDepthFunc(GL_LESS);
-    glCullFace(GL_BACK);
 }
 
 auto OpenGLRenderer::update_lights() -> void {

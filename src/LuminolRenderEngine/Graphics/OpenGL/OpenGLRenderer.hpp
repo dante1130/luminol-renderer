@@ -42,7 +42,6 @@ public:
     auto draw() -> void override;
 
 private:
-    auto draw_skybox() -> void;
     auto update_lights() -> void;
     auto get_framebuffer_resize_callback() -> Window::FramebufferSizeCallback;
 
@@ -58,13 +57,10 @@ private:
     OpenGLLightingRenderPass lighting_render_pass;
     OpenGLColorRenderPass color_render_pass;
 
-    OpenGLShader skybox_shader;
-
     OpenGLUniformBuffer<OpenGLUniforms::Transform> transform_uniform_buffer;
     OpenGLUniformBuffer<OpenGLUniforms::Light> light_uniform_buffer;
 
     OpenGLSkybox skybox;
-    OpenGLModel cube;
 
     float exposure = 1.0f;
 

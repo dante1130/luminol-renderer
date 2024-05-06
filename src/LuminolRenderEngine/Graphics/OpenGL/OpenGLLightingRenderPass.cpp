@@ -128,6 +128,26 @@ auto create_hdr_frame_buffer(int32_t width, int32_t height)
     }};
 }
 
+auto create_skybox_shader() -> OpenGLShader {
+    auto skybox_shader = OpenGLShader{ShaderPaths{
+        .vertex_shader_path =
+            std::filesystem::path{"res/shaders/skybox_vert.glsl"},
+        .fragment_shader_path =
+            std::filesystem::path{"res/shaders/skybox_frag.glsl"},
+    }};
+
+    skybox_shader.bind();
+    skybox_shader.set_sampler_binding_point(
+        "skybox", SamplerBindingPoint::Skybox
+    );
+    skybox_shader.set_uniform_block_binding_point(
+        "Transform", UniformBufferBindingPoint::Transform
+    );
+    skybox_shader.unbind();
+
+    return skybox_shader;
+}
+
 auto get_view_position(const glm::mat4& view_matrix) -> glm::vec3 {
     return glm::inverse(view_matrix)[3];
 }
@@ -142,6 +162,8 @@ OpenGLLightingRenderPass::OpenGLLightingRenderPass(
     : hdr_frame_buffer{create_hdr_frame_buffer(width, height)},
       pbr_shader{create_pbr_shader()},
       hdr_shader{create_hdr_shader()},
+      skybox_shader{create_skybox_shader()},
+      cube{"res/models/cube/cube.obj"},
       quad{create_quad_mesh()} {}
 
 auto OpenGLLightingRenderPass::get_hdr_frame_buffer() -> OpenGLFrameBuffer& {
@@ -149,26 +171,41 @@ auto OpenGLLightingRenderPass::get_hdr_frame_buffer() -> OpenGLFrameBuffer& {
 }
 
 auto OpenGLLightingRenderPass::draw(
-    OpenGLRenderer& renderer, OpenGLFrameBuffer& gbuffer_frame_buffer
+    OpenGLRenderer& renderer,
+    OpenGLFrameBuffer& gbuffer_frame_buffer,
+    OpenGLSkybox& skybox
 ) -> void {
     this->hdr_frame_buffer.bind();
     renderer.clear(BufferBit::ColorDepth);
+
     this->pbr_shader.bind();
     gbuffer_frame_buffer.bind_color_attachments();
     this->pbr_shader.set_uniform(
         "view_position", get_view_position(renderer.get_view_matrix())
     );
-
     this->quad.draw();
-
     gbuffer_frame_buffer.unbind_color_attachments();
     this->pbr_shader.unbind();
-    /*
-    this->gbuffer_render_pass.get_gbuffer_frame_buffer().blit_to_framebuffer(
+
+    gbuffer_frame_buffer.blit_to_framebuffer(
         this->hdr_frame_buffer, BufferBit::Depth
     );
-    this->draw_skybox();
-    */
+
+    renderer.get_transform_uniform_buffer().set_data(OpenGLUniforms::Transform{
+        .view_matrix = glm::mat4{glm::mat3{renderer.get_view_matrix()}},
+        .projection_matrix = renderer.get_projection_matrix(),
+    });
+
+    glCullFace(GL_FRONT);
+    glDepthFunc(GL_LEQUAL);
+    this->skybox_shader.bind();
+    skybox.bind();
+    this->cube.draw();
+    skybox.unbind();
+    this->skybox_shader.unbind();
+    glDepthFunc(GL_LESS);
+    glCullFace(GL_BACK);
+
     this->hdr_frame_buffer.unbind();
 
     this->hdr_shader.bind();
