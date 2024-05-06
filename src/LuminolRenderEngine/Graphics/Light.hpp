@@ -1,6 +1,6 @@
 #pragma once
 
-#include <array>
+#include <vector>
 
 #include <glm/glm.hpp>
 
@@ -32,8 +32,10 @@ struct SpotLight {
 
 struct Light {
     DirectionalLight directional_light;
-    std::array<PointLight, max_point_lights> point_lights;
-    std::array<SpotLight, max_spot_lights> spot_lights;
+    std::vector<PointLight> point_lights =
+        std::vector<PointLight>{max_point_lights};
+    std::vector<SpotLight> spot_lights =
+        std::vector<SpotLight>{max_spot_lights};
     uint32_t point_light_count = 0u;
     uint32_t spot_light_count = 0u;
 };
