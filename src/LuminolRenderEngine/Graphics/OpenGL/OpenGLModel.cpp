@@ -77,7 +77,8 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
             .ambient_occlusion_texture = load_first_texture_or_nothing(
                 mesh_data.ambient_occlusion_texture_paths,
                 model_data.textures_map
-            )};
+            )
+        };
 
         this->meshes.emplace_back(
             mesh_vertices, mesh_data.indices, texture_images
@@ -88,6 +89,12 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
 auto OpenGLModel::draw() const -> void {
     for (const auto& mesh : this->meshes) {
         mesh.draw();
+    }
+}
+
+auto OpenGLModel::draw_instanced(int32_t instance_count) const -> void {
+    for (const auto& mesh : this->meshes) {
+        mesh.draw_instanced(instance_count);
     }
 }
 

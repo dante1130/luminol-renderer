@@ -39,6 +39,11 @@ public:
         UniformBufferBindingPoint binding_point
     ) const -> void;
 
+    auto set_shader_storage_block_binding_point(
+        const std::string& shader_storage_block_name,
+        ShaderStorageBufferBindingPoint binding_point
+    ) const -> void;
+
     auto set_uniform(const std::string& name, const glm::mat4& matrix) const
         -> void;
     auto set_uniform(const std::string& name, const glm::vec4& vector) const

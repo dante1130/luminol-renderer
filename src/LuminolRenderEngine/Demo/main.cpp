@@ -13,9 +13,9 @@ namespace {
 using namespace Luminol;
 using namespace Luminol::Graphics;
 
-struct LightEntity {
-    glm::vec3 position;
-    glm::vec3 color;
+struct Lights {
+    std::vector<glm::mat4> model_matrices;
+    std::vector<glm::vec3> colors;
     std::unique_ptr<Model> model;
 };
 
@@ -78,8 +78,13 @@ auto main() -> int {
 
     constexpr auto lights_count = 256u;
 
-    auto entities = std::vector<LightEntity>{};
-    entities.reserve(lights_count);
+    auto lights = Lights{
+        .model = luminol_engine.get_graphics_factory().create_model(
+            "res/models/cube/cube.obj"
+        )
+    };
+    lights.model_matrices.reserve(lights_count);
+    lights.colors.reserve(lights_count);
 
     auto random = std::mt19937{std::random_device{}()};
 
@@ -96,13 +101,14 @@ auto main() -> int {
             std::uniform_real_distribution<float>(0.0f, 1.0f)(random)
         );
 
-        entities.emplace_back(
-            position,
-            color,
-            luminol_engine.get_graphics_factory().create_model(
-                "res/models/cube/cube.obj"
-            )
-        );
+        constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);
+
+        auto model_matrix = glm::mat4(1.0f);
+        model_matrix = glm::translate(model_matrix, position);
+        model_matrix = glm::scale(model_matrix, scale);
+
+        lights.model_matrices.emplace_back(model_matrix);
+        lights.colors.emplace_back(color);
 
         constexpr auto intensity = 1.0f;
 
@@ -184,17 +190,9 @@ auto main() -> int {
             flash_light_id, flash_light
         );
 
-        for (const auto& entity : entities) {
-            constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);
-
-            auto model_matrix = glm::mat4(1.0f);
-            model_matrix = glm::translate(model_matrix, entity.position);
-            model_matrix = glm::scale(model_matrix, scale);
-
-            luminol_engine.get_renderer().queue_draw_with_color(
-                *entity.model, model_matrix, entity.color
-            );
-        }
+        luminol_engine.get_renderer().queue_draw_with_color_instanced(
+            *lights.model, lights.model_matrices, lights.colors
+        );
 
         {
             constexpr auto scale = glm::vec3(1.0f);

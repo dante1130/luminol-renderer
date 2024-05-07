@@ -8,7 +8,8 @@ enum class UniformBufferBindingPoint {
 };
 
 enum class ShaderStorageBufferBindingPoint {
-    InstancingModelMatrix = 0,
+    InstancingModelMatrices = 0,
+    Color,
 };
 
 enum class SamplerBindingPoint {

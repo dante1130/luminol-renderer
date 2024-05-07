@@ -127,6 +127,33 @@ OpenGLMesh::OpenGLMesh(
       )} {}
 
 auto OpenGLMesh::draw() const -> void {
+    this->bind_textures();
+    this->vertex_array_object.bind();
+    glDrawElements(
+        GL_TRIANGLES,
+        this->vertex_array_object.get_index_count(),
+        GL_UNSIGNED_INT,
+        nullptr
+    );
+    this->vertex_array_object.unbind();
+    this->unbind_textures();
+}
+
+auto OpenGLMesh::draw_instanced(int32_t instance_count) const -> void {
+    this->bind_textures();
+    this->vertex_array_object.bind();
+    glDrawElementsInstanced(
+        GL_TRIANGLES,
+        this->vertex_array_object.get_index_count(),
+        GL_UNSIGNED_INT,
+        nullptr,
+        instance_count
+    );
+    this->vertex_array_object.unbind();
+    this->unbind_textures();
+}
+
+auto OpenGLMesh::bind_textures() const -> void {
     if (this->diffuse_texture.has_value()) {
         this->diffuse_texture->get().bind(SamplerBindingPoint::TextureDiffuse);
     }
@@ -156,15 +183,9 @@ auto OpenGLMesh::draw() const -> void {
             SamplerBindingPoint::TextureAO
         );
     }
+}
 
-    this->vertex_array_object.bind();
-    glDrawElements(
-        GL_TRIANGLES,
-        this->vertex_array_object.get_index_count(),
-        GL_UNSIGNED_INT,
-        nullptr
-    );
-
+auto OpenGLMesh::unbind_textures() const -> void {
     if (this->emissive_texture.has_value()) {
         this->emissive_texture->get().unbind(
             SamplerBindingPoint::TextureEmissive

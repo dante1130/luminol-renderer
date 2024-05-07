@@ -21,6 +21,10 @@ public:
 
     [[nodiscard]] auto get_transform_uniform_buffer()
         -> OpenGLUniformBuffer<OpenGLUniforms::Transform>&;
+    [[nodiscard]] auto get_instancing_model_matrix_buffer()
+        -> OpenGLShaderStorageBuffer<glm::mat4>&;
+    [[nodiscard]] auto get_instancing_color_buffer()
+        -> OpenGLShaderStorageBuffer<glm::vec3>&;
     [[nodiscard]] auto get_view_matrix() const -> const glm::mat4&;
     [[nodiscard]] auto get_projection_matrix() const -> const glm::mat4&;
     [[nodiscard]] auto get_exposure() const -> float;
@@ -40,6 +44,11 @@ public:
         const glm::mat4& model_matrix,
         const glm::vec3& color
     ) -> void override;
+    auto queue_draw_with_color_instanced(
+        const Renderable& renderable,
+        gsl::span<glm::mat4> model_matrices,
+        gsl::span<glm::vec3> colors
+    ) -> void override;
     auto draw() -> void override;
 
 private:
@@ -53,6 +62,7 @@ private:
 
     std::vector<DrawCall> draw_queue;
     std::vector<ColorDrawCall> color_draw_queue;
+    std::vector<ColorDrawInstancedCall> instanced_color_draw_queue;
 
     OpenGLGBufferRenderPass gbuffer_render_pass;
     OpenGLLightingRenderPass lighting_render_pass;
@@ -61,6 +71,7 @@ private:
     OpenGLUniformBuffer<OpenGLUniforms::Transform> transform_uniform_buffer;
     OpenGLUniformBuffer<OpenGLUniforms::Light> light_uniform_buffer;
     OpenGLShaderStorageBuffer<glm::mat4> instancing_model_matrix_buffer;
+    OpenGLShaderStorageBuffer<glm::vec3> instancing_color_buffer;
 
     OpenGLSkybox skybox;
 

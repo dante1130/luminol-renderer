@@ -52,7 +52,8 @@ auto read_and_compile_shader(const std::filesystem::path& path, GLenum type)
     -> uint32_t {
     auto file = std::ifstream{path};
     const auto source = std::string{
-        std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
+        std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}
+    };
 
     const auto shader_id = compile_shader(source, type);
 
@@ -173,6 +174,19 @@ auto OpenGLShader::set_uniform_block_binding_point(
     const auto block_index =
         glGetUniformBlockIndex(this->shader_program_id, block_name.c_str());
     glUniformBlockBinding(
+        this->shader_program_id,
+        block_index,
+        static_cast<uint32_t>(binding_point)
+    );
+}
+
+auto OpenGLShader::set_shader_storage_block_binding_point(
+    const std::string& block_name, ShaderStorageBufferBindingPoint binding_point
+) const -> void {
+    const auto block_index = glGetProgramResourceIndex(
+        this->shader_program_id, GL_SHADER_STORAGE_BLOCK, block_name.c_str()
+    );
+    glShaderStorageBlockBinding(
         this->shader_program_id,
         block_index,
         static_cast<uint32_t>(binding_point)

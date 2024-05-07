@@ -67,7 +67,10 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       }},
       instancing_model_matrix_buffer{OpenGLShaderStorageBuffer<glm::mat4>{
           glm::mat4{1.0f},
-          ShaderStorageBufferBindingPoint::InstancingModelMatrix
+          ShaderStorageBufferBindingPoint::InstancingModelMatrices
+      }},
+      instancing_color_buffer{OpenGLShaderStorageBuffer<glm::vec3>{
+          glm::vec3{1.0f}, ShaderStorageBufferBindingPoint::Color
       }},
       skybox{OpenGLSkybox{SkyboxPaths{
           .front = std::filesystem::path{"res/skybox/default/front.jpg"},
@@ -83,6 +86,16 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
 auto OpenGLRenderer::get_transform_uniform_buffer()
     -> OpenGLUniformBuffer<OpenGLUniforms::Transform>& {
     return this->transform_uniform_buffer;
+}
+
+auto OpenGLRenderer::get_instancing_model_matrix_buffer()
+    -> OpenGLShaderStorageBuffer<glm::mat4>& {
+    return this->instancing_model_matrix_buffer;
+}
+
+auto OpenGLRenderer::get_instancing_color_buffer()
+    -> OpenGLShaderStorageBuffer<glm::vec3>& {
+    return this->instancing_color_buffer;
 }
 
 auto OpenGLRenderer::get_view_matrix() const -> const glm::mat4& {
@@ -130,6 +143,14 @@ auto OpenGLRenderer::queue_draw_with_color(
     this->color_draw_queue.emplace_back(renderable, model_matrix, color);
 }
 
+auto OpenGLRenderer::queue_draw_with_color_instanced(
+    const Renderable& renderable,
+    gsl::span<glm::mat4> model_matrices,
+    gsl::span<glm::vec3> colors
+) -> void {
+    this->instanced_color_draw_queue.emplace_back(renderable, model_matrices, colors);
+}
+
 auto OpenGLRenderer::draw() -> void {
     this->update_lights();
 
@@ -147,10 +168,11 @@ auto OpenGLRenderer::draw() -> void {
             BufferBit::Depth
         );
 
-    this->color_render_pass.draw(*this, this->color_draw_queue);
+    this->color_render_pass.draw(*this, this->instanced_color_draw_queue);
 
     this->draw_queue.clear();
     this->color_draw_queue.clear();
+    this->instanced_color_draw_queue.clear();
 }
 
 auto OpenGLRenderer::update_lights() -> void {

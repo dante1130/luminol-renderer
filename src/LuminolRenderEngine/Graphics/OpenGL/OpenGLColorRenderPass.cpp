@@ -21,6 +21,12 @@ auto create_color_shader() -> OpenGLShader {
     color_shader.set_uniform_block_binding_point(
         "Transform", UniformBufferBindingPoint::Transform
     );
+    color_shader.set_shader_storage_block_binding_point(
+        "InstancingModelMatrix", ShaderStorageBufferBindingPoint::InstancingModelMatrices
+    );
+    color_shader.set_shader_storage_block_binding_point(
+        "ColorBuffer", ShaderStorageBufferBindingPoint::Color
+    );
     color_shader.unbind();
 
     return color_shader;
@@ -34,24 +40,21 @@ OpenGLColorRenderPass::OpenGLColorRenderPass()
     : color_shader{create_color_shader()} {}
 
 auto OpenGLColorRenderPass::draw(
-    OpenGLRenderer& renderer, gsl::span<ColorDrawCall> draw_calls
+    OpenGLRenderer& renderer, gsl::span<ColorDrawInstancedCall> draw_calls
 ) -> void {
     this->color_shader.bind();
-    this->color_shader.set_uniform(
-        "view_position", glm::inverse(renderer.get_view_matrix())[3]
-    );
+    renderer.get_transform_uniform_buffer().set_data(OpenGLUniforms::Transform{
+        .view_matrix = renderer.get_view_matrix(),
+        .projection_matrix = renderer.get_projection_matrix(),
+    });
 
     for (const auto& draw_call : draw_calls) {
-        renderer.get_transform_uniform_buffer().set_data(
-            OpenGLUniforms::Transform{
-                .model_matrix = draw_call.model_matrix,
-                .view_matrix = renderer.get_view_matrix(),
-                .projection_matrix = renderer.get_projection_matrix(),
-            }
-        );
-        this->color_shader.set_uniform("color", draw_call.color);
+        renderer.get_instancing_model_matrix_buffer().set_data(draw_call.model_matrices);
+        renderer.get_instancing_color_buffer().set_data(draw_call.colors);
 
-        draw_call.renderable.get().draw();
+        draw_call.renderable.get().draw_instanced(
+            gsl::narrow<int32_t>(draw_call.model_matrices.size())
+        );
     }
 
     this->color_shader.unbind();

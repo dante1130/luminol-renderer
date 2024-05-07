@@ -48,14 +48,14 @@ public:
     }
 
     auto set_data(gsl::span<T> data) -> void {
-        glNamedBufferSubData(
-            this->shader_storage_buffer_id, 0, data.size_bytes(), data.data()
+        glNamedBufferData(
+            this->shader_storage_buffer_id, data.size_bytes(), data.data(), GL_DYNAMIC_DRAW
         );
     }
 
     auto set_data(const T& data) -> void {
-        glNamedBufferSubData(
-            this->shader_storage_buffer_id, 0, sizeof(T), &data
+        glNamedBufferData(
+            this->shader_storage_buffer_id, sizeof(T), &data, GL_DYNAMIC_DRAW
         );
     }
 

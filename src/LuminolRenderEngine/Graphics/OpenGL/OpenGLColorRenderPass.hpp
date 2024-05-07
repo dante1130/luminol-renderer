@@ -13,8 +13,9 @@ class OpenGLColorRenderPass {
 public:
     OpenGLColorRenderPass();
 
-    auto draw(OpenGLRenderer& renderer, gsl::span<ColorDrawCall> draw_calls)
-        -> void;
+    auto draw(
+        OpenGLRenderer& renderer, gsl::span<ColorDrawInstancedCall> draw_calls
+    ) -> void;
 
 private:
     OpenGLShader color_shader;

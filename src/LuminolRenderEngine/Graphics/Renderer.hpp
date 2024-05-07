@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gsl/gsl>
 #include <glm/glm.hpp>
 
 #include <LuminolRenderEngine/Graphics/Renderable.hpp>
@@ -28,14 +29,22 @@ public:
 
     virtual auto clear_color(const glm::vec4& color) const -> void = 0;
     virtual auto clear(BufferBit buffer_bit) const -> void = 0;
+
     virtual auto queue_draw(
         const Renderable& renderable, const glm::mat4& model_matrix
     ) -> void = 0;
+
     virtual auto queue_draw_with_color(
         const Renderable& renderable,
         const glm::mat4& model_matrix,
         const glm::vec3& color
     ) -> void = 0;
+    virtual auto queue_draw_with_color_instanced(
+        const Renderable& renderable,
+        gsl::span<glm::mat4> model_matrices,
+        gsl::span<glm::vec3> colors
+    ) -> void = 0;
+
     virtual auto draw() -> void = 0;
 
 private:

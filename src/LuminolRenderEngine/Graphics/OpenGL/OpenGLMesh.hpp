@@ -39,8 +39,12 @@ public:
     );
 
     auto draw() const -> void override;
+    auto draw_instanced(int32_t instance_count) const -> void override;
 
 private:
+    auto bind_textures() const -> void;
+    auto unbind_textures() const -> void;
+
     OpenGLVertexArrayObject vertex_array_object;
 
     TextureRefOptional diffuse_texture = std::nullopt;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace Luminol::Graphics {
 
 class Renderable {
@@ -12,6 +14,7 @@ public:
     auto operator=(Renderable&&) -> Renderable& = default;
 
     virtual auto draw() const -> void = 0;
+    virtual auto draw_instanced(int32_t instance_count) const -> void = 0;
 };
 
 }  // namespace Luminol::Graphics
