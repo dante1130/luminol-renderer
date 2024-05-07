@@ -9,6 +9,7 @@
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLError.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLBufferBit.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniformBindingPoints.hpp>
 
 namespace {
 
@@ -63,6 +64,10 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       light_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Light>{
           OpenGLUniforms::Light{},
           UniformBufferBindingPoint::Light,
+      }},
+      instancing_model_matrix_buffer{OpenGLShaderStorageBuffer<glm::mat4>{
+          glm::mat4{1.0f},
+          ShaderStorageBufferBindingPoint::InstancingModelMatrix
       }},
       skybox{OpenGLSkybox{SkyboxPaths{
           .front = std::filesystem::path{"res/skybox/default/front.jpg"},

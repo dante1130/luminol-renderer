@@ -3,6 +3,7 @@
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniformBuffer.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShaderStorageBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniforms.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLFrameBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLSkybox.hpp>
@@ -59,6 +60,7 @@ private:
 
     OpenGLUniformBuffer<OpenGLUniforms::Transform> transform_uniform_buffer;
     OpenGLUniformBuffer<OpenGLUniforms::Light> light_uniform_buffer;
+    OpenGLShaderStorageBuffer<glm::mat4> instancing_model_matrix_buffer;
 
     OpenGLSkybox skybox;
 

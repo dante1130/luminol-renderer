@@ -7,6 +7,10 @@ enum class UniformBufferBindingPoint {
     Light,
 };
 
+enum class ShaderStorageBufferBindingPoint {
+    InstancingModelMatrix = 0,
+};
+
 enum class SamplerBindingPoint {
     TextureDiffuse = 0,
     TextureEmissive,
