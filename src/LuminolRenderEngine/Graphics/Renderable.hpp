@@ -1,10 +1,6 @@
 #pragma once
 
-#include <functional>
-
 namespace Luminol::Graphics {
-
-using RenderCommand = std::function<void()>;
 
 class Renderable {
 public:
