@@ -235,8 +235,7 @@ auto OpenGLRenderer::update_lights() -> void {
     );
 
     offset += gsl::narrow<int64_t>(
-        sizeof(light_uniforms.point_lights[0]) *
-        light_uniforms.point_lights.size()
+        sizeof(light_uniforms.point_lights[0]) * max_point_lights
     );
 
     this->light_uniform_buffer.set_data(
