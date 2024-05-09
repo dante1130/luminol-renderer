@@ -42,10 +42,11 @@ struct SpotLight {
 
 struct Light {
     DirectionalLight directional_light;                     // 64 bytes
-    std::array<PointLight, max_point_lights> point_lights;  // 320 bytes
-    std::array<SpotLight, max_spot_lights> spot_lights;     // 384 bytes
     uint32_t point_light_count = 0;                         // 4 bytes
     uint32_t spot_light_count = 0;                          // 4 bytes
+    glm::vec2 padding = glm::vec2{0.0f, 0.0f};              // 8 bytes
+    std::array<PointLight, max_point_lights> point_lights;  // 320 bytes
+    std::array<SpotLight, max_spot_lights> spot_lights;     // 384 bytes
 };
 
 constexpr static auto alignment = 16u;

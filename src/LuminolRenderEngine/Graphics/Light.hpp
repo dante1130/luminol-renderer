@@ -32,12 +32,12 @@ struct SpotLight {
 
 struct Light {
     DirectionalLight directional_light;
+    uint32_t point_light_count = 0u;
+    uint32_t spot_light_count = 0u;
     std::vector<PointLight> point_lights =
         std::vector<PointLight>{max_point_lights};
     std::vector<SpotLight> spot_lights =
         std::vector<SpotLight>{max_spot_lights};
-    uint32_t point_light_count = 0u;
-    uint32_t spot_light_count = 0u;
 };
 
 }  // namespace Luminol::Graphics

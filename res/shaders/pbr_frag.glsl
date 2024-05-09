@@ -31,10 +31,10 @@ struct SpotLight
 layout(std140, binding = 1) uniform Light
 {
     DirectionalLight directional_light;
-    PointLight point_lights[MAX_POINT_LIGHTS];
-    SpotLight spot_lights[MAX_SPOT_LIGHTS];
     uint point_lights_count;
     uint spot_lights_count;
+    PointLight point_lights[MAX_POINT_LIGHTS];
+    SpotLight spot_lights[MAX_SPOT_LIGHTS];
 };
 
 struct GeometryBuffer
