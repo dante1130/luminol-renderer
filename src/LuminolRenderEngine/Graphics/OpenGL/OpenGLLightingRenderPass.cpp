@@ -1,6 +1,7 @@
 #include "OpenGLLightingRenderPass.hpp"
 
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLRenderer.hpp>
+#include "LuminolRenderEngine/Graphics/OpenGL/OpenGLUniformBindingPoints.hpp"
 
 namespace {
 
@@ -191,10 +192,14 @@ auto OpenGLLightingRenderPass::draw(
         this->hdr_frame_buffer, BufferBit::Depth
     );
 
-    renderer.get_transform_uniform_buffer().set_data(OpenGLUniforms::Transform{
+    const auto transform = OpenGLUniforms::Transform{
         .view_matrix = glm::mat4{glm::mat3{renderer.get_view_matrix()}},
         .projection_matrix = renderer.get_projection_matrix(),
-    });
+    };
+
+    renderer.get_transform_uniform_buffer().set_data(
+        0, sizeof(transform), &transform
+    );
 
     glCullFace(GL_FRONT);
     glDepthFunc(GL_LEQUAL);

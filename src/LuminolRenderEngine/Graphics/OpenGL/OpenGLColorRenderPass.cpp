@@ -44,10 +44,15 @@ auto OpenGLColorRenderPass::draw(
     OpenGLRenderer& renderer, gsl::span<ColorDrawInstancedCall> draw_calls
 ) -> void {
     this->color_shader.bind();
-    renderer.get_transform_uniform_buffer().set_data(OpenGLUniforms::Transform{
+
+    const auto transform = OpenGLUniforms::Transform{
         .view_matrix = renderer.get_view_matrix(),
         .projection_matrix = renderer.get_projection_matrix(),
-    });
+    };
+
+    renderer.get_transform_uniform_buffer().set_data(
+        0, sizeof(OpenGLUniforms::Transform), &transform
+    );
 
     for (const auto& draw_call : draw_calls) {
         renderer.get_instancing_model_matrix_buffer().set_data(

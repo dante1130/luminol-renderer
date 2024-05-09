@@ -51,39 +51,28 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       )},
       get_window_width{[&window]() { return window.get_width(); }},
       get_window_height{[&window]() { return window.get_height(); }},
-      gbuffer_render_pass{OpenGLGBufferRenderPass{
-          this->get_window_width(), this->get_window_height()
-      }},
-      lighting_render_pass{OpenGLLightingRenderPass{
-          this->get_window_width(), this->get_window_height()
-      }},
-      transform_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Transform>{
-          OpenGLUniforms::Transform{},
+      gbuffer_render_pass{this->get_window_width(), this->get_window_height()},
+      lighting_render_pass{this->get_window_width(), this->get_window_height()},
+      transform_uniform_buffer{
           UniformBufferBindingPoint::Transform,
-      }},
-      light_uniform_buffer{OpenGLUniformBuffer<OpenGLUniforms::Light>{
-          OpenGLUniforms::Light{},
-          UniformBufferBindingPoint::Light,
-      }},
-      instancing_model_matrix_buffer{OpenGLShaderStorageBuffer{
-          ShaderStorageBufferBindingPoint::InstancingModelMatrices
-      }},
-      instancing_color_buffer{
-          OpenGLShaderStorageBuffer{ShaderStorageBufferBindingPoint::Color}
       },
-      skybox{OpenGLSkybox{SkyboxPaths{
+      light_uniform_buffer{UniformBufferBindingPoint::Light},
+      instancing_model_matrix_buffer{
+          ShaderStorageBufferBindingPoint::InstancingModelMatrices
+      },
+      instancing_color_buffer{ShaderStorageBufferBindingPoint::Color},
+      skybox{SkyboxPaths{
           .front = std::filesystem::path{"res/skybox/default/front.jpg"},
           .back = std::filesystem::path{"res/skybox/default/back.jpg"},
           .top = std::filesystem::path{"res/skybox/default/top.jpg"},
           .bottom = std::filesystem::path{"res/skybox/default/bottom.jpg"},
           .left = std::filesystem::path{"res/skybox/default/left.jpg"},
           .right = std::filesystem::path{"res/skybox/default/right.jpg"},
-      }}},
+      }},
       view_matrix{glm::mat4{1.0f}},
       projection_matrix{glm::mat4{1.0f}} {}
 
-auto OpenGLRenderer::get_transform_uniform_buffer()
-    -> OpenGLUniformBuffer<OpenGLUniforms::Transform>& {
+auto OpenGLRenderer::get_transform_uniform_buffer() -> OpenGLUniformBuffer& {
     return this->transform_uniform_buffer;
 }
 
@@ -187,6 +176,9 @@ auto OpenGLRenderer::update_lights() -> void {
         .spot_light_count = light_data.spot_light_count,
     };
 
+    light_uniforms.point_lights.resize(light_data.point_light_count);
+    light_uniforms.spot_lights.resize(light_data.spot_light_count);
+
     /// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (size_t i = 0; i < light_data.point_light_count; ++i) {
         light_uniforms.point_lights[i] = {
@@ -206,7 +198,55 @@ auto OpenGLRenderer::update_lights() -> void {
     }
     /// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
-    this->light_uniform_buffer.set_data(light_uniforms);
+    auto offset = int64_t{0};
+
+    this->light_uniform_buffer.set_data(
+        offset,
+        sizeof(light_uniforms.directional_light),
+        &light_uniforms.directional_light
+    );
+
+    offset += sizeof(light_uniforms.directional_light);
+
+    this->light_uniform_buffer.set_data(
+        offset,
+        sizeof(light_uniforms.point_light_count),
+        &light_uniforms.point_light_count
+    );
+
+    offset += sizeof(light_uniforms.point_light_count);
+
+    this->light_uniform_buffer.set_data(
+        offset,
+        sizeof(light_uniforms.spot_light_count),
+        &light_uniforms.spot_light_count
+    );
+
+    offset += sizeof(light_uniforms.spot_light_count) +
+              sizeof(light_uniforms.padding);
+
+    this->light_uniform_buffer.set_data(
+        offset,
+        gsl::narrow<int64_t>(
+            sizeof(light_uniforms.point_lights[0]) *
+            light_uniforms.point_lights.size()
+        ),
+        light_uniforms.point_lights.data()
+    );
+
+    offset += gsl::narrow<int64_t>(
+        sizeof(light_uniforms.point_lights[0]) *
+        light_uniforms.point_lights.size()
+    );
+
+    this->light_uniform_buffer.set_data(
+        offset,
+        gsl::narrow<int64_t>(
+            sizeof(light_uniforms.spot_lights[0]) *
+            light_uniforms.spot_lights.size()
+        ),
+        light_uniforms.spot_lights.data()
+    );
 }
 
 auto OpenGLRenderer::get_framebuffer_resize_callback()

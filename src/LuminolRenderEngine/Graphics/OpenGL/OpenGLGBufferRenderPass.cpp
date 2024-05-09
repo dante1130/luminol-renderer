@@ -90,12 +90,14 @@ auto OpenGLGBufferRenderPass::draw(
     this->gbuffer_frame_buffer.bind();
     renderer.clear(BufferBit::ColorDepth);
     for (const auto& draw_call : draw_calls) {
+        const auto transform = OpenGLUniforms::Transform{
+            .model_matrix = draw_call.model_matrix,
+            .view_matrix = renderer.get_view_matrix(),
+            .projection_matrix = renderer.get_projection_matrix(),
+        };
+
         renderer.get_transform_uniform_buffer().set_data(
-            OpenGLUniforms::Transform{
-                .model_matrix = draw_call.model_matrix,
-                .view_matrix = renderer.get_view_matrix(),
-                .projection_matrix = renderer.get_projection_matrix(),
-            }
+            0, sizeof(transform), &transform
         );
 
         draw_call.renderable.get().draw();

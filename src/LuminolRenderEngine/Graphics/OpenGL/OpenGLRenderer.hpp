@@ -19,8 +19,7 @@ class OpenGLRenderer : public Renderer {
 public:
     OpenGLRenderer(Window& window);
 
-    [[nodiscard]] auto get_transform_uniform_buffer()
-        -> OpenGLUniformBuffer<OpenGLUniforms::Transform>&;
+    [[nodiscard]] auto get_transform_uniform_buffer() -> OpenGLUniformBuffer&;
     [[nodiscard]] auto get_instancing_model_matrix_buffer()
         -> OpenGLShaderStorageBuffer&;
     [[nodiscard]] auto get_instancing_color_buffer()
@@ -68,8 +67,8 @@ private:
     OpenGLLightingRenderPass lighting_render_pass;
     OpenGLColorRenderPass color_render_pass;
 
-    OpenGLUniformBuffer<OpenGLUniforms::Transform> transform_uniform_buffer;
-    OpenGLUniformBuffer<OpenGLUniforms::Light> light_uniform_buffer;
+    OpenGLUniformBuffer transform_uniform_buffer;
+    OpenGLUniformBuffer light_uniform_buffer;
     OpenGLShaderStorageBuffer instancing_model_matrix_buffer;
     OpenGLShaderStorageBuffer instancing_color_buffer;
 
