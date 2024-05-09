@@ -65,13 +65,12 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
           OpenGLUniforms::Light{},
           UniformBufferBindingPoint::Light,
       }},
-      instancing_model_matrix_buffer{OpenGLShaderStorageBuffer<glm::mat4>{
-          glm::mat4{1.0f},
+      instancing_model_matrix_buffer{OpenGLShaderStorageBuffer{
           ShaderStorageBufferBindingPoint::InstancingModelMatrices
       }},
-      instancing_color_buffer{OpenGLShaderStorageBuffer<glm::vec3>{
-          glm::vec3{1.0f}, ShaderStorageBufferBindingPoint::Color
-      }},
+      instancing_color_buffer{
+          OpenGLShaderStorageBuffer{ShaderStorageBufferBindingPoint::Color}
+      },
       skybox{OpenGLSkybox{SkyboxPaths{
           .front = std::filesystem::path{"res/skybox/default/front.jpg"},
           .back = std::filesystem::path{"res/skybox/default/back.jpg"},
@@ -89,12 +88,12 @@ auto OpenGLRenderer::get_transform_uniform_buffer()
 }
 
 auto OpenGLRenderer::get_instancing_model_matrix_buffer()
-    -> OpenGLShaderStorageBuffer<glm::mat4>& {
+    -> OpenGLShaderStorageBuffer& {
     return this->instancing_model_matrix_buffer;
 }
 
 auto OpenGLRenderer::get_instancing_color_buffer()
-    -> OpenGLShaderStorageBuffer<glm::vec3>& {
+    -> OpenGLShaderStorageBuffer& {
     return this->instancing_color_buffer;
 }
 
@@ -148,7 +147,9 @@ auto OpenGLRenderer::queue_draw_with_color_instanced(
     gsl::span<glm::mat4> model_matrices,
     gsl::span<glm::vec3> colors
 ) -> void {
-    this->instanced_color_draw_queue.emplace_back(renderable, model_matrices, colors);
+    this->instanced_color_draw_queue.emplace_back(
+        renderable, model_matrices, colors
+    );
 }
 
 auto OpenGLRenderer::draw() -> void {

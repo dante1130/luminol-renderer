@@ -22,9 +22,9 @@ public:
     [[nodiscard]] auto get_transform_uniform_buffer()
         -> OpenGLUniformBuffer<OpenGLUniforms::Transform>&;
     [[nodiscard]] auto get_instancing_model_matrix_buffer()
-        -> OpenGLShaderStorageBuffer<glm::mat4>&;
+        -> OpenGLShaderStorageBuffer&;
     [[nodiscard]] auto get_instancing_color_buffer()
-        -> OpenGLShaderStorageBuffer<glm::vec3>&;
+        -> OpenGLShaderStorageBuffer&;
     [[nodiscard]] auto get_view_matrix() const -> const glm::mat4&;
     [[nodiscard]] auto get_projection_matrix() const -> const glm::mat4&;
     [[nodiscard]] auto get_exposure() const -> float;
@@ -70,8 +70,8 @@ private:
 
     OpenGLUniformBuffer<OpenGLUniforms::Transform> transform_uniform_buffer;
     OpenGLUniformBuffer<OpenGLUniforms::Light> light_uniform_buffer;
-    OpenGLShaderStorageBuffer<glm::mat4> instancing_model_matrix_buffer;
-    OpenGLShaderStorageBuffer<glm::vec3> instancing_color_buffer;
+    OpenGLShaderStorageBuffer instancing_model_matrix_buffer;
+    OpenGLShaderStorageBuffer instancing_color_buffer;
 
     OpenGLSkybox skybox;
 
