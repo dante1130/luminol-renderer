@@ -41,6 +41,26 @@ auto initialize_opengl(
     return version;
 }
 
+auto create_transform_uniform_buffer() -> OpenGLUniformBuffer {
+    return OpenGLUniformBuffer{
+        UniformBufferBindingPoint::Transform, sizeof(OpenGLUniforms::Transform)
+    };
+}
+
+auto create_light_uniform_buffer() -> OpenGLUniformBuffer {
+    const auto size_bytes =
+        sizeof(OpenGLUniforms::Light::directional_light) +
+        sizeof(OpenGLUniforms::Light::point_light_count) +
+        sizeof(OpenGLUniforms::Light::spot_light_count) +
+        sizeof(OpenGLUniforms::Light::padding) +
+        sizeof(OpenGLUniforms::PointLight) * max_point_lights +
+        sizeof(OpenGLUniforms::SpotLight) * max_spot_lights;
+
+    return OpenGLUniformBuffer{
+        UniformBufferBindingPoint::Light, gsl::narrow<int64_t>(size_bytes)
+    };
+}
+
 }  // namespace
 
 namespace Luminol::Graphics {
@@ -53,10 +73,8 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       get_window_height{[&window]() { return window.get_height(); }},
       gbuffer_render_pass{this->get_window_width(), this->get_window_height()},
       lighting_render_pass{this->get_window_width(), this->get_window_height()},
-      transform_uniform_buffer{
-          UniformBufferBindingPoint::Transform,
-      },
-      light_uniform_buffer{UniformBufferBindingPoint::Light},
+      transform_uniform_buffer{create_transform_uniform_buffer()},
+      light_uniform_buffer{create_light_uniform_buffer()},
       instancing_model_matrix_buffer{
           ShaderStorageBufferBindingPoint::InstancingModelMatrices
       },

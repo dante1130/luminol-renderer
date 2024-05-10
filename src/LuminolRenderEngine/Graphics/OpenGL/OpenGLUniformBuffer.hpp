@@ -10,9 +10,14 @@ namespace Luminol::Graphics {
 
 class OpenGLUniformBuffer {
 public:
-    OpenGLUniformBuffer(UniformBufferBindingPoint binding_point)
-        : binding_point{binding_point} {
-        glCreateBuffers(1, &uniform_buffer_id);
+    OpenGLUniformBuffer(
+        UniformBufferBindingPoint binding_point, int64_t size_bytes
+    )
+        : binding_point{binding_point}, capacity_bytes{size_bytes} {
+        glCreateBuffers(1, &this->uniform_buffer_id);
+        glNamedBufferData(
+            this->uniform_buffer_id, size_bytes, nullptr, GL_DYNAMIC_DRAW
+        );
         glBindBufferBase(
             GL_UNIFORM_BUFFER,
             static_cast<uint32_t>(this->binding_point),
@@ -33,7 +38,7 @@ public:
         const auto new_size_bytes = offset + data_size_bytes;
 
         if (this->capacity_bytes < new_size_bytes) {
-            uint32_t new_uniform_buffer_id = 0;
+            auto new_uniform_buffer_id = 0u;
             glCreateBuffers(1, &new_uniform_buffer_id);
             glNamedBufferData(
                 new_uniform_buffer_id, new_size_bytes, nullptr, GL_DYNAMIC_DRAW
