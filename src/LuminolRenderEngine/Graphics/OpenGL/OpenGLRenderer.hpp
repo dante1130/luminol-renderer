@@ -11,6 +11,7 @@
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLGBufferRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLLightingRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLColorRenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLSkyboxRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLHDRRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLDrawCall.hpp>
 
@@ -60,14 +61,13 @@ private:
     OpenGLGBufferRenderPass gbuffer_render_pass;
     OpenGLLightingRenderPass lighting_render_pass;
     OpenGLColorRenderPass color_render_pass;
+    OpenGLSkyboxRenderPass skybox_render_pass;
     OpenGLHDRRenderPass hdr_render_pass;
 
     OpenGLUniformBuffer transform_uniform_buffer;
     OpenGLUniformBuffer light_uniform_buffer;
     OpenGLShaderStorageBuffer instancing_model_matrix_buffer;
     OpenGLShaderStorageBuffer instancing_color_buffer;
-
-    OpenGLSkybox skybox;
 
     float exposure = 1.0f;
 

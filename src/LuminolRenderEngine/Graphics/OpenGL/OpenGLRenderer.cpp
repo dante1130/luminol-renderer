@@ -94,14 +94,6 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
           ShaderStorageBufferBindingPoint::InstancingModelMatrices
       },
       instancing_color_buffer{ShaderStorageBufferBindingPoint::Color},
-      skybox{SkyboxPaths{
-          .front = std::filesystem::path{"res/skybox/default/front.jpg"},
-          .back = std::filesystem::path{"res/skybox/default/back.jpg"},
-          .top = std::filesystem::path{"res/skybox/default/top.jpg"},
-          .bottom = std::filesystem::path{"res/skybox/default/bottom.jpg"},
-          .left = std::filesystem::path{"res/skybox/default/left.jpg"},
-          .right = std::filesystem::path{"res/skybox/default/right.jpg"},
-      }},
       view_matrix{glm::mat4{1.0f}},
       projection_matrix{glm::mat4{1.0f}} {}
 
@@ -153,7 +145,7 @@ auto OpenGLRenderer::queue_draw_with_color_instanced(
 auto OpenGLRenderer::draw() -> void {
     this->update_lights();
 
-    auto transform = OpenGLUniforms::Transform{
+    const auto transform = OpenGLUniforms::Transform{
         .view_matrix = this->view_matrix,
         .projection_matrix = this->projection_matrix,
     };
@@ -170,8 +162,6 @@ auto OpenGLRenderer::draw() -> void {
         *this,
         this->gbuffer_render_pass.get_gbuffer_frame_buffer(),
         this->hdr_frame_buffer,
-        this->transform_uniform_buffer,
-        this->skybox,
         this->view_matrix,
         this->color_render_pass,
         this->instanced_color_draw_queue,
@@ -179,10 +169,13 @@ auto OpenGLRenderer::draw() -> void {
         this->instancing_color_buffer
     );
 
-    this->hdr_render_pass.draw(
+    this->skybox_render_pass.draw(
         this->hdr_frame_buffer,
-        this->exposure
+        this->transform_uniform_buffer,
+        this->view_matrix
     );
+
+    this->hdr_render_pass.draw(this->hdr_frame_buffer, this->exposure);
 
     this->draw_queue.clear();
     this->color_draw_queue.clear();

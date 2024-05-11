@@ -21,6 +21,7 @@ add_library(Luminol.Graphics
     OpenGL/OpenGLGBufferRenderPass.cpp
     OpenGL/OpenGLLightingRenderPass.cpp
     OpenGL/OpenGLColorRenderPass.cpp
+    OpenGL/OpenGLSkyboxRenderPass.cpp
     OpenGL/OpenGLHDRRenderPass.cpp
 )
 

@@ -99,26 +99,6 @@ auto create_pbr_shader() -> OpenGLShader {
     return pbr_shader;
 }
 
-auto create_skybox_shader() -> OpenGLShader {
-    auto skybox_shader = OpenGLShader{ShaderPaths{
-        .vertex_shader_path =
-            std::filesystem::path{"res/shaders/skybox_vert.glsl"},
-        .fragment_shader_path =
-            std::filesystem::path{"res/shaders/skybox_frag.glsl"},
-    }};
-
-    skybox_shader.bind();
-    skybox_shader.set_sampler_binding_point(
-        "skybox", SamplerBindingPoint::Skybox
-    );
-    skybox_shader.set_uniform_block_binding_point(
-        "Transform", UniformBufferBindingPoint::Transform
-    );
-    skybox_shader.unbind();
-
-    return skybox_shader;
-}
-
 auto get_view_position(const glm::mat4& view_matrix) -> glm::vec3 {
     return glm::inverse(view_matrix)[3];
 }
@@ -128,17 +108,12 @@ auto get_view_position(const glm::mat4& view_matrix) -> glm::vec3 {
 namespace Luminol::Graphics {
 
 OpenGLLightingRenderPass::OpenGLLightingRenderPass()
-    : pbr_shader{create_pbr_shader()},
-      skybox_shader{create_skybox_shader()},
-      cube{"res/models/cube/cube.obj"},
-      quad{create_quad_mesh()} {}
+    : pbr_shader{create_pbr_shader()}, quad{create_quad_mesh()} {}
 
 auto OpenGLLightingRenderPass::draw(
     const OpenGLRenderer& renderer,
     const OpenGLFrameBuffer& gbuffer_frame_buffer,
     const OpenGLFrameBuffer& hdr_frame_buffer,
-    OpenGLUniformBuffer& transform_uniform_buffer,
-    const OpenGLSkybox& skybox,
     const glm::mat4& view_matrix,
     const OpenGLColorRenderPass& color_render_pass,
     gsl::span<ColorDrawInstancedCall> color_draw_calls,
@@ -166,24 +141,6 @@ auto OpenGLLightingRenderPass::draw(
         instancing_color_model_matrix_buffer,
         instancing_color_buffer
     );
-
-    const auto skybox_view_matrix = glm::mat4{glm::mat3{view_matrix}};
-
-    transform_uniform_buffer.set_data(
-        offsetof(OpenGLUniforms::Transform, view_matrix),
-        sizeof(skybox_view_matrix),
-        &skybox_view_matrix
-    );
-
-    glCullFace(GL_FRONT);
-    glDepthFunc(GL_LEQUAL);
-    this->skybox_shader.bind();
-    skybox.bind();
-    this->cube.draw();
-    skybox.unbind();
-    this->skybox_shader.unbind();
-    glDepthFunc(GL_LESS);
-    glCullFace(GL_BACK);
 
     hdr_frame_buffer.unbind();
 }
