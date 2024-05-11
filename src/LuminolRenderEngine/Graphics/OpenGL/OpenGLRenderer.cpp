@@ -152,7 +152,19 @@ auto OpenGLRenderer::queue_draw_with_color_instanced(
 auto OpenGLRenderer::draw() -> void {
     this->update_lights();
 
-    this->gbuffer_render_pass.draw(*this, this->draw_queue);
+    auto transform = OpenGLUniforms::Transform{
+        .view_matrix = this->view_matrix,
+        .projection_matrix = this->projection_matrix,
+    };
+
+    this->transform_uniform_buffer.set_data(
+        0, sizeof(OpenGLUniforms::Transform), &transform
+    );
+
+    this->gbuffer_render_pass.draw(
+        *this, this->draw_queue, this->transform_uniform_buffer
+    );
+
     this->lighting_render_pass.draw(
         *this,
         this->gbuffer_render_pass.get_gbuffer_frame_buffer(),
@@ -165,11 +177,6 @@ auto OpenGLRenderer::draw() -> void {
             this->get_window_height(),
             BufferBit::Depth
         );
-
-    const auto transform = OpenGLUniforms::Transform{
-        .view_matrix = this->view_matrix,
-        .projection_matrix = this->projection_matrix,
-    };
 
     this->transform_uniform_buffer.set_data(
         0, sizeof(OpenGLUniforms::Transform), &transform

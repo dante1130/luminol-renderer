@@ -84,20 +84,18 @@ auto OpenGLGBufferRenderPass::get_gbuffer_frame_buffer() -> OpenGLFrameBuffer& {
 }
 
 auto OpenGLGBufferRenderPass::draw(
-    OpenGLRenderer& renderer, gsl::span<DrawCall> draw_calls
+    OpenGLRenderer& renderer,
+    gsl::span<DrawCall> draw_calls,
+    OpenGLUniformBuffer& transform_uniform_buffer
 ) -> void {
     this->gbuffer_shader.bind();
     this->gbuffer_frame_buffer.bind();
     renderer.clear(BufferBit::ColorDepth);
     for (const auto& draw_call : draw_calls) {
-        const auto transform = OpenGLUniforms::Transform{
-            .model_matrix = draw_call.model_matrix,
-            .view_matrix = renderer.get_view_matrix(),
-            .projection_matrix = renderer.get_projection_matrix(),
-        };
-
-        renderer.get_transform_uniform_buffer().set_data(
-            0, sizeof(transform), &transform
+        transform_uniform_buffer.set_data(
+            0,
+            sizeof(OpenGLUniforms::Transform::model_matrix),
+            &draw_call.model_matrix
         );
 
         draw_call.renderable.get().draw();

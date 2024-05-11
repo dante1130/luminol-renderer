@@ -5,6 +5,7 @@
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLDrawCall.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLFrameBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniformBuffer.hpp>
 
 namespace Luminol::Graphics {
 
@@ -16,8 +17,11 @@ public:
 
     [[nodiscard]] auto get_gbuffer_frame_buffer() -> OpenGLFrameBuffer&;
 
-    auto draw(OpenGLRenderer& renderer, gsl::span<DrawCall> draw_calls)
-        -> void;
+    auto draw(
+        OpenGLRenderer& renderer,
+        gsl::span<DrawCall> draw_calls,
+        OpenGLUniformBuffer& transform_uniform_buffer
+    ) -> void;
 
 private:
     OpenGLFrameBuffer gbuffer_frame_buffer;
