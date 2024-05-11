@@ -16,6 +16,7 @@ using namespace Luminol::Graphics;
 struct Lights {
     std::vector<glm::mat4> model_matrices;
     std::vector<glm::vec3> colors;
+    std::vector<LightManager::LightId> light_ids;
     std::unique_ptr<Model> model;
 };
 
@@ -124,6 +125,8 @@ auto main() -> int {
             std::cerr << "Failed to add point light\n";
             return 1;
         }
+
+        lights.light_ids.emplace_back(point_light_id_opt.value());
     }
 
     const auto initial_flash_light = Graphics::SpotLight{
@@ -189,6 +192,29 @@ auto main() -> int {
         luminol_engine.get_renderer().get_light_manager().update_spot_light(
             flash_light_id, flash_light
         );
+
+        for (size_t i = 0; i < lights.model_matrices.size(); ++i) {
+            constexpr auto rotation_degrees = 90.0f;
+
+            auto rotation = glm::rotate(
+                glm::mat4(1.0f),
+                glm::radians(rotation_degrees) *
+                    gsl::narrow_cast<float>(delta_time_seconds),
+                glm::vec3(0.0f, 1.0f, 0.0f)
+            );
+
+            lights.model_matrices[i] = rotation * lights.model_matrices[i];
+
+            luminol_engine.get_renderer()
+                .get_light_manager()
+                .update_point_light(
+                    lights.light_ids[i],
+                    PointLight{
+                        .position = glm::vec3(lights.model_matrices[i][3]),
+                        .color = lights.colors[i],
+                    }
+                );
+        }
 
         luminol_engine.get_renderer().queue_draw_with_color_instanced(
             *lights.model, lights.model_matrices, lights.colors
