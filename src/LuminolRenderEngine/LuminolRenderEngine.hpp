@@ -8,6 +8,7 @@
 #include <LuminolRenderEngine/Graphics/Camera.hpp>
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
+#include <LuminolRenderEngine/Graphics/GraphicsFactory.hpp>
 
 namespace Luminol {
 
@@ -28,11 +29,12 @@ public:
     [[nodiscard]] auto get_window() const -> const Window&;
     [[nodiscard]] auto get_window() -> Window&;
 
+    [[nodiscard]] auto get_renderable_manager() const
+        -> const Graphics::RenderableManager&;
+    [[nodiscard]] auto get_renderable_manager() -> Graphics::RenderableManager&;
+
     [[nodiscard]] auto get_renderer() const -> const Graphics::Renderer&;
     [[nodiscard]] auto get_renderer() -> Graphics::Renderer&;
-
-    [[nodiscard]] auto get_graphics_factory() const
-        -> const Graphics::GraphicsFactory&;
 
 private:
     Window window;

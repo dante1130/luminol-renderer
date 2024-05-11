@@ -7,11 +7,13 @@
 
 #include <gsl/gsl>
 
-#include <LuminolRenderEngine/Graphics/GraphicsFactory.hpp>
-#include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
+#include <LuminolRenderEngine/Graphics/GraphicsApi.hpp>
 #include <LuminolRenderEngine/Graphics/Renderable.hpp>
+#include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
 
 namespace Luminol::Graphics {
+
+class GraphicsFactory;
 
 using RenderableId = uint32_t;
 

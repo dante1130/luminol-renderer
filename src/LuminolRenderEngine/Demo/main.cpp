@@ -64,9 +64,9 @@ auto main() -> int {
     constexpr auto exposure = 2.0f;
     luminol_engine.get_renderer().set_exposure(exposure);
 
-    auto model = luminol_engine.get_graphics_factory().create_model(
-        "res/models/Sponza/glTF/Sponza.gltf"
-    );
+    auto model = luminol_engine.get_renderable_manager()
+                     .get_graphics_factory()
+                     .create_model("res/models/Sponza/glTF/Sponza.gltf");
 
     constexpr auto directional_light = Graphics::DirectionalLight{
         .direction = glm::vec3(0.5f, -0.5f, 1.0f),
@@ -80,10 +80,11 @@ auto main() -> int {
     constexpr auto lights_count = 8u;
 
     auto lights = Lights{
-        .model = luminol_engine.get_graphics_factory().create_model(
-            "res/models/cube/cube.obj"
-        )
+        .model = luminol_engine.get_renderable_manager()
+                     .get_graphics_factory()
+                     .create_model("res/models/cube/cube.obj")
     };
+
     lights.model_matrices.reserve(lights_count);
     lights.colors.reserve(lights_count);
 

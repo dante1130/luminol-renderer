@@ -3,7 +3,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <LuminolRenderEngine/Graphics/Light.hpp>
-#include <LuminolRenderEngine/Graphics/GraphicsFactory.hpp>
 
 namespace Luminol {
 
@@ -17,9 +16,13 @@ auto RenderEngine::get_window() const -> const Window& { return this->window; }
 
 auto RenderEngine::get_window() -> Window& { return this->window; }
 
-auto RenderEngine::get_graphics_factory() const
-    -> const Graphics::GraphicsFactory& {
-    return this->renderable_manager.get_graphics_factory();
+auto RenderEngine::get_renderable_manager() const
+    -> const Graphics::RenderableManager& {
+    return this->renderable_manager;
+}
+
+auto RenderEngine::get_renderable_manager() -> Graphics::RenderableManager& {
+    return this->renderable_manager;
 }
 
 auto RenderEngine::get_renderer() const -> const Graphics::Renderer& {

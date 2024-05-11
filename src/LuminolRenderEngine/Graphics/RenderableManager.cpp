@@ -1,5 +1,7 @@
 #include "RenderableManager.hpp"
 
+#include <LuminolRenderEngine/Graphics/GraphicsFactory.hpp>
+
 namespace Luminol::Graphics {
 
 RenderableManager::RenderableManager(GraphicsApi api)

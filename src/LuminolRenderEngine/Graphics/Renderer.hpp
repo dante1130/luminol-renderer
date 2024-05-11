@@ -3,10 +3,11 @@
 #include <gsl/gsl>
 #include <glm/glm.hpp>
 
-#include <LuminolRenderEngine/Graphics/Renderable.hpp>
 #include <LuminolRenderEngine/Window/Window.hpp>
+#include <LuminolRenderEngine/Graphics/Renderable.hpp>
 #include <LuminolRenderEngine/Graphics/BufferBit.hpp>
 #include <LuminolRenderEngine/Graphics/LightManager.hpp>
+#include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 
 namespace Luminol::Graphics {
 
