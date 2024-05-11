@@ -4,17 +4,18 @@
 
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLDrawCall.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShaderStorageBuffer.hpp>
 
 namespace Luminol::Graphics {
-
-class OpenGLRenderer;
 
 class OpenGLColorRenderPass {
 public:
     OpenGLColorRenderPass();
 
     auto draw(
-        OpenGLRenderer& renderer, gsl::span<ColorDrawInstancedCall> draw_calls
+        gsl::span<ColorDrawInstancedCall> draw_calls,
+        OpenGLShaderStorageBuffer& instancing_model_matrix_buffer,
+        OpenGLShaderStorageBuffer& instancing_color_buffer
     ) -> void;
 
 private:

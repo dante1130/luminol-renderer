@@ -94,16 +94,6 @@ auto OpenGLRenderer::get_transform_uniform_buffer() -> OpenGLUniformBuffer& {
     return this->transform_uniform_buffer;
 }
 
-auto OpenGLRenderer::get_instancing_model_matrix_buffer()
-    -> OpenGLShaderStorageBuffer& {
-    return this->instancing_model_matrix_buffer;
-}
-
-auto OpenGLRenderer::get_instancing_color_buffer()
-    -> OpenGLShaderStorageBuffer& {
-    return this->instancing_color_buffer;
-}
-
 auto OpenGLRenderer::get_view_matrix() const -> const glm::mat4& {
     return this->view_matrix;
 }
@@ -176,7 +166,20 @@ auto OpenGLRenderer::draw() -> void {
             BufferBit::Depth
         );
 
-    this->color_render_pass.draw(*this, this->instanced_color_draw_queue);
+    const auto transform = OpenGLUniforms::Transform{
+        .view_matrix = this->view_matrix,
+        .projection_matrix = this->projection_matrix,
+    };
+
+    this->transform_uniform_buffer.set_data(
+        0, sizeof(OpenGLUniforms::Transform), &transform
+    );
+
+    this->color_render_pass.draw(
+        this->instanced_color_draw_queue,
+        this->instancing_model_matrix_buffer,
+        this->instancing_color_buffer
+    );
 
     this->draw_queue.clear();
     this->color_draw_queue.clear();

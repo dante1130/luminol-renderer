@@ -1,7 +1,5 @@
 #include "OpenGLColorRenderPass.hpp"
 
-#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLRenderer.hpp>
-
 namespace {
 
 using namespace Luminol::Graphics;
@@ -41,21 +39,14 @@ OpenGLColorRenderPass::OpenGLColorRenderPass()
     : color_shader{create_color_shader()} {}
 
 auto OpenGLColorRenderPass::draw(
-    OpenGLRenderer& renderer, gsl::span<ColorDrawInstancedCall> draw_calls
+    gsl::span<ColorDrawInstancedCall> draw_calls,
+    OpenGLShaderStorageBuffer& instancing_model_matrix_buffer,
+    OpenGLShaderStorageBuffer& instancing_color_buffer
 ) -> void {
     this->color_shader.bind();
 
-    const auto transform = OpenGLUniforms::Transform{
-        .view_matrix = renderer.get_view_matrix(),
-        .projection_matrix = renderer.get_projection_matrix(),
-    };
-
-    renderer.get_transform_uniform_buffer().set_data(
-        0, sizeof(OpenGLUniforms::Transform), &transform
-    );
-
     for (const auto& draw_call : draw_calls) {
-        renderer.get_instancing_model_matrix_buffer().set_data(
+        instancing_model_matrix_buffer.set_data(
             0,
             gsl::narrow<int64_t>(draw_call.model_matrices.size_bytes()),
             draw_call.model_matrices.data()
@@ -68,7 +59,7 @@ auto OpenGLColorRenderPass::draw(
             color_buffer_padded.emplace_back(color, 0.0f);
         }
 
-        renderer.get_instancing_color_buffer().set_data(
+        instancing_color_buffer.set_data(
             0,
             gsl::narrow<int64_t>(
                 color_buffer_padded.size() * sizeof(glm::vec4)

@@ -99,6 +99,7 @@ auto create_pbr_shader() -> OpenGLShader {
 
     return pbr_shader;
 }
+
 auto create_hdr_shader() -> OpenGLShader {
     auto hdr_shader = OpenGLShader{ShaderPaths{
         .vertex_shader_path =

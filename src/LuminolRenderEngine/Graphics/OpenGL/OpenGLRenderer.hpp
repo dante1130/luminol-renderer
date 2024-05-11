@@ -20,10 +20,6 @@ public:
     OpenGLRenderer(Window& window);
 
     [[nodiscard]] auto get_transform_uniform_buffer() -> OpenGLUniformBuffer&;
-    [[nodiscard]] auto get_instancing_model_matrix_buffer()
-        -> OpenGLShaderStorageBuffer&;
-    [[nodiscard]] auto get_instancing_color_buffer()
-        -> OpenGLShaderStorageBuffer&;
     [[nodiscard]] auto get_view_matrix() const -> const glm::mat4&;
     [[nodiscard]] auto get_projection_matrix() const -> const glm::mat4&;
     [[nodiscard]] auto get_exposure() const -> float;
