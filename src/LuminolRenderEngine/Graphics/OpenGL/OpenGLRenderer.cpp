@@ -41,6 +41,19 @@ auto initialize_opengl(
     return version;
 }
 
+auto create_hdr_frame_buffer(int32_t width, int32_t height)
+    -> OpenGLFrameBuffer {
+    return OpenGLFrameBuffer{OpenGLFrameBufferDescriptor{
+        width,
+        height,
+        {OpenGLFrameBufferAttachment{
+            .internal_format = TextureInternalFormat::RGBA16F,
+            .format = TextureFormat::RGBA,
+            .binding_point = SamplerBindingPoint::HDRFramebuffer,
+        }},
+    }};
+}
+
 auto create_transform_uniform_buffer() -> OpenGLUniformBuffer {
     return OpenGLUniformBuffer{
         UniformBufferBindingPoint::Transform, sizeof(OpenGLUniforms::Transform)
@@ -71,8 +84,10 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       )},
       get_window_width{[&window]() { return window.get_width(); }},
       get_window_height{[&window]() { return window.get_height(); }},
+      hdr_frame_buffer{create_hdr_frame_buffer(
+          this->get_window_width(), this->get_window_height()
+      )},
       gbuffer_render_pass{this->get_window_width(), this->get_window_height()},
-      lighting_render_pass{this->get_window_width(), this->get_window_height()},
       transform_uniform_buffer{create_transform_uniform_buffer()},
       light_uniform_buffer{create_light_uniform_buffer()},
       instancing_model_matrix_buffer{
@@ -154,36 +169,20 @@ auto OpenGLRenderer::draw() -> void {
     this->lighting_render_pass.draw(
         *this,
         this->gbuffer_render_pass.get_gbuffer_frame_buffer(),
+        this->hdr_frame_buffer,
         this->transform_uniform_buffer,
         this->skybox,
         this->view_matrix,
-        this->exposure,
         this->color_render_pass,
         this->instanced_color_draw_queue,
         this->instancing_model_matrix_buffer,
         this->instancing_color_buffer
     );
 
-    /*
-    this->gbuffer_render_pass.get_gbuffer_frame_buffer()
-        .blit_to_default_framebuffer(
-            this->get_window_width(),
-            this->get_window_height(),
-            BufferBit::Depth
-        );
-
-    this->transform_uniform_buffer.set_data(
-        0, sizeof(OpenGLUniforms::Transform), &transform
+    this->hdr_render_pass.draw(
+        this->hdr_frame_buffer,
+        this->exposure
     );
-    */
-
-    /*
-    this->color_render_pass.draw(
-        this->instanced_color_draw_queue,
-        this->instancing_model_matrix_buffer,
-        this->instancing_color_buffer
-    );
-    */
 
     this->draw_queue.clear();
     this->color_draw_queue.clear();
@@ -252,8 +251,7 @@ auto OpenGLRenderer::update_lights() -> void {
 
     const auto spot_light_offset =
         offsetof(OpenGLUniforms::Light, point_lights) +
-        sizeof(light_uniforms.point_lights[0]) *
-        max_point_lights;
+        sizeof(light_uniforms.point_lights[0]) * max_point_lights;
 
     this->light_uniform_buffer.set_data(
         gsl::narrow<int64_t>(spot_light_offset),
@@ -272,7 +270,7 @@ auto OpenGLRenderer::get_framebuffer_resize_callback()
         this->gbuffer_render_pass.get_gbuffer_frame_buffer().resize(
             width, height
         );
-        this->lighting_render_pass.get_hdr_frame_buffer().resize(width, height);
+        this->hdr_frame_buffer.resize(width, height);
     };
 }
 

@@ -87,7 +87,7 @@ auto OpenGLGBufferRenderPass::draw(
     OpenGLRenderer& renderer,
     gsl::span<DrawCall> draw_calls,
     OpenGLUniformBuffer& transform_uniform_buffer
-) -> void {
+) const -> void {
     this->gbuffer_shader.bind();
     this->gbuffer_frame_buffer.bind();
     renderer.clear(BufferBit::ColorDepth);

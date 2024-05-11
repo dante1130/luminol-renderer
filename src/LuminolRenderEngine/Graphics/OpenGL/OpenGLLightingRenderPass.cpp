@@ -1,7 +1,6 @@
 #include "OpenGLLightingRenderPass.hpp"
 
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLRenderer.hpp>
-#include "LuminolRenderEngine/Graphics/OpenGL/OpenGLUniformBindingPoints.hpp"
 
 namespace {
 
@@ -100,36 +99,6 @@ auto create_pbr_shader() -> OpenGLShader {
     return pbr_shader;
 }
 
-auto create_hdr_shader() -> OpenGLShader {
-    auto hdr_shader = OpenGLShader{ShaderPaths{
-        .vertex_shader_path =
-            std::filesystem::path{"res/shaders/hdr_vert.glsl"},
-        .fragment_shader_path =
-            std::filesystem::path{"res/shaders/hdr_frag.glsl"},
-    }};
-
-    hdr_shader.bind();
-    hdr_shader.set_sampler_binding_point(
-        "hdr_framebuffer", SamplerBindingPoint::HDRFramebuffer
-    );
-    hdr_shader.unbind();
-
-    return hdr_shader;
-}
-
-auto create_hdr_frame_buffer(int32_t width, int32_t height)
-    -> OpenGLFrameBuffer {
-    return OpenGLFrameBuffer{OpenGLFrameBufferDescriptor{
-        width,
-        height,
-        {OpenGLFrameBufferAttachment{
-            .internal_format = TextureInternalFormat::RGBA16F,
-            .format = TextureFormat::RGBA,
-            .binding_point = SamplerBindingPoint::HDRFramebuffer,
-        }},
-    }};
-}
-
 auto create_skybox_shader() -> OpenGLShader {
     auto skybox_shader = OpenGLShader{ShaderPaths{
         .vertex_shader_path =
@@ -158,33 +127,25 @@ auto get_view_position(const glm::mat4& view_matrix) -> glm::vec3 {
 
 namespace Luminol::Graphics {
 
-OpenGLLightingRenderPass::OpenGLLightingRenderPass(
-    int32_t width, int32_t height
-)
-    : hdr_frame_buffer{create_hdr_frame_buffer(width, height)},
-      pbr_shader{create_pbr_shader()},
-      hdr_shader{create_hdr_shader()},
+OpenGLLightingRenderPass::OpenGLLightingRenderPass()
+    : pbr_shader{create_pbr_shader()},
       skybox_shader{create_skybox_shader()},
       cube{"res/models/cube/cube.obj"},
       quad{create_quad_mesh()} {}
 
-auto OpenGLLightingRenderPass::get_hdr_frame_buffer() -> OpenGLFrameBuffer& {
-    return hdr_frame_buffer;
-}
-
 auto OpenGLLightingRenderPass::draw(
     const OpenGLRenderer& renderer,
     const OpenGLFrameBuffer& gbuffer_frame_buffer,
+    const OpenGLFrameBuffer& hdr_frame_buffer,
     OpenGLUniformBuffer& transform_uniform_buffer,
     const OpenGLSkybox& skybox,
     const glm::mat4& view_matrix,
-    float exposure,
-    OpenGLColorRenderPass& color_render_pass,
+    const OpenGLColorRenderPass& color_render_pass,
     gsl::span<ColorDrawInstancedCall> color_draw_calls,
     OpenGLShaderStorageBuffer& instancing_color_model_matrix_buffer,
     OpenGLShaderStorageBuffer& instancing_color_buffer
-) -> void {
-    this->hdr_frame_buffer.bind();
+) const -> void {
+    hdr_frame_buffer.bind();
     renderer.clear(BufferBit::ColorDepth);
 
     this->pbr_shader.bind();
@@ -197,7 +158,7 @@ auto OpenGLLightingRenderPass::draw(
     this->pbr_shader.unbind();
 
     gbuffer_frame_buffer.blit_to_framebuffer(
-        this->hdr_frame_buffer, BufferBit::Depth
+        hdr_frame_buffer, BufferBit::Depth
     );
 
     color_render_pass.draw(
@@ -224,14 +185,7 @@ auto OpenGLLightingRenderPass::draw(
     glDepthFunc(GL_LESS);
     glCullFace(GL_BACK);
 
-    this->hdr_frame_buffer.unbind();
-
-    this->hdr_shader.bind();
-    this->hdr_shader.set_uniform("exposure", exposure);
-    this->hdr_frame_buffer.bind_color_attachments();
-    this->quad.draw();
-    this->hdr_frame_buffer.unbind_color_attachments();
-    this->hdr_shader.unbind();
+    hdr_frame_buffer.unbind();
 }
 
 }  // namespace Luminol::Graphics

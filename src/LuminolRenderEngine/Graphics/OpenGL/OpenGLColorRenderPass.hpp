@@ -16,7 +16,7 @@ public:
         gsl::span<ColorDrawInstancedCall> draw_calls,
         OpenGLShaderStorageBuffer& instancing_model_matrix_buffer,
         OpenGLShaderStorageBuffer& instancing_color_buffer
-    ) -> void;
+    ) const -> void;
 
 private:
     OpenGLShader color_shader;

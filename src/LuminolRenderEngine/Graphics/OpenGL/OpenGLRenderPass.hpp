@@ -10,10 +10,11 @@ namespace Luminol::Graphics {
 
 class OpenGLRenderer;
 
-class OpenGLGBufferRenderPass{
+class OpenGLGBufferRenderPass {
 public:
     OpenGLGBufferRenderPass();
-    auto draw(const OpenGLRenderer& renderer, gsl::span<DrawCall> draw_call) -> void;
+    auto draw(const OpenGLRenderer& renderer, gsl::span<DrawCall> draw_call)
+        const -> void;
 
 private:
     OpenGLFrameBuffer gbuffer_frame_buffer;

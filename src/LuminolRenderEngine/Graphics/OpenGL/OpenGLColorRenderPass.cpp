@@ -42,7 +42,7 @@ auto OpenGLColorRenderPass::draw(
     gsl::span<ColorDrawInstancedCall> draw_calls,
     OpenGLShaderStorageBuffer& instancing_model_matrix_buffer,
     OpenGLShaderStorageBuffer& instancing_color_buffer
-) -> void {
+) const -> void {
     this->color_shader.bind();
 
     for (const auto& draw_call : draw_calls) {

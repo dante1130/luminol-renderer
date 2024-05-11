@@ -17,27 +17,23 @@ class OpenGLRenderer;
 
 class OpenGLLightingRenderPass {
 public:
-    OpenGLLightingRenderPass(int32_t width, int32_t height);
-
-    [[nodiscard]] auto get_hdr_frame_buffer() -> OpenGLFrameBuffer&;
+    OpenGLLightingRenderPass();
 
     auto draw(
         const OpenGLRenderer& renderer,
         const OpenGLFrameBuffer& gbuffer_frame_buffer,
+        const OpenGLFrameBuffer& hdr_frame_buffer,
         OpenGLUniformBuffer& transform_uniform_buffer,
         const OpenGLSkybox& skybox,
         const glm::mat4& view_matrix,
-        float exposure,
-        OpenGLColorRenderPass& color_render_pass,
+        const OpenGLColorRenderPass& color_render_pass,
         gsl::span<ColorDrawInstancedCall> color_draw_calls,
         OpenGLShaderStorageBuffer& instancing_color_model_matrix_buffer,
         OpenGLShaderStorageBuffer& instancing_color_buffer
-    ) -> void;
+    ) const -> void;
 
 private:
-    OpenGLFrameBuffer hdr_frame_buffer;
     OpenGLShader pbr_shader;
-    OpenGLShader hdr_shader;
     OpenGLShader skybox_shader;
     OpenGLModel cube;
     OpenGLMesh quad;

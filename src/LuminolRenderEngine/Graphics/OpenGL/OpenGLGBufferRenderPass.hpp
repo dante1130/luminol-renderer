@@ -21,7 +21,7 @@ public:
         OpenGLRenderer& renderer,
         gsl::span<DrawCall> draw_calls,
         OpenGLUniformBuffer& transform_uniform_buffer
-    ) -> void;
+    ) const -> void;
 
 private:
     OpenGLFrameBuffer gbuffer_frame_buffer;

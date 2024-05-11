@@ -11,6 +11,7 @@
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLGBufferRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLLightingRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLColorRenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLHDRRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLDrawCall.hpp>
 
 namespace Luminol::Graphics {
@@ -54,9 +55,12 @@ private:
     std::vector<ColorDrawCall> color_draw_queue;
     std::vector<ColorDrawInstancedCall> instanced_color_draw_queue;
 
+    OpenGLFrameBuffer hdr_frame_buffer;
+
     OpenGLGBufferRenderPass gbuffer_render_pass;
     OpenGLLightingRenderPass lighting_render_pass;
     OpenGLColorRenderPass color_render_pass;
+    OpenGLHDRRenderPass hdr_render_pass;
 
     OpenGLUniformBuffer transform_uniform_buffer;
     OpenGLUniformBuffer light_uniform_buffer;
