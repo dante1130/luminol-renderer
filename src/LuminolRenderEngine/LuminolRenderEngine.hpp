@@ -7,7 +7,7 @@
 #include <LuminolRenderEngine/Window/Window.hpp>
 #include <LuminolRenderEngine/Graphics/Camera.hpp>
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
-#include <LuminolRenderEngine/Graphics/GraphicsFactory.hpp>
+#include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 
 namespace Luminol {
 
@@ -36,7 +36,7 @@ public:
 
 private:
     Window window;
-    std::unique_ptr<Graphics::GraphicsFactory> graphics_factory = nullptr;
+    Graphics::RenderableManager renderable_manager;
     std::unique_ptr<Graphics::Renderer> renderer = nullptr;
 };
 
