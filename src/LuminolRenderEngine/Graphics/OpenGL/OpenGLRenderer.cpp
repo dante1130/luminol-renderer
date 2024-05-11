@@ -158,8 +158,11 @@ auto OpenGLRenderer::draw() -> void {
         *this, this->draw_queue, this->transform_uniform_buffer
     );
 
+    this->hdr_frame_buffer.bind();
+    this->clear(BufferBit::ColorDepth);
+    this->hdr_frame_buffer.unbind();
+
     this->lighting_render_pass.draw(
-        *this,
         this->gbuffer_render_pass.get_gbuffer_frame_buffer(),
         this->hdr_frame_buffer,
         this->view_matrix,

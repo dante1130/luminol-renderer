@@ -1,7 +1,5 @@
 #include "OpenGLLightingRenderPass.hpp"
 
-#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLRenderer.hpp>
-
 namespace {
 
 using namespace Luminol::Graphics;
@@ -111,7 +109,6 @@ OpenGLLightingRenderPass::OpenGLLightingRenderPass()
     : pbr_shader{create_pbr_shader()}, quad{create_quad_mesh()} {}
 
 auto OpenGLLightingRenderPass::draw(
-    const OpenGLRenderer& renderer,
     const OpenGLFrameBuffer& gbuffer_frame_buffer,
     const OpenGLFrameBuffer& hdr_frame_buffer,
     const glm::mat4& view_matrix,
@@ -121,7 +118,6 @@ auto OpenGLLightingRenderPass::draw(
     OpenGLShaderStorageBuffer& instancing_color_buffer
 ) const -> void {
     hdr_frame_buffer.bind();
-    renderer.clear(BufferBit::ColorDepth);
 
     this->pbr_shader.bind();
     gbuffer_frame_buffer.bind_color_attachments();

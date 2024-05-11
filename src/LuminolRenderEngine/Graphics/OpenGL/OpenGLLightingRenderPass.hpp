@@ -18,7 +18,6 @@ public:
     OpenGLLightingRenderPass();
 
     auto draw(
-        const OpenGLRenderer& renderer,
         const OpenGLFrameBuffer& gbuffer_frame_buffer,
         const OpenGLFrameBuffer& hdr_frame_buffer,
         const glm::mat4& view_matrix,
