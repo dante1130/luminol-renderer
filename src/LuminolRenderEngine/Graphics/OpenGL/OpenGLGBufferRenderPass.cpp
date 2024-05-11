@@ -84,7 +84,7 @@ auto OpenGLGBufferRenderPass::get_gbuffer_frame_buffer() -> OpenGLFrameBuffer& {
 }
 
 auto OpenGLGBufferRenderPass::draw(
-    gsl::span<DrawCall> draw_calls,
+    gsl::span<InstancedDrawCall> draw_calls,
     OpenGLUniformBuffer& transform_uniform_buffer
 ) const -> void {
     this->gbuffer_shader.bind();

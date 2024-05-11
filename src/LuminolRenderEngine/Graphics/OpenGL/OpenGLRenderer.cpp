@@ -126,11 +126,11 @@ auto OpenGLRenderer::queue_draw(
 }
 
 auto OpenGLRenderer::queue_draw_with_color(
-    const Renderable& renderable,
-    const glm::mat4& model_matrix,
-    const glm::vec3& color
+    const Renderable& /*renderable*/,
+    const glm::mat4& /*model_matrix*/,
+    const glm::vec3& /*color*/
 ) -> void {
-    this->color_draw_queue.emplace_back(renderable, model_matrix, color);
+    // this->color_draw_queue.emplace_back(renderable, model_matrix, color);
 }
 
 auto OpenGLRenderer::queue_draw_with_color_instanced(
@@ -189,7 +189,6 @@ auto OpenGLRenderer::draw() -> void {
     this->hdr_render_pass.draw(this->hdr_frame_buffer, this->exposure);
 
     this->draw_queue.clear();
-    this->color_draw_queue.clear();
     this->instanced_color_draw_queue.clear();
 }
 

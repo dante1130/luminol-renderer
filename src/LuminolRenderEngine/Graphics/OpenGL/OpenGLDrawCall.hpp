@@ -7,18 +7,12 @@
 
 namespace Luminol::Graphics {
 
-struct DrawCall {
+struct InstancedDrawCall {
     std::reference_wrapper<const Renderable> renderable;
     glm::mat4 model_matrix{};
 };
 
-struct ColorDrawCall {
-    std::reference_wrapper<const Renderable> renderable;
-    glm::mat4 model_matrix;
-    glm::vec3 color;
-};
-
-struct ColorDrawInstancedCall {
+struct ColorInstancedDrawCall {
     std::reference_wrapper<const Renderable> renderable;
     gsl::span<glm::mat4> model_matrices;
     gsl::span<glm::vec3> colors;

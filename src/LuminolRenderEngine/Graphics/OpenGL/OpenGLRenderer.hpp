@@ -52,9 +52,8 @@ private:
     std::function<int32_t()> get_window_width;
     std::function<int32_t()> get_window_height;
 
-    std::vector<DrawCall> draw_queue;
-    std::vector<ColorDrawCall> color_draw_queue;
-    std::vector<ColorDrawInstancedCall> instanced_color_draw_queue;
+    std::vector<InstancedDrawCall> draw_queue;
+    std::vector<ColorInstancedDrawCall> instanced_color_draw_queue;
 
     OpenGLFrameBuffer hdr_frame_buffer;
 

@@ -40,7 +40,7 @@ OpenGLColorRenderPass::OpenGLColorRenderPass()
 
 auto OpenGLColorRenderPass::draw(
     const OpenGLFrameBuffer& hdr_frame_buffer,
-    gsl::span<ColorDrawInstancedCall> draw_calls,
+    gsl::span<ColorInstancedDrawCall> draw_calls,
     OpenGLShaderStorageBuffer& instancing_model_matrix_buffer,
     OpenGLShaderStorageBuffer& instancing_color_buffer
 ) const -> void {

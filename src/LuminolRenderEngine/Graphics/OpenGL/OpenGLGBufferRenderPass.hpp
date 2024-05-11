@@ -16,7 +16,7 @@ public:
     [[nodiscard]] auto get_gbuffer_frame_buffer() -> OpenGLFrameBuffer&;
 
     auto draw(
-        gsl::span<DrawCall> draw_calls,
+        gsl::span<InstancedDrawCall> draw_calls,
         OpenGLUniformBuffer& transform_uniform_buffer
     ) const -> void;
 
