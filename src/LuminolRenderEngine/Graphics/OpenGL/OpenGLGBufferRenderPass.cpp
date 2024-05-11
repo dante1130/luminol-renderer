@@ -1,5 +1,7 @@
 #include "OpenGLGBufferRenderPass.hpp"
 
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniforms.hpp>
+
 namespace {
 
 using namespace Luminol::Graphics;
