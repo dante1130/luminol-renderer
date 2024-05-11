@@ -178,7 +178,11 @@ auto OpenGLLightingRenderPass::draw(
     OpenGLUniformBuffer& transform_uniform_buffer,
     const OpenGLSkybox& skybox,
     const glm::mat4& view_matrix,
-    float exposure
+    float exposure,
+    OpenGLColorRenderPass& color_render_pass,
+    gsl::span<ColorDrawInstancedCall> color_draw_calls,
+    OpenGLShaderStorageBuffer& instancing_color_model_matrix_buffer,
+    OpenGLShaderStorageBuffer& instancing_color_buffer
 ) -> void {
     this->hdr_frame_buffer.bind();
     renderer.clear(BufferBit::ColorDepth);
@@ -194,6 +198,12 @@ auto OpenGLLightingRenderPass::draw(
 
     gbuffer_frame_buffer.blit_to_framebuffer(
         this->hdr_frame_buffer, BufferBit::Depth
+    );
+
+    color_render_pass.draw(
+        color_draw_calls,
+        instancing_color_model_matrix_buffer,
+        instancing_color_buffer
     );
 
     const auto skybox_view_matrix = glm::mat4{glm::mat3{view_matrix}};

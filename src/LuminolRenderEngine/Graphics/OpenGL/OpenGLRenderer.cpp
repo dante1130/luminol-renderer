@@ -157,9 +157,14 @@ auto OpenGLRenderer::draw() -> void {
         this->transform_uniform_buffer,
         this->skybox,
         this->view_matrix,
-        this->exposure
+        this->exposure,
+        this->color_render_pass,
+        this->instanced_color_draw_queue,
+        this->instancing_model_matrix_buffer,
+        this->instancing_color_buffer
     );
 
+    /*
     this->gbuffer_render_pass.get_gbuffer_frame_buffer()
         .blit_to_default_framebuffer(
             this->get_window_width(),
@@ -170,12 +175,15 @@ auto OpenGLRenderer::draw() -> void {
     this->transform_uniform_buffer.set_data(
         0, sizeof(OpenGLUniforms::Transform), &transform
     );
+    */
 
+    /*
     this->color_render_pass.draw(
         this->instanced_color_draw_queue,
         this->instancing_model_matrix_buffer,
         this->instancing_color_buffer
     );
+    */
 
     this->draw_queue.clear();
     this->color_draw_queue.clear();

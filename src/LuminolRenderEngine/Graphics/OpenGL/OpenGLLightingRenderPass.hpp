@@ -8,6 +8,8 @@
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLModel.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLSkybox.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniformBuffer.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShaderStorageBuffer.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLColorRenderPass.hpp>
 
 namespace Luminol::Graphics {
 
@@ -25,7 +27,11 @@ public:
         OpenGLUniformBuffer& transform_uniform_buffer,
         const OpenGLSkybox& skybox,
         const glm::mat4& view_matrix,
-        float exposure
+        float exposure,
+        OpenGLColorRenderPass& color_render_pass,
+        gsl::span<ColorDrawInstancedCall> color_draw_calls,
+        OpenGLShaderStorageBuffer& instancing_color_model_matrix_buffer,
+        OpenGLShaderStorageBuffer& instancing_color_buffer
     ) -> void;
 
 private:
