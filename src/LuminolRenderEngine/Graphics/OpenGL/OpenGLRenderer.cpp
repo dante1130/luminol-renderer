@@ -243,7 +243,7 @@ auto OpenGLRenderer::update_lights() -> void {
     );
 
     const auto spot_light_offset =
-        offsetof(OpenGLUniforms::Light, spot_lights) +
+        offsetof(OpenGLUniforms::Light, point_lights) +
         sizeof(light_uniforms.point_lights[0]) *
         max_point_lights;
 
