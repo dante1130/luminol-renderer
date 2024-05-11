@@ -19,11 +19,6 @@ class OpenGLRenderer : public Renderer {
 public:
     OpenGLRenderer(Window& window);
 
-    [[nodiscard]] auto get_transform_uniform_buffer() -> OpenGLUniformBuffer&;
-    [[nodiscard]] auto get_view_matrix() const -> const glm::mat4&;
-    [[nodiscard]] auto get_projection_matrix() const -> const glm::mat4&;
-    [[nodiscard]] auto get_exposure() const -> float;
-
     auto set_view_matrix(const glm::mat4& view_matrix) -> void override;
     auto set_projection_matrix(const glm::mat4& projection_matrix)
         -> void override;

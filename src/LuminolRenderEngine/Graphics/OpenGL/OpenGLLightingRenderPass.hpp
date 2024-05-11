@@ -7,6 +7,7 @@
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLModel.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLSkybox.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniformBuffer.hpp>
 
 namespace Luminol::Graphics {
 
@@ -19,9 +20,12 @@ public:
     [[nodiscard]] auto get_hdr_frame_buffer() -> OpenGLFrameBuffer&;
 
     auto draw(
-        OpenGLRenderer& renderer,
-        OpenGLFrameBuffer& gbuffer_frame_buffer,
-        OpenGLSkybox& skybox
+        const OpenGLRenderer& renderer,
+        const OpenGLFrameBuffer& gbuffer_frame_buffer,
+        OpenGLUniformBuffer& transform_uniform_buffer,
+        const OpenGLSkybox& skybox,
+        const glm::mat4& view_matrix,
+        float exposure
     ) -> void;
 
 private:

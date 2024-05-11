@@ -173,9 +173,12 @@ auto OpenGLLightingRenderPass::get_hdr_frame_buffer() -> OpenGLFrameBuffer& {
 }
 
 auto OpenGLLightingRenderPass::draw(
-    OpenGLRenderer& renderer,
-    OpenGLFrameBuffer& gbuffer_frame_buffer,
-    OpenGLSkybox& skybox
+    const OpenGLRenderer& renderer,
+    const OpenGLFrameBuffer& gbuffer_frame_buffer,
+    OpenGLUniformBuffer& transform_uniform_buffer,
+    const OpenGLSkybox& skybox,
+    const glm::mat4& view_matrix,
+    float exposure
 ) -> void {
     this->hdr_frame_buffer.bind();
     renderer.clear(BufferBit::ColorDepth);
@@ -183,7 +186,7 @@ auto OpenGLLightingRenderPass::draw(
     this->pbr_shader.bind();
     gbuffer_frame_buffer.bind_color_attachments();
     this->pbr_shader.set_uniform(
-        "view_position", get_view_position(renderer.get_view_matrix())
+        "view_position", get_view_position(view_matrix)
     );
     this->quad.draw();
     gbuffer_frame_buffer.unbind_color_attachments();
@@ -193,13 +196,12 @@ auto OpenGLLightingRenderPass::draw(
         this->hdr_frame_buffer, BufferBit::Depth
     );
 
-    const auto transform = OpenGLUniforms::Transform{
-        .view_matrix = glm::mat4{glm::mat3{renderer.get_view_matrix()}},
-        .projection_matrix = renderer.get_projection_matrix(),
-    };
+    const auto skybox_view_matrix = glm::mat4{glm::mat3{view_matrix}};
 
-    renderer.get_transform_uniform_buffer().set_data(
-        0, sizeof(transform), &transform
+    transform_uniform_buffer.set_data(
+        offsetof(OpenGLUniforms::Transform, view_matrix),
+        sizeof(skybox_view_matrix),
+        &skybox_view_matrix
     );
 
     glCullFace(GL_FRONT);
@@ -215,7 +217,7 @@ auto OpenGLLightingRenderPass::draw(
     this->hdr_frame_buffer.unbind();
 
     this->hdr_shader.bind();
-    this->hdr_shader.set_uniform("exposure", renderer.get_exposure());
+    this->hdr_shader.set_uniform("exposure", exposure);
     this->hdr_frame_buffer.bind_color_attachments();
     this->quad.draw();
     this->hdr_frame_buffer.unbind_color_attachments();

@@ -90,20 +90,6 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
       view_matrix{glm::mat4{1.0f}},
       projection_matrix{glm::mat4{1.0f}} {}
 
-auto OpenGLRenderer::get_transform_uniform_buffer() -> OpenGLUniformBuffer& {
-    return this->transform_uniform_buffer;
-}
-
-auto OpenGLRenderer::get_view_matrix() const -> const glm::mat4& {
-    return this->view_matrix;
-}
-
-auto OpenGLRenderer::get_projection_matrix() const -> const glm::mat4& {
-    return this->projection_matrix;
-}
-
-auto OpenGLRenderer::get_exposure() const -> float { return this->exposure; }
-
 auto OpenGLRenderer::set_view_matrix(const glm::mat4& view_matrix) -> void {
     this->view_matrix = view_matrix;
 }
@@ -168,7 +154,10 @@ auto OpenGLRenderer::draw() -> void {
     this->lighting_render_pass.draw(
         *this,
         this->gbuffer_render_pass.get_gbuffer_frame_buffer(),
-        this->skybox
+        this->transform_uniform_buffer,
+        this->skybox,
+        this->view_matrix,
+        this->exposure
     );
 
     this->gbuffer_render_pass.get_gbuffer_frame_buffer()
