@@ -78,10 +78,11 @@ auto create_light_uniform_buffer() -> OpenGLUniformBuffer {
 
 namespace Luminol::Graphics {
 
-OpenGLRenderer::OpenGLRenderer(Window& window)
-    : opengl_version{initialize_opengl(
-          window, this->get_framebuffer_resize_callback()
-      )},
+OpenGLRenderer::OpenGLRenderer(Window& window, GraphicsApi graphics_api)
+    : Renderer{graphics_api},
+      opengl_version{
+          initialize_opengl(window, this->get_framebuffer_resize_callback())
+      },
       get_window_width{[&window]() { return window.get_width(); }},
       get_window_height{[&window]() { return window.get_height(); }},
       hdr_frame_buffer{create_hdr_frame_buffer(

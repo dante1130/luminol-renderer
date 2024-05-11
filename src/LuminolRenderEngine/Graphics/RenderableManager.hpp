@@ -41,7 +41,7 @@ public:
 private:
     [[nodiscard]] auto get_free_renderable_id() -> RenderableId;
 
-    std::unique_ptr<Graphics::GraphicsFactory> graphics_factory = nullptr;
+    std::shared_ptr<Graphics::GraphicsFactory> graphics_factory = nullptr;
 
     std::set<RenderableId> used_renderable_ids;
     std::unordered_map<std::filesystem::path, RenderableId> renderable_ids_map;

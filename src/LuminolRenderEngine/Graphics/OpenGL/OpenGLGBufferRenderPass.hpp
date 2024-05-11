@@ -9,8 +9,6 @@
 
 namespace Luminol::Graphics {
 
-class OpenGLRenderer;
-
 class OpenGLGBufferRenderPass {
 public:
     OpenGLGBufferRenderPass(int32_t width, int32_t height);

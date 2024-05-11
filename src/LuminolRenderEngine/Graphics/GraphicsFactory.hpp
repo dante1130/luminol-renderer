@@ -19,15 +19,15 @@ public:
     GraphicsFactory() = default;
     virtual ~GraphicsFactory() = default;
     GraphicsFactory(const GraphicsFactory&) = default;
-    GraphicsFactory(GraphicsFactory&&) = delete;
+    GraphicsFactory(GraphicsFactory&&) = default;
     auto operator=(const GraphicsFactory&) -> GraphicsFactory& = default;
-    auto operator=(GraphicsFactory&&) -> GraphicsFactory& = delete;
+    auto operator=(GraphicsFactory&&) -> GraphicsFactory& = default;
 
     [[nodiscard]] static auto create(GraphicsApi api)
         -> std::unique_ptr<GraphicsFactory>;
 
-    [[nodiscard]] virtual auto create_renderer(Window& window) const
-        -> std::unique_ptr<Renderer> = 0;
+    [[nodiscard]] virtual auto create_renderer(Window& window, GraphicsApi api)
+        const -> std::unique_ptr<Renderer> = 0;
 
     [[nodiscard]] virtual auto create_mesh(
         gsl::span<const float> vertices,

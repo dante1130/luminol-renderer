@@ -13,14 +13,19 @@ namespace Luminol::Graphics {
 
 class Renderer {
 public:
-    Renderer() = default;
+    Renderer(GraphicsApi api);
     virtual ~Renderer() = default;
-    Renderer(const Renderer&) = default;
+    Renderer(const Renderer&) = delete;
     Renderer(Renderer&&) = delete;
-    auto operator=(const Renderer&) -> Renderer& = default;
+    auto operator=(const Renderer&) -> Renderer& = delete;
     auto operator=(Renderer&&) -> Renderer& = delete;
 
-    auto get_light_manager() -> LightManager&;
+    [[nodiscard]] auto get_renderable_manager() const
+        -> const RenderableManager&;
+    [[nodiscard]] auto get_renderable_manager() -> RenderableManager&;
+
+    [[nodiscard]] auto get_light_manager() const -> const LightManager&;
+    [[nodiscard]] auto get_light_manager() -> LightManager&;
 
     virtual auto set_view_matrix(const glm::mat4& view_matrix) -> void = 0;
     virtual auto set_projection_matrix(const glm::mat4& projection_matrix)
@@ -49,6 +54,7 @@ public:
     virtual auto draw() -> void = 0;
 
 private:
+    RenderableManager renderable_manager;
     LightManager light_manager;
 };
 

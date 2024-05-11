@@ -7,9 +7,9 @@
 
 namespace Luminol::Graphics {
 
-auto OpenGLFactory::create_renderer(Window& window) const
-    -> std::unique_ptr<Renderer> {
-    return std::make_unique<OpenGLRenderer>(window);
+auto OpenGLFactory::create_renderer(Window& window, GraphicsApi graphics_api)
+    const -> std::unique_ptr<Renderer> {
+    return std::make_unique<OpenGLRenderer>(window, graphics_api);
 }
 
 auto OpenGLFactory::create_mesh(

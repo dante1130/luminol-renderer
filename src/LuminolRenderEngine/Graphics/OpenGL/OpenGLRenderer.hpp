@@ -19,7 +19,7 @@ namespace Luminol::Graphics {
 
 class OpenGLRenderer : public Renderer {
 public:
-    OpenGLRenderer(Window& window);
+    OpenGLRenderer(Window& window, GraphicsApi graphics_api);
 
     auto set_view_matrix(const glm::mat4& view_matrix) -> void override;
     auto set_projection_matrix(const glm::mat4& projection_matrix)

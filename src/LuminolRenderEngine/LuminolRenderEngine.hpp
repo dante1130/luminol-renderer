@@ -29,16 +29,11 @@ public:
     [[nodiscard]] auto get_window() const -> const Window&;
     [[nodiscard]] auto get_window() -> Window&;
 
-    [[nodiscard]] auto get_renderable_manager() const
-        -> const Graphics::RenderableManager&;
-    [[nodiscard]] auto get_renderable_manager() -> Graphics::RenderableManager&;
-
     [[nodiscard]] auto get_renderer() const -> const Graphics::Renderer&;
     [[nodiscard]] auto get_renderer() -> Graphics::Renderer&;
 
 private:
     Window window;
-    Graphics::RenderableManager renderable_manager;
     std::unique_ptr<Graphics::Renderer> renderer = nullptr;
 };
 

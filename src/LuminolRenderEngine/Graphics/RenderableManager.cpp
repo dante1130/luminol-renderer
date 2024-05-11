@@ -5,7 +5,7 @@
 namespace Luminol::Graphics {
 
 RenderableManager::RenderableManager(GraphicsApi api)
-    : graphics_factory(GraphicsFactory::create(api)) {}
+    : graphics_factory{GraphicsFactory::create(api)} {}
 
 auto RenderableManager::get_graphics_factory() const -> const GraphicsFactory& {
     return *this->graphics_factory;

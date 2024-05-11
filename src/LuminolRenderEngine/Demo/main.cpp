@@ -64,7 +64,8 @@ auto main() -> int {
     constexpr auto exposure = 2.0f;
     luminol_engine.get_renderer().set_exposure(exposure);
 
-    auto model = luminol_engine.get_renderable_manager()
+    auto model = luminol_engine.get_renderer()
+                     .get_renderable_manager()
                      .get_graphics_factory()
                      .create_model("res/models/Sponza/glTF/Sponza.gltf");
 
@@ -80,7 +81,8 @@ auto main() -> int {
     constexpr auto lights_count = 8u;
 
     auto lights = Lights{
-        .model = luminol_engine.get_renderable_manager()
+        .model = luminol_engine.get_renderer()
+                     .get_renderable_manager()
                      .get_graphics_factory()
                      .create_model("res/models/cube/cube.obj")
     };
