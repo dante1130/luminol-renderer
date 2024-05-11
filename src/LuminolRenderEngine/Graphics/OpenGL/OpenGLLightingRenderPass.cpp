@@ -111,11 +111,7 @@ OpenGLLightingRenderPass::OpenGLLightingRenderPass()
 auto OpenGLLightingRenderPass::draw(
     const OpenGLFrameBuffer& gbuffer_frame_buffer,
     const OpenGLFrameBuffer& hdr_frame_buffer,
-    const glm::mat4& view_matrix,
-    const OpenGLColorRenderPass& color_render_pass,
-    gsl::span<ColorDrawInstancedCall> color_draw_calls,
-    OpenGLShaderStorageBuffer& instancing_color_model_matrix_buffer,
-    OpenGLShaderStorageBuffer& instancing_color_buffer
+    const glm::mat4& view_matrix
 ) const -> void {
     hdr_frame_buffer.bind();
 
@@ -130,12 +126,6 @@ auto OpenGLLightingRenderPass::draw(
 
     gbuffer_frame_buffer.blit_to_framebuffer(
         hdr_frame_buffer, BufferBit::Depth
-    );
-
-    color_render_pass.draw(
-        color_draw_calls,
-        instancing_color_model_matrix_buffer,
-        instancing_color_buffer
     );
 
     hdr_frame_buffer.unbind();

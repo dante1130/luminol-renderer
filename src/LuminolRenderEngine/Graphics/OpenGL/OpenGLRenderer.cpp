@@ -165,8 +165,11 @@ auto OpenGLRenderer::draw() -> void {
     this->lighting_render_pass.draw(
         this->gbuffer_render_pass.get_gbuffer_frame_buffer(),
         this->hdr_frame_buffer,
-        this->view_matrix,
-        this->color_render_pass,
+        this->view_matrix
+    );
+
+    this->color_render_pass.draw(
+        this->hdr_frame_buffer,
         this->instanced_color_draw_queue,
         this->instancing_model_matrix_buffer,
         this->instancing_color_buffer

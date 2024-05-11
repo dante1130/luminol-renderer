@@ -39,10 +39,12 @@ OpenGLColorRenderPass::OpenGLColorRenderPass()
     : color_shader{create_color_shader()} {}
 
 auto OpenGLColorRenderPass::draw(
+    const OpenGLFrameBuffer& hdr_frame_buffer,
     gsl::span<ColorDrawInstancedCall> draw_calls,
     OpenGLShaderStorageBuffer& instancing_model_matrix_buffer,
     OpenGLShaderStorageBuffer& instancing_color_buffer
 ) const -> void {
+    hdr_frame_buffer.bind();
     this->color_shader.bind();
 
     for (const auto& draw_call : draw_calls) {
@@ -73,6 +75,7 @@ auto OpenGLColorRenderPass::draw(
     }
 
     this->color_shader.unbind();
+    hdr_frame_buffer.unbind();
 }
 
 }  // namespace Luminol::Graphics

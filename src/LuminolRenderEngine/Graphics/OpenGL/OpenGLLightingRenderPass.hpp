@@ -5,9 +5,7 @@
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLDrawCall.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLFrameBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
-#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLModel.hpp>
-#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShaderStorageBuffer.hpp>
-#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLColorRenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLMesh.hpp>
 
 namespace Luminol::Graphics {
 
@@ -20,11 +18,7 @@ public:
     auto draw(
         const OpenGLFrameBuffer& gbuffer_frame_buffer,
         const OpenGLFrameBuffer& hdr_frame_buffer,
-        const glm::mat4& view_matrix,
-        const OpenGLColorRenderPass& color_render_pass,
-        gsl::span<ColorDrawInstancedCall> color_draw_calls,
-        OpenGLShaderStorageBuffer& instancing_color_model_matrix_buffer,
-        OpenGLShaderStorageBuffer& instancing_color_buffer
+        const glm::mat4& view_matrix
     ) const -> void;
 
 private:
