@@ -1,7 +1,5 @@
 #include "OpenGLGBufferRenderPass.hpp"
 
-#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLRenderer.hpp>
-
 namespace {
 
 using namespace Luminol::Graphics;
@@ -84,13 +82,11 @@ auto OpenGLGBufferRenderPass::get_gbuffer_frame_buffer() -> OpenGLFrameBuffer& {
 }
 
 auto OpenGLGBufferRenderPass::draw(
-    OpenGLRenderer& renderer,
     gsl::span<DrawCall> draw_calls,
     OpenGLUniformBuffer& transform_uniform_buffer
 ) const -> void {
     this->gbuffer_shader.bind();
     this->gbuffer_frame_buffer.bind();
-    renderer.clear(BufferBit::ColorDepth);
     for (const auto& draw_call : draw_calls) {
         transform_uniform_buffer.set_data(
             0,

@@ -154,8 +154,12 @@ auto OpenGLRenderer::draw() -> void {
         0, sizeof(OpenGLUniforms::Transform), &transform
     );
 
+    this->gbuffer_render_pass.get_gbuffer_frame_buffer().bind();
+    this->clear(BufferBit::ColorDepth);
+    this->gbuffer_render_pass.get_gbuffer_frame_buffer().unbind();
+
     this->gbuffer_render_pass.draw(
-        *this, this->draw_queue, this->transform_uniform_buffer
+        this->draw_queue, this->transform_uniform_buffer
     );
 
     this->hdr_frame_buffer.bind();
