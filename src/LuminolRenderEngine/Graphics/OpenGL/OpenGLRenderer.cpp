@@ -215,35 +215,26 @@ auto OpenGLRenderer::update_lights() -> void {
     }
     /// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
-    auto offset = int64_t{0};
-
     this->light_uniform_buffer.set_data(
-        offset,
+        offsetof(OpenGLUniforms::Light, directional_light),
         sizeof(light_uniforms.directional_light),
         &light_uniforms.directional_light
     );
 
-    offset += sizeof(light_uniforms.directional_light);
-
     this->light_uniform_buffer.set_data(
-        offset,
+        offsetof(OpenGLUniforms::Light, point_light_count),
         sizeof(light_uniforms.point_light_count),
         &light_uniforms.point_light_count
     );
 
-    offset += sizeof(light_uniforms.point_light_count);
-
     this->light_uniform_buffer.set_data(
-        offset,
+        offsetof(OpenGLUniforms::Light, spot_light_count),
         sizeof(light_uniforms.spot_light_count),
         &light_uniforms.spot_light_count
     );
 
-    offset += sizeof(light_uniforms.spot_light_count) +
-              sizeof(light_uniforms.padding);
-
     this->light_uniform_buffer.set_data(
-        offset,
+        offsetof(OpenGLUniforms::Light, point_lights),
         gsl::narrow<int64_t>(
             sizeof(light_uniforms.point_lights[0]) *
             light_uniforms.point_lights.size()
@@ -251,12 +242,13 @@ auto OpenGLRenderer::update_lights() -> void {
         light_uniforms.point_lights.data()
     );
 
-    offset += gsl::narrow<int64_t>(
-        sizeof(light_uniforms.point_lights[0]) * max_point_lights
-    );
+    const auto spot_light_offset =
+        offsetof(OpenGLUniforms::Light, spot_lights) +
+        sizeof(light_uniforms.point_lights[0]) *
+        max_point_lights;
 
     this->light_uniform_buffer.set_data(
-        offset,
+        gsl::narrow<int64_t>(spot_light_offset),
         gsl::narrow<int64_t>(
             sizeof(light_uniforms.spot_lights[0]) *
             light_uniforms.spot_lights.size()
