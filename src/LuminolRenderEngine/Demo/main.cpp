@@ -77,7 +77,7 @@ auto main() -> int {
         directional_light
     );
 
-    constexpr auto lights_count = 256u;
+    constexpr auto lights_count = 8u;
 
     auto lights = Lights{
         .model = luminol_engine.get_graphics_factory().create_model(
