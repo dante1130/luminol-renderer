@@ -37,7 +37,7 @@ public:
     virtual auto clear(BufferBit buffer_bit) const -> void = 0;
 
     virtual auto queue_draw(
-        const Renderable& renderable, const glm::mat4& model_matrix
+        RenderableId renderable_id, const glm::mat4& model_matrix
     ) -> void = 0;
 
     virtual auto queue_draw_with_color(

@@ -32,7 +32,7 @@ public:
     auto clear_color(const glm::vec4& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
 
-    auto queue_draw(const Renderable& renderable, const glm::mat4& model_matrix)
+    auto queue_draw(RenderableId renderable_id, const glm::mat4& model_matrix)
         -> void override;
 
     auto queue_draw_with_color(
@@ -52,9 +52,11 @@ private:
     std::function<int32_t()> get_window_width;
     std::function<int32_t()> get_window_height;
 
-    std::vector<InstancedDrawCall> draw_queue;
+    std::vector<InstancedDrawCall> instanced_draw_queue;
     std::vector<ColorInstancedDrawCall> instanced_color_draw_queue;
 
+    std::unordered_map<RenderableId, InstancedDrawCall&>
+        instanced_draw_call_map;
     std::unordered_map<RenderableId, ColorInstancedDrawCall&>
         instanced_color_draw_call_map;
 

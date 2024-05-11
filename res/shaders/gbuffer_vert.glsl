@@ -17,9 +17,14 @@ layout(std140, binding = 0) uniform Transform
     mat4 projection_matrix;
 };
 
+layout(std430, binding = 0) buffer InstancingModelMatrix
+{
+    mat4 model_matrices[];
+};
+
 void main()
 {
-    gl_Position = projection_matrix * view_matrix * model_matrix * vec4(position, 1.0);
+    gl_Position = projection_matrix * view_matrix * model_matrices[gl_InstanceID] * vec4(position, 1.0);
     frag_pos_out = vec3(model_matrix * vec4(position, 1.0));
     tex_coords_out = tex_coords;
     normal_out = mat3(transpose(inverse(model_matrix))) * normal;

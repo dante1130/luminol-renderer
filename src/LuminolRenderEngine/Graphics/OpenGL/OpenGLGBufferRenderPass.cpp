@@ -18,6 +18,10 @@ auto create_gbuffer_shader() -> OpenGLShader {
     gbuffer_shader.set_uniform_block_binding_point(
         "Transform", UniformBufferBindingPoint::Transform
     );
+    gbuffer_shader.set_shader_storage_block_binding_point(
+        "InstancingModelMatrix",
+        ShaderStorageBufferBindingPoint::InstancingModelMatrices
+    );
     gbuffer_shader.set_sampler_binding_point(
         "material.texture_diffuse", SamplerBindingPoint::TextureDiffuse
     );
@@ -84,19 +88,27 @@ auto OpenGLGBufferRenderPass::get_gbuffer_frame_buffer() -> OpenGLFrameBuffer& {
 }
 
 auto OpenGLGBufferRenderPass::draw(
+    const RenderableManager& renderable_manager,
     gsl::span<InstancedDrawCall> draw_calls,
-    OpenGLUniformBuffer& transform_uniform_buffer
+    OpenGLShaderStorageBuffer& instancing_model_matrix_buffer
 ) const -> void {
     this->gbuffer_shader.bind();
     this->gbuffer_frame_buffer.bind();
     for (const auto& draw_call : draw_calls) {
-        transform_uniform_buffer.set_data(
+        instancing_model_matrix_buffer.set_data(
             0,
-            sizeof(OpenGLUniforms::Transform::model_matrix),
-            &draw_call.model_matrix
+            gsl::narrow<int64_t>(
+                draw_call.model_matrices.size() * sizeof(glm::mat4)
+            ),
+            draw_call.model_matrices.data()
         );
 
-        draw_call.renderable.get().draw();
+        const auto& renderable =
+            renderable_manager.get_renderable(draw_call.renderable_id);
+
+        renderable.draw_instanced(
+            gsl::narrow<int32_t>(draw_call.model_matrices.size())
+        );
     }
     this->gbuffer_frame_buffer.unbind();
     this->gbuffer_shader.unbind();

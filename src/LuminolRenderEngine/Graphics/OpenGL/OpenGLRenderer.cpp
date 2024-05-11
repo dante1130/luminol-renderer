@@ -120,9 +120,21 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
 }
 
 auto OpenGLRenderer::queue_draw(
-    const Renderable& renderable, const glm::mat4& model_matrix
+    RenderableId renderable_id, const glm::mat4& model_matrix
 ) -> void {
-    this->draw_queue.emplace_back(renderable, model_matrix);
+    if (this->instanced_draw_call_map.contains(renderable_id)) {
+        auto& draw_call = this->instanced_draw_call_map.at(renderable_id);
+        draw_call.model_matrices.emplace_back(model_matrix);
+    } else {
+        this->instanced_draw_queue.emplace_back(InstancedDrawCall{
+            .renderable_id = renderable_id,
+            .model_matrices = {model_matrix},
+        });
+
+        this->instanced_draw_call_map.emplace(
+            renderable_id, this->instanced_draw_queue.back()
+        );
+    }
 }
 
 auto OpenGLRenderer::queue_draw_with_color(
@@ -164,7 +176,9 @@ auto OpenGLRenderer::draw() -> void {
     this->gbuffer_render_pass.get_gbuffer_frame_buffer().unbind();
 
     this->gbuffer_render_pass.draw(
-        this->draw_queue, this->transform_uniform_buffer
+        this->get_renderable_manager(),
+        this->instanced_draw_queue,
+        this->instancing_model_matrix_buffer
     );
 
     this->hdr_frame_buffer.bind();
@@ -193,8 +207,9 @@ auto OpenGLRenderer::draw() -> void {
 
     this->hdr_render_pass.draw(this->hdr_frame_buffer, this->exposure);
 
-    this->draw_queue.clear();
+    this->instanced_draw_queue.clear();
     this->instanced_color_draw_queue.clear();
+    this->instanced_draw_call_map.clear();
     this->instanced_color_draw_call_map.clear();
 }
 
