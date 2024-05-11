@@ -15,8 +15,6 @@ namespace Luminol::Graphics {
 
 class GraphicsFactory;
 
-using RenderableId = uint32_t;
-
 class RenderableManager {
 public:
     RenderableManager(GraphicsApi api);

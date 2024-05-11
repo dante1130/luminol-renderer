@@ -41,14 +41,9 @@ public:
     ) -> void = 0;
 
     virtual auto queue_draw_with_color(
-        const Renderable& renderable,
+        RenderableId renderable_id,
         const glm::mat4& model_matrix,
         const glm::vec3& color
-    ) -> void = 0;
-    virtual auto queue_draw_with_color_instanced(
-        const Renderable& renderable,
-        gsl::span<glm::mat4> model_matrices,
-        gsl::span<glm::vec3> colors
     ) -> void = 0;
 
     virtual auto draw() -> void = 0;

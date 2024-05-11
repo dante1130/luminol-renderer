@@ -39,6 +39,7 @@ OpenGLColorRenderPass::OpenGLColorRenderPass()
     : color_shader{create_color_shader()} {}
 
 auto OpenGLColorRenderPass::draw(
+    const RenderableManager& renderable_manager,
     const OpenGLFrameBuffer& hdr_frame_buffer,
     gsl::span<ColorInstancedDrawCall> draw_calls,
     OpenGLShaderStorageBuffer& instancing_model_matrix_buffer,
@@ -50,7 +51,9 @@ auto OpenGLColorRenderPass::draw(
     for (const auto& draw_call : draw_calls) {
         instancing_model_matrix_buffer.set_data(
             0,
-            gsl::narrow<int64_t>(draw_call.model_matrices.size_bytes()),
+            gsl::narrow<int64_t>(
+                draw_call.model_matrices.size() * sizeof(glm::mat4)
+            ),
             draw_call.model_matrices.data()
         );
 
@@ -69,7 +72,10 @@ auto OpenGLColorRenderPass::draw(
             color_buffer_padded.data()
         );
 
-        draw_call.renderable.get().draw_instanced(
+        const auto& renderable =
+            renderable_manager.get_renderable(draw_call.renderable_id);
+
+        renderable.draw_instanced(
             gsl::narrow<int32_t>(draw_call.model_matrices.size())
         );
     }

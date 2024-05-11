@@ -1,6 +1,7 @@
 #pragma once
 
-#include <gsl/gsl>
+#include <vector>
+
 #include <glm/glm.hpp>
 
 #include <LuminolRenderEngine/Graphics/Renderable.hpp>
@@ -13,9 +14,9 @@ struct InstancedDrawCall {
 };
 
 struct ColorInstancedDrawCall {
-    std::reference_wrapper<const Renderable> renderable;
-    gsl::span<glm::mat4> model_matrices;
-    gsl::span<glm::vec3> colors;
+    RenderableId renderable_id;
+    std::vector<glm::mat4> model_matrices;
+    std::vector<glm::vec3> colors;
 };
 
 }  // namespace Luminol::Graphics

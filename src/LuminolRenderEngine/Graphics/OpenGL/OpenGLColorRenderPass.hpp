@@ -2,6 +2,7 @@
 
 #include <gsl/gsl>
 
+#include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLDrawCall.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShaderStorageBuffer.hpp>
@@ -14,6 +15,7 @@ public:
     OpenGLColorRenderPass();
 
     auto draw(
+        const RenderableManager& renderable_manager,
         const OpenGLFrameBuffer& hdr_frame_buffer,
         gsl::span<ColorInstancedDrawCall> draw_calls,
         OpenGLShaderStorageBuffer& instancing_model_matrix_buffer,

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_set>
+
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniformBuffer.hpp>
@@ -29,18 +31,16 @@ public:
 
     auto clear_color(const glm::vec4& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
+
     auto queue_draw(const Renderable& renderable, const glm::mat4& model_matrix)
         -> void override;
+
     auto queue_draw_with_color(
-        const Renderable& renderable,
+        RenderableId renderable_id,
         const glm::mat4& model_matrix,
         const glm::vec3& color
     ) -> void override;
-    auto queue_draw_with_color_instanced(
-        const Renderable& renderable,
-        gsl::span<glm::mat4> model_matrices,
-        gsl::span<glm::vec3> colors
-    ) -> void override;
+
     auto draw() -> void override;
 
 private:
@@ -54,6 +54,9 @@ private:
 
     std::vector<InstancedDrawCall> draw_queue;
     std::vector<ColorInstancedDrawCall> instanced_color_draw_queue;
+
+    std::unordered_map<RenderableId, ColorInstancedDrawCall&>
+        instanced_color_draw_call_map;
 
     OpenGLFrameBuffer hdr_frame_buffer;
 

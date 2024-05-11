@@ -4,6 +4,8 @@
 
 namespace Luminol::Graphics {
 
+using RenderableId = uint32_t;
+
 class Renderable {
 public:
     Renderable() = default;

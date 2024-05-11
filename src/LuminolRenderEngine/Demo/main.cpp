@@ -13,11 +13,15 @@ namespace {
 using namespace Luminol;
 using namespace Luminol::Graphics;
 
+struct LightDrawData {
+    glm::mat4 model_matrix;
+    glm::vec3 color;
+    LightManager::LightId light_id;
+};
+
 struct Lights {
-    std::vector<glm::mat4> model_matrices;
-    std::vector<glm::vec3> colors;
-    std::vector<LightManager::LightId> light_ids;
-    std::unique_ptr<Model> model;
+    RenderableId renderable_id;
+    std::vector<LightDrawData> light_data;
 };
 
 auto handle_key_events(
@@ -81,14 +85,12 @@ auto main() -> int {
     constexpr auto lights_count = 8u;
 
     auto lights = Lights{
-        .model = luminol_engine.get_renderer()
-                     .get_renderable_manager()
-                     .get_graphics_factory()
-                     .create_model("res/models/cube/cube.obj")
+        .renderable_id = luminol_engine.get_renderer()
+                             .get_renderable_manager()
+                             .create_renderable("res/models/cube/cube.obj")
     };
 
-    lights.model_matrices.reserve(lights_count);
-    lights.colors.reserve(lights_count);
+    lights.light_data.reserve(lights_count);
 
     auto random = std::mt19937{std::random_device{}()};
 
@@ -111,9 +113,6 @@ auto main() -> int {
         model_matrix = glm::translate(model_matrix, position);
         model_matrix = glm::scale(model_matrix, scale);
 
-        lights.model_matrices.emplace_back(model_matrix);
-        lights.colors.emplace_back(color);
-
         constexpr auto intensity = 1.0f;
 
         const auto point_light_id_opt =
@@ -129,7 +128,11 @@ auto main() -> int {
             return 1;
         }
 
-        lights.light_ids.emplace_back(point_light_id_opt.value());
+        lights.light_data.emplace_back(LightDrawData{
+            .model_matrix = model_matrix,
+            .color = color,
+            .light_id = point_light_id_opt.value()
+        });
     }
 
     const auto initial_flash_light = Graphics::SpotLight{
@@ -196,7 +199,7 @@ auto main() -> int {
             flash_light_id, flash_light
         );
 
-        for (size_t i = 0; i < lights.model_matrices.size(); ++i) {
+        for (auto& light_data : lights.light_data) {
             constexpr auto rotation_degrees = 90.0f;
 
             auto rotation = glm::rotate(
@@ -206,22 +209,22 @@ auto main() -> int {
                 glm::vec3(0.0f, 1.0f, 0.0f)
             );
 
-            lights.model_matrices[i] = rotation * lights.model_matrices[i];
+            light_data.model_matrix = rotation * light_data.model_matrix;
 
             luminol_engine.get_renderer()
                 .get_light_manager()
                 .update_point_light(
-                    lights.light_ids[i],
+                    light_data.light_id,
                     PointLight{
-                        .position = glm::vec3(lights.model_matrices[i][3]),
-                        .color = lights.colors[i],
+                        .position = light_data.model_matrix[3],
+                        .color = light_data.color,
                     }
                 );
-        }
 
-        luminol_engine.get_renderer().queue_draw_with_color_instanced(
-            *lights.model, lights.model_matrices, lights.colors
-        );
+            luminol_engine.get_renderer().queue_draw_with_color(
+                lights.renderable_id, light_data.model_matrix, light_data.color
+            );
+        }
 
         {
             constexpr auto scale = glm::vec3(1.0f);

@@ -126,21 +126,25 @@ auto OpenGLRenderer::queue_draw(
 }
 
 auto OpenGLRenderer::queue_draw_with_color(
-    const Renderable& /*renderable*/,
-    const glm::mat4& /*model_matrix*/,
-    const glm::vec3& /*color*/
+    RenderableId renderable_id,
+    const glm::mat4& model_matrix,
+    const glm::vec3& color
 ) -> void {
-    // this->color_draw_queue.emplace_back(renderable, model_matrix, color);
-}
+    if (this->instanced_color_draw_call_map.contains(renderable_id)) {
+        auto& draw_call = this->instanced_color_draw_call_map.at(renderable_id);
+        draw_call.model_matrices.emplace_back(model_matrix);
+        draw_call.colors.emplace_back(color);
+    } else {
+        this->instanced_color_draw_queue.emplace_back(ColorInstancedDrawCall{
+            .renderable_id = renderable_id,
+            .model_matrices = {model_matrix},
+            .colors = {color},
+        });
 
-auto OpenGLRenderer::queue_draw_with_color_instanced(
-    const Renderable& renderable,
-    gsl::span<glm::mat4> model_matrices,
-    gsl::span<glm::vec3> colors
-) -> void {
-    this->instanced_color_draw_queue.emplace_back(
-        renderable, model_matrices, colors
-    );
+        this->instanced_color_draw_call_map.emplace(
+            renderable_id, this->instanced_color_draw_queue.back()
+        );
+    }
 }
 
 auto OpenGLRenderer::draw() -> void {
@@ -174,6 +178,7 @@ auto OpenGLRenderer::draw() -> void {
     );
 
     this->color_render_pass.draw(
+        this->get_renderable_manager(),
         this->hdr_frame_buffer,
         this->instanced_color_draw_queue,
         this->instancing_model_matrix_buffer,
@@ -190,6 +195,7 @@ auto OpenGLRenderer::draw() -> void {
 
     this->draw_queue.clear();
     this->instanced_color_draw_queue.clear();
+    this->instanced_color_draw_call_map.clear();
 }
 
 auto OpenGLRenderer::update_lights() -> void {
