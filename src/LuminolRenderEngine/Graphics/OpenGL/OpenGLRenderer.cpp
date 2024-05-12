@@ -90,6 +90,7 @@ OpenGLRenderer::OpenGLRenderer(Window& window, GraphicsApi graphics_api)
           this->get_window_width(), this->get_window_height()
       )},
       gbuffer_render_pass{this->get_window_width(), this->get_window_height()},
+      compute_render_pass{this->get_window_width(), this->get_window_height()},
       transform_uniform_buffer{create_transform_uniform_buffer()},
       light_uniform_buffer{create_light_uniform_buffer()},
       instancing_model_matrix_buffer{
@@ -207,6 +208,10 @@ auto OpenGLRenderer::draw() -> void {
     );
 
     this->hdr_render_pass.draw(this->hdr_frame_buffer, this->exposure);
+
+    this->compute_render_pass.draw(
+        this->get_window_width(), this->get_window_height()
+    );
 
     this->instanced_draw_queue.clear();
     this->instanced_color_draw_queue.clear();

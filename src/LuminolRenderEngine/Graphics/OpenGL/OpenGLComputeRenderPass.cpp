@@ -8,12 +8,14 @@ using namespace Luminol::Graphics;
 
 auto create_compute_shader() -> OpenGLShader {
     auto compute_shader = OpenGLShader{
-        ShaderPaths{.compute_shader_path = "shaders/test_compute.glsl"}
+        ShaderPaths{.compute_shader_path = "res/shaders/test_compute.glsl"}
     };
 
+    compute_shader.bind();
     compute_shader.set_image_binding_point(
         "screen_image", ImageBindingPoint::Screen
     );
+    compute_shader.unbind();
 
     return compute_shader;
 }
