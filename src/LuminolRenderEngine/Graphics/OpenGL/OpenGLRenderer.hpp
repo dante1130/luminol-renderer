@@ -1,7 +1,5 @@
 #pragma once
 
-#include <unordered_set>
-
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniformBuffer.hpp>
