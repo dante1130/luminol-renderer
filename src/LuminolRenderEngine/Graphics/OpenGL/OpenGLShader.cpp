@@ -164,6 +164,12 @@ auto OpenGLShader::bind() const -> void {
 
 // NOLINTBEGIN(readability-convert-member-functions-to-static)
 auto OpenGLShader::unbind() const -> void { glUseProgram(0); }
+
+auto OpenGLShader::dispatch_compute(
+    uint32_t num_groups_x, uint32_t num_groups_y, uint32_t num_groups_z
+) const -> void {
+    glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
+}
 // NOLINTEND(readability-convert-member-functions-to-static)
 
 auto OpenGLShader::set_sampler_binding_point(

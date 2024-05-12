@@ -30,6 +30,10 @@ public:
     auto bind() const -> void;
     auto unbind() const -> void;
 
+    auto dispatch_compute(
+        uint32_t num_groups_x, uint32_t num_groups_y, uint32_t num_groups_z
+    ) const -> void;
+
     auto set_sampler_binding_point(
         const std::string& sampler_name, SamplerBindingPoint binding_point
     ) const -> void;
