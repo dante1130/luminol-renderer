@@ -55,4 +55,6 @@ private:
     TextureRefOptional ambient_occlusion_texture = std::nullopt;
 };
 
+auto create_quad_mesh() -> OpenGLMesh;
+
 }  // namespace Luminol::Graphics
