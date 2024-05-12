@@ -130,4 +130,17 @@ auto get_opengl_data_type_from_internal_format(TextureInternalFormat format)
     }
 }
 
+auto get_opengl_image_access(ImageAccess access) -> int32_t {
+    switch (access) {
+        case ImageAccess::Read:
+            return GL_READ_ONLY;
+        case ImageAccess::Write:
+            return GL_WRITE_ONLY;
+        case ImageAccess::ReadWrite:
+            return GL_READ_WRITE;
+        default:
+            throw std::runtime_error("Invalid access");
+    }
+}
+
 }  // namespace Luminol::Graphics

@@ -27,4 +27,8 @@ enum class SamplerBindingPoint {
     GBufferAlbedo,
 };
 
+enum class ImageBindingPoint {
+    Screen = 0,
+};
+
 }  // namespace Luminol::Graphics
