@@ -1,13 +1,9 @@
 #pragma once
 
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
-#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniformBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShaderStorageBuffer.hpp>
-#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniforms.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLFrameBuffer.hpp>
-#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLSkybox.hpp>
-#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLModel.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLGBufferRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLLightingRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLColorRenderPass.hpp>

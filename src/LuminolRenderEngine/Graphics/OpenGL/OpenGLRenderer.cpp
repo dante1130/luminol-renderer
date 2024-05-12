@@ -9,6 +9,7 @@
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLError.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLBufferBit.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniforms.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniformBindingPoints.hpp>
 
 namespace {
