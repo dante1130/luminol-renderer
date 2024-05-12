@@ -68,7 +68,7 @@ auto main() -> int {
     constexpr auto exposure = 2.0f;
     luminol_engine.get_renderer().set_exposure(exposure);
 
-    auto model_id =
+    const auto model_id =
         luminol_engine.get_renderer()
             .get_renderable_manager()
             .create_renderable("res/models/Sponza/glTF/Sponza.gltf");
