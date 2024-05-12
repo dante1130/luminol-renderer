@@ -178,6 +178,12 @@ auto OpenGLShader::set_sampler_binding_point(
     this->set_uniform(sampler_name, static_cast<int32_t>(binding_point));
 }
 
+auto OpenGLShader::set_image_binding_point(
+    const std::string& image_name, ImageBindingPoint binding_point
+) const -> void {
+    this->set_uniform(image_name, static_cast<int32_t>(binding_point));
+}
+
 auto OpenGLShader::set_uniform_block_binding_point(
     const std::string& block_name, UniformBufferBindingPoint binding_point
 ) const -> void {

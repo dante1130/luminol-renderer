@@ -38,6 +38,10 @@ public:
         const std::string& sampler_name, SamplerBindingPoint binding_point
     ) const -> void;
 
+    auto set_image_binding_point(
+        const std::string& image_name, ImageBindingPoint binding_point
+    ) const -> void;
+
     auto set_uniform_block_binding_point(
         const std::string& uniform_block_name,
         UniformBufferBindingPoint binding_point
