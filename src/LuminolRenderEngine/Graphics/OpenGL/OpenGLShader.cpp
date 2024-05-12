@@ -62,6 +62,14 @@ auto read_and_compile_shader(const std::filesystem::path& path, GLenum type)
     return shader_id;
 }
 
+auto read_and_compile_and_attach_shader(
+    const std::filesystem::path& path, GLenum type, uint32_t program_id
+) -> void {
+    const auto shader_id = read_and_compile_shader(path, type);
+    glAttachShader(program_id, shader_id);
+    glDeleteShader(shader_id);
+}
+
 auto link_program(uint32_t program_id) -> void {
     glLinkProgram(program_id);
 
@@ -97,55 +105,51 @@ OpenGLShader::OpenGLShader(const ShaderPaths& paths)
     Expects(this->shader_program_id != 0);
 
     if (paths.vertex_shader_path.has_value()) {
-        const auto vertex_shader_id = read_and_compile_shader(
-            paths.vertex_shader_path.value(), GL_VERTEX_SHADER
+        read_and_compile_and_attach_shader(
+            paths.vertex_shader_path.value(),
+            GL_VERTEX_SHADER,
+            this->shader_program_id
         );
-        glAttachShader(this->shader_program_id, vertex_shader_id);
-        glDeleteShader(vertex_shader_id);
     }
 
     if (paths.fragment_shader_path.has_value()) {
-        const auto fragment_shader_id = read_and_compile_shader(
-            paths.fragment_shader_path.value(), GL_FRAGMENT_SHADER
+        read_and_compile_and_attach_shader(
+            paths.fragment_shader_path.value(),
+            GL_FRAGMENT_SHADER,
+            this->shader_program_id
         );
-        glAttachShader(this->shader_program_id, fragment_shader_id);
-        glDeleteShader(fragment_shader_id);
     }
 
     if (paths.geometry_shader_path.has_value()) {
-        const auto geometry_shader_id = read_and_compile_shader(
-            paths.geometry_shader_path.value(), GL_GEOMETRY_SHADER
+        read_and_compile_and_attach_shader(
+            paths.geometry_shader_path.value(),
+            GL_GEOMETRY_SHADER,
+            this->shader_program_id
         );
-        glAttachShader(this->shader_program_id, geometry_shader_id);
-        glDeleteShader(geometry_shader_id);
     }
 
     if (paths.tessellation_control_shader_path.has_value()) {
-        const auto tessellation_control_shader_id = read_and_compile_shader(
+        read_and_compile_and_attach_shader(
             paths.tessellation_control_shader_path.value(),
-            GL_TESS_CONTROL_SHADER
+            GL_TESS_CONTROL_SHADER,
+            this->shader_program_id
         );
-        glAttachShader(this->shader_program_id, tessellation_control_shader_id);
-        glDeleteShader(tessellation_control_shader_id);
     }
 
     if (paths.tessellation_evaluation_shader_path.has_value()) {
-        const auto tessellation_evaluation_shader_id = read_and_compile_shader(
+        read_and_compile_and_attach_shader(
             paths.tessellation_evaluation_shader_path.value(),
-            GL_TESS_EVALUATION_SHADER
+            GL_TESS_EVALUATION_SHADER,
+            this->shader_program_id
         );
-        glAttachShader(
-            this->shader_program_id, tessellation_evaluation_shader_id
-        );
-        glDeleteShader(tessellation_evaluation_shader_id);
     }
 
     if (paths.compute_shader_path.has_value()) {
-        const auto compute_shader_id = read_and_compile_shader(
-            paths.compute_shader_path.value(), GL_COMPUTE_SHADER
+        read_and_compile_and_attach_shader(
+            paths.compute_shader_path.value(),
+            GL_COMPUTE_SHADER,
+            this->shader_program_id
         );
-        glAttachShader(this->shader_program_id, compute_shader_id);
-        glDeleteShader(compute_shader_id);
     }
 
     link_program(this->shader_program_id);
