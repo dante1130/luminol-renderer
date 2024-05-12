@@ -209,12 +209,7 @@ vec3 calculate_spot_light(
 
     const float theta = dot(light_direction, normalize(-light.direction));
     const float epsilon = light.cut_off - light.outer_cut_off;
-    const float intensity = clamp((theta - light.outer_cut_off) / epsilon, 0.0, 1.0);
-
-    if (intensity <= 0.0)
-    {
-        return vec3(0.0);
-    }
+    const float intensity = max(clamp((theta - light.outer_cut_off) / epsilon, 0.0, 1.0), 0.0);
 
     const float distance = length(light.position - frag_pos);
     const float attenuation = 1.0 / (distance * distance);
