@@ -4,8 +4,8 @@ out vec4 frag_color;
 
 in vec2 tex_coords_out;
 
-const uint MAX_POINT_LIGHTS = 256;
-const uint MAX_SPOT_LIGHTS = 256;
+const uint MAX_POINT_LIGHTS = 64;
+const uint MAX_SPOT_LIGHTS = 64;
 
 struct DirectionalLight
 {

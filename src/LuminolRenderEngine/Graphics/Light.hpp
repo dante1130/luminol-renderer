@@ -11,14 +11,14 @@ struct DirectionalLight {
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
 };
 
-constexpr static auto max_point_lights = 256u;
+constexpr static auto max_point_lights = 64u;
 
 struct PointLight {
     glm::vec3 position = {0.0f, 0.0f, 0.0f};
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
 };
 
-constexpr static auto max_spot_lights = 256u;
+constexpr static auto max_spot_lights = 64u;
 constexpr static auto default_cut_off = 0.0f;
 constexpr static auto default_outer_cut_off = 0.0f;
 
@@ -55,9 +55,9 @@ struct Light {
     uint32_t spot_light_count = 0;              // 4 bytes
     glm::vec2 padding = glm::vec2{0.0f, 0.0f};  // 8 bytes
     std::vector<AlignedPointLight> point_lights =
-        std::vector<AlignedPointLight>{max_point_lights};  // 4096 bytes
+        std::vector<AlignedPointLight>{max_point_lights};
     std::vector<AlignedSpotLight> spot_lights =
-        std::vector<AlignedSpotLight>{max_spot_lights};  // 8192 bytes
+        std::vector<AlignedSpotLight>{max_spot_lights};
 };
 
 constexpr static auto alignment = 16u;

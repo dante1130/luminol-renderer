@@ -82,7 +82,7 @@ auto main() -> int {
         directional_light
     );
 
-    constexpr auto lights_count = 8u;
+    constexpr auto lights_count = 64u;
 
     auto lights = Lights{
         .renderable_id = luminol_engine.get_renderer()
