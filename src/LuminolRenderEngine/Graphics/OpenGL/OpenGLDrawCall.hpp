@@ -16,7 +16,7 @@ struct InstancedDrawCall {
 struct ColorInstancedDrawCall {
     RenderableId renderable_id = 0;
     std::vector<glm::mat4> model_matrices = {};
-    std::vector<glm::vec3> colors = {};
+    std::vector<glm::vec4> colors = {};
 };
 
 }  // namespace Luminol::Graphics

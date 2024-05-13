@@ -147,12 +147,12 @@ auto OpenGLRenderer::queue_draw_with_color(
     if (this->instanced_color_draw_call_map.contains(renderable_id)) {
         auto& draw_call = this->instanced_color_draw_call_map.at(renderable_id);
         draw_call.model_matrices.emplace_back(model_matrix);
-        draw_call.colors.emplace_back(color);
+        draw_call.colors.emplace_back(color, 1.0);
     } else {
         this->instanced_color_draw_queue.emplace_back(ColorInstancedDrawCall{
             .renderable_id = renderable_id,
             .model_matrices = {model_matrix},
-            .colors = {color},
+            .colors = {glm::vec4{color, 1.0f}},
         });
 
         this->instanced_color_draw_call_map.emplace(

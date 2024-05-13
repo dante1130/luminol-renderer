@@ -52,24 +52,18 @@ auto OpenGLColorRenderPass::draw(
         instancing_model_matrix_buffer.set_data(
             0,
             gsl::narrow<int64_t>(
-                draw_call.model_matrices.size() * sizeof(glm::mat4)
+                draw_call.model_matrices.size() *
+                sizeof(draw_call.model_matrices[0])
             ),
             draw_call.model_matrices.data()
         );
 
-        auto color_buffer_padded = std::vector<glm::vec4>{};
-        color_buffer_padded.reserve(draw_call.colors.size());
-
-        for (const auto& color : draw_call.colors) {
-            color_buffer_padded.emplace_back(color, 0.0f);
-        }
-
         instancing_color_buffer.set_data(
             0,
             gsl::narrow<int64_t>(
-                color_buffer_padded.size() * sizeof(glm::vec4)
+                draw_call.colors.size() * sizeof(draw_call.colors[0])
             ),
-            color_buffer_padded.data()
+            draw_call.colors.data()
         );
 
         const auto& renderable =
