@@ -62,10 +62,9 @@ auto create_transform_uniform_buffer() -> OpenGLUniformBuffer {
 }
 
 auto create_light_uniform_buffer() -> OpenGLUniformBuffer {
-    const auto size_bytes =
-        offsetof(Light, point_lights) +
-        sizeof(AlignedPointLight) * max_point_lights +
-        sizeof(AlignedSpotLight) * max_spot_lights;
+    const auto size_bytes = offsetof(Light, point_lights) +
+                            sizeof(AlignedPointLight) * max_point_lights +
+                            sizeof(AlignedSpotLight) * max_spot_lights;
 
     return OpenGLUniformBuffer{
         UniformBufferBindingPoint::Light, gsl::narrow<int64_t>(size_bytes)
@@ -220,16 +219,13 @@ auto OpenGLRenderer::update_lights() -> void {
     const auto& light_data = this->get_light_manager().get_light_data();
 
     this->light_uniform_buffer.set_data(
-        0,
-        offsetof(Light, point_lights),
-        &light_data
+        0, offsetof(Light, point_lights), &light_data
     );
 
     this->light_uniform_buffer.set_data(
         offsetof(Light, point_lights),
         gsl::narrow<int64_t>(
-            sizeof(light_data.point_lights[0]) *
-            light_data.point_lights.size()
+            sizeof(light_data.point_lights[0]) * light_data.point_lights.size()
         ),
         light_data.point_lights.data()
     );
@@ -241,8 +237,7 @@ auto OpenGLRenderer::update_lights() -> void {
     this->light_uniform_buffer.set_data(
         gsl::narrow<int64_t>(spot_light_offset),
         gsl::narrow<int64_t>(
-            sizeof(light_data.spot_lights[0]) *
-            light_data.spot_lights.size()
+            sizeof(light_data.spot_lights[0]) * light_data.spot_lights.size()
         ),
         light_data.spot_lights.data()
     );
