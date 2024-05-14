@@ -37,10 +37,14 @@ target_compile_options(Luminol.Graphics PRIVATE
 )
 
 target_link_libraries(Luminol.Graphics PUBLIC
-    glad
     glm
     GSL
     Luminol.Utilities
+)
+
+target_link_libraries(Luminol.Graphics PRIVATE
+    glad
+    Vulkan-Headers
 )
 
 target_include_directories(Luminol.Graphics PUBLIC

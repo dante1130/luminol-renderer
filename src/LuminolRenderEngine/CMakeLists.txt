@@ -22,7 +22,6 @@ target_compile_options(LuminolRenderEngine PRIVATE
 )
 
 target_link_libraries(LuminolRenderEngine PUBLIC
-    glm
     Luminol.Window
     Luminol.Graphics
     Luminol.Utilities
