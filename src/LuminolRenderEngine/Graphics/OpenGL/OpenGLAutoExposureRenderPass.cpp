@@ -1,4 +1,4 @@
-#include "OpenGLComputeRenderPass.hpp"
+#include "OpenGLAutoExposureRenderPass.hpp"
 
 #include <glad/gl.h>
 
@@ -24,11 +24,13 @@ auto create_compute_shader() -> OpenGLShader {
 
 namespace Luminol::Graphics {
 
-OpenGLComputeRenderPass::OpenGLComputeRenderPass(int32_t width, int32_t height)
+OpenGLAutoExposureRenderPass::OpenGLAutoExposureRenderPass(
+    int32_t width, int32_t height
+)
     : compute_shader{create_compute_shader()},
       screen_texture{width, height, TextureInternalFormat::RGBA32F} {}
 
-auto OpenGLComputeRenderPass::draw(int32_t width, int32_t height) const
+auto OpenGLAutoExposureRenderPass::draw(int32_t width, int32_t height) const
     -> void {
     constexpr auto work_group_size = 16;
 

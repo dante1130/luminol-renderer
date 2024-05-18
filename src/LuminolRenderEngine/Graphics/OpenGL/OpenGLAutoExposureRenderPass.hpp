@@ -6,9 +6,9 @@
 
 namespace Luminol::Graphics {
 
-class OpenGLComputeRenderPass {
+class OpenGLAutoExposureRenderPass {
 public:
-    OpenGLComputeRenderPass(int32_t width, int32_t height);
+    OpenGLAutoExposureRenderPass(int32_t width, int32_t height);
 
     auto draw(int32_t width, int32_t height) const -> void;
 
