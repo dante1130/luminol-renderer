@@ -4,27 +4,6 @@ add_library(Luminol.Graphics
     LightManager.cpp
     Renderer.cpp
     RenderableManager.cpp
-    OpenGL/OpenGLBufferBit.cpp
-    OpenGL/OpenGLRenderer.cpp
-    OpenGL/OpenGLFactory.cpp
-    OpenGL/OpenGLShader.cpp
-    OpenGL/OpenGLVertexBuffer.cpp
-    OpenGL/OpenGLIndexBuffer.cpp
-    OpenGL/OpenGLVertexArrayObject.cpp
-    OpenGL/OpenGLTexture.cpp
-    OpenGL/OpenGLTextureManager.cpp
-    OpenGL/OpenGLTextureFormat.cpp
-    OpenGL/OpenGLSkybox.cpp
-    OpenGL/OpenGLMesh.cpp
-    OpenGL/OpenGLModel.cpp
-    OpenGL/OpenGLError.cpp
-    OpenGL/OpenGLFrameBuffer.cpp
-    OpenGL/OpenGLGBufferRenderPass.cpp
-    OpenGL/OpenGLLightingRenderPass.cpp
-    OpenGL/OpenGLColorRenderPass.cpp
-    OpenGL/OpenGLSkyboxRenderPass.cpp
-    OpenGL/OpenGLHDRRenderPass.cpp
-    OpenGL/OpenGLComputeRenderPass.cpp
 )
 
 target_compile_features(Luminol.Graphics PRIVATE cxx_std_20)
@@ -37,12 +16,17 @@ target_compile_options(Luminol.Graphics PRIVATE
 )
 
 target_link_libraries(Luminol.Graphics PUBLIC
-    glad
     glm
     GSL
     Luminol.Utilities
 )
 
+target_link_libraries(Luminol.Graphics PRIVATE
+    Luminol.Graphics.OpenGL
+)
+
 target_include_directories(Luminol.Graphics PUBLIC
     ${LUMINOL_RENDER_ENGINE_SRC_DIR}
 )
+
+add_subdirectory(OpenGL)

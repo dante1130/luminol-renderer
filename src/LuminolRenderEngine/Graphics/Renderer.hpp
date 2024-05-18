@@ -1,6 +1,5 @@
 #pragma once
 
-#include <gsl/gsl>
 #include <glm/glm.hpp>
 
 #include <LuminolRenderEngine/Window/Window.hpp>
