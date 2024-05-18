@@ -13,7 +13,7 @@ public:
     auto draw(int32_t width, int32_t height) const -> void;
 
 private:
-    OpenGLShader compute_shader;
+    OpenGLShader luminance_histogram_shader;
     OpenGLTexture screen_texture;
 };
 
