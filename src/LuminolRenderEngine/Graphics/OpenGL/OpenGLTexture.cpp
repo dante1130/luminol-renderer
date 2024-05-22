@@ -122,7 +122,7 @@ auto OpenGLTexture::bind_image(
     );
 }
 
-auto OpenGLTexture::resize(int32_t width, int32_t height) -> void {
+auto OpenGLTexture::resize(int32_t width, int32_t height) const -> void {
     glTextureImage2DEXT(
         this->texture_id,
         GL_TEXTURE_2D,
