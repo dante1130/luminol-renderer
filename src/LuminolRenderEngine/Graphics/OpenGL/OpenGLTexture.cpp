@@ -27,23 +27,16 @@ auto create_texture(
             ? get_internal_format_from_channels_srgb(image.channels)
             : get_internal_format_from_channels(image.channels);
 
-    glTextureStorage2D(
-        texture_id,
-        1,
-        get_opengl_internal_format(internal_format),
-        image.width,
-        image.height
-    );
-
     const auto format = get_format_from_channels(image.channels);
 
-    glTextureSubImage2D(
+    glTextureImage2DEXT(
         texture_id,
+        GL_TEXTURE_2D,
         0,
-        0,
-        0,
+        get_opengl_internal_format(internal_format),
         image.width,
         image.height,
+        0,
         get_opengl_format(format),
         get_opengl_data_type_from_internal_format(internal_format),
         image.data.data()
@@ -69,12 +62,17 @@ OpenGLTexture::OpenGLTexture(
     glTextureParameteri(this->texture_id, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTextureParameteri(this->texture_id, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    glTextureStorage2D(
+    glTextureImage2DEXT(
         this->texture_id,
-        1,
-        get_opengl_internal_format(this->internal_format),
+        GL_TEXTURE_2D,
+        0,
+        get_opengl_internal_format(internal_format),
         width,
-        height
+        height,
+        0,
+        get_opengl_format_from_internal_format(internal_format),
+        get_opengl_data_type_from_internal_format(internal_format),
+        nullptr
     );
 }
 
@@ -121,6 +119,21 @@ auto OpenGLTexture::bind_image(
         0,
         get_opengl_image_access(access),
         get_opengl_internal_format(this->internal_format)
+    );
+}
+
+auto OpenGLTexture::resize(int32_t width, int32_t height) -> void {
+    glTextureImage2DEXT(
+        this->texture_id,
+        GL_TEXTURE_2D,
+        0,
+        get_opengl_internal_format(this->internal_format),
+        width,
+        height,
+        0,
+        get_opengl_format_from_internal_format(this->internal_format),
+        get_opengl_data_type_from_internal_format(this->internal_format),
+        nullptr
     );
 }
 

@@ -34,6 +34,8 @@ public:
     auto bind_image(ImageBindingPoint binding_point, ImageAccess access) const
         -> void;
 
+    auto resize(int32_t width, int32_t height) -> void;
+
 private:
     uint32_t texture_id = {0};
     TextureInternalFormat internal_format = {TextureInternalFormat::RGBA8};

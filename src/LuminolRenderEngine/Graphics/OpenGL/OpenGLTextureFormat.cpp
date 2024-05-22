@@ -130,6 +130,32 @@ auto get_opengl_data_type_from_internal_format(TextureInternalFormat format)
     }
 }
 
+auto get_opengl_format_from_internal_format(TextureInternalFormat format)
+    -> int32_t {
+    switch (format) {
+        case TextureInternalFormat::R8:
+        case TextureInternalFormat::R16F:
+        case TextureInternalFormat::R32F:
+        case TextureInternalFormat::SRGB8:
+            return GL_RED;
+        case TextureInternalFormat::RG8:
+        case TextureInternalFormat::RG16F:
+        case TextureInternalFormat::RG32F:
+            return GL_RG;
+        case TextureInternalFormat::RGB8:
+        case TextureInternalFormat::RGB16F:
+        case TextureInternalFormat::RGB32F:
+            return GL_RGB;
+        case TextureInternalFormat::RGBA8:
+        case TextureInternalFormat::RGBA16F:
+        case TextureInternalFormat::RGBA32F:
+        case TextureInternalFormat::SRGB8_Alpha8:
+            return GL_RGBA;
+        default:
+            throw std::runtime_error("Invalid internal format");
+    }
+}
+
 auto get_opengl_image_access(ImageAccess access) -> int32_t {
     switch (access) {
         case ImageAccess::Read:

@@ -46,6 +46,9 @@ auto get_format_from_channels(int32_t channels) -> TextureFormat;
 auto get_opengl_data_type_from_internal_format(TextureInternalFormat format)
     -> int32_t;
 
+auto get_opengl_format_from_internal_format(TextureInternalFormat format)
+    -> int32_t;
+
 auto get_opengl_image_access(ImageAccess access) -> int32_t;
 
 }  // namespace Luminol::Graphics
