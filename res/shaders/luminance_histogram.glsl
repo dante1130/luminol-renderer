@@ -31,7 +31,8 @@ void main() {
 
     const float min_log_luminance = -10.0;
     const float max_log_luminance = 2.0;
-    const float inverse_log_luminance_range = 1.0 / (max_log_luminance - min_log_luminance);
+    const float log_luminance_range = abs(min_log_luminance) + max_log_luminance;
+    const float inverse_log_luminance_range = 1.0 / log_luminance_range;
 
     const uint bin = color_to_bin(color, min_log_luminance, inverse_log_luminance_range);
 

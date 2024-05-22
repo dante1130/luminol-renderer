@@ -37,7 +37,7 @@ void main()
     {
         const float min_log_luminance = -10.0;
         const float max_log_luminance = 2.0;
-        const float log_luminance_range = max_log_luminance - min_log_luminance;
+        const float log_luminance_range = abs(min_log_luminance) + max_log_luminance;
 
         const float weighted_log_average = (shared_luminance_histogram[0] / max(num_pixels - float(luminance_count), 1.0)) - 1.0;
         const float weighted_average_luminance = exp2(((weighted_log_average / 254.0) * log_luminance_range) + min_log_luminance);
