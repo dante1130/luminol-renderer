@@ -75,7 +75,7 @@ auto main() -> int {
 
     constexpr auto directional_light = Graphics::DirectionalLight{
         .direction = glm::vec3(0.5f, -0.5f, 1.0f),
-        .color = glm::vec3(100.0f, 100.0f, 100.0f),
+        .color = glm::vec3(0.1f, 0.1f, 0.1f),
     };
 
     luminol_engine.get_renderer().get_light_manager().update_directional_light(
@@ -113,7 +113,7 @@ auto main() -> int {
         model_matrix = glm::translate(model_matrix, position);
         model_matrix = glm::scale(model_matrix, scale);
 
-        constexpr auto intensity = 10000.0f;
+        constexpr auto intensity = 1.0f;
 
         const auto point_light_id_opt =
             luminol_engine.get_renderer().get_light_manager().add_point_light(

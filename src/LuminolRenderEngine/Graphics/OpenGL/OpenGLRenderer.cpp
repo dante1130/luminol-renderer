@@ -205,11 +205,10 @@ auto OpenGLRenderer::draw() -> void {
         this->view_matrix
     );
 
-    this->hdr_render_pass.draw(this->hdr_frame_buffer, this->exposure);
-
     constexpr float delta_time = 1.0f / 144.0f;
-
     this->auto_exposure_render_pass.draw(this->hdr_frame_buffer, delta_time);
+
+    this->hdr_render_pass.draw(this->hdr_frame_buffer, this->exposure);
 
     this->instanced_draw_queue.clear();
     this->instanced_color_draw_queue.clear();
