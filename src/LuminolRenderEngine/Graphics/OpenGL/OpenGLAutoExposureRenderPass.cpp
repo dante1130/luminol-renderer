@@ -13,7 +13,7 @@ auto create_luminance_histogram_shader() -> OpenGLShader {
 
     luminance_histogram_shader.bind();
     luminance_histogram_shader.set_image_binding_point(
-        "screen_image", ImageBindingPoint::Screen
+        "hdr_image", ImageBindingPoint::HDRFramebuffer
     );
     luminance_histogram_shader.unbind();
 
@@ -28,18 +28,23 @@ OpenGLAutoExposureRenderPass::OpenGLAutoExposureRenderPass(
     int32_t width, int32_t height
 )
     : luminance_histogram_shader{create_luminance_histogram_shader()},
+      luminance_histogram_buffer{
+          ShaderStorageBufferBindingPoint::LuminanceHistogram
+      },
       screen_texture{width, height, TextureInternalFormat::RGBA32F} {}
 
-auto OpenGLAutoExposureRenderPass::draw(int32_t width, int32_t height) const
-    -> void {
+auto OpenGLAutoExposureRenderPass::draw(const OpenGLFrameBuffer& hdr_framebuffer
+) const -> void {
     constexpr auto work_group_size = 16;
 
     this->luminance_histogram_shader.bind();
-    this->screen_texture.bind_image(
-        ImageBindingPoint::Screen, ImageAccess::Write
+    hdr_framebuffer.bind_image(
+        ImageBindingPoint::HDRFramebuffer, ImageAccess::ReadWrite
     );
     this->luminance_histogram_shader.dispatch_compute(
-        width / work_group_size, height / work_group_size, 1
+        hdr_framebuffer.get_width() / work_group_size,
+        hdr_framebuffer.get_height() / work_group_size,
+        1
     );
     this->luminance_histogram_shader.unbind();
 }

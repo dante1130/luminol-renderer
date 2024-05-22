@@ -38,6 +38,9 @@ public:
     auto bind_color_attachments() const -> void;
     auto unbind_color_attachments() const -> void;
 
+    auto bind_image(ImageBindingPoint binding_point, ImageAccess access) const
+        -> void;
+
     auto blit_to_default_framebuffer(
         int32_t width, int32_t height, BufferBit buffer_bit
     ) const -> void;

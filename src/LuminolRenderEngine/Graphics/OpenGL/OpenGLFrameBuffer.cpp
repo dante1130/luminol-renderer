@@ -120,6 +120,20 @@ auto OpenGLFrameBuffer::unbind_color_attachments() const -> void {
     }
 }
 
+auto OpenGLFrameBuffer::bind_image(
+    ImageBindingPoint binding_point, ImageAccess access
+) const -> void {
+    glBindImageTexture(
+        static_cast<uint32_t>(binding_point),
+        this->color_attachments[0].attachment_id,
+        0,
+        GL_FALSE,
+        0,
+        get_opengl_image_access(access),
+        get_opengl_internal_format(this->color_attachments[0].internal_format)
+    );
+}
+
 auto OpenGLFrameBuffer::blit_to_default_framebuffer(
     int32_t width, int32_t height, BufferBit buffer_bit
 ) const -> void {

@@ -10,6 +10,7 @@ enum class UniformBufferBindingPoint {
 enum class ShaderStorageBufferBindingPoint {
     InstancingModelMatrices = 0,
     Color,
+    LuminanceHistogram,
 };
 
 enum class SamplerBindingPoint {
@@ -29,6 +30,7 @@ enum class SamplerBindingPoint {
 
 enum class ImageBindingPoint {
     Screen = 0,
+    HDRFramebuffer,
 };
 
 }  // namespace Luminol::Graphics
