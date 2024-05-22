@@ -16,3 +16,7 @@ target_link_libraries(Luminol.Window PRIVATE
     glfw
     GSL
 )
+
+target_compile_definitions(Luminol.Window PRIVATE
+    GLFW_INCLUDE_NONE
+)
