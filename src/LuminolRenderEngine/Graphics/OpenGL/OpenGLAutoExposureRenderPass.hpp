@@ -12,7 +12,7 @@ class OpenGLAutoExposureRenderPass {
 public:
     OpenGLAutoExposureRenderPass(int32_t width, int32_t height);
 
-    auto draw(const OpenGLFrameBuffer& hdr_framebuffer) const -> void;
+    auto draw(const OpenGLFrameBuffer& hdr_framebuffer) -> void;
 
 private:
     OpenGLShader luminance_histogram_shader;
