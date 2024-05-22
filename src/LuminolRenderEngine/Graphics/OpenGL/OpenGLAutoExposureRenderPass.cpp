@@ -24,6 +24,24 @@ auto create_luminance_histogram_shader() -> OpenGLShader {
     return luminance_histogram_shader;
 }
 
+auto create_average_luminance_shader() -> OpenGLShader {
+    auto average_luminance_shader = OpenGLShader{ShaderPaths{
+        .compute_shader_path = "res/shaders/average_luminance.glsl",
+    }};
+
+    average_luminance_shader.bind();
+    average_luminance_shader.set_shader_storage_block_binding_point(
+        "LuminanceHistogramBuffer",
+        ShaderStorageBufferBindingPoint::LuminanceHistogram
+    );
+    average_luminance_shader.set_image_binding_point(
+        "average_luminance_image", ImageBindingPoint::AverageLuminance
+    );
+    average_luminance_shader.unbind();
+
+    return average_luminance_shader;
+}
+
 }  // namespace
 
 namespace Luminol::Graphics {
@@ -35,26 +53,42 @@ OpenGLAutoExposureRenderPass::OpenGLAutoExposureRenderPass(
       luminance_histogram_buffer{
           ShaderStorageBufferBindingPoint::LuminanceHistogram
       },
-      screen_texture{width, height, TextureInternalFormat::RGBA32F} {}
+      average_luminance_shader{create_average_luminance_shader()},
+      average_luminance_texture{1, 1, TextureInternalFormat::R16F},
+      screen_texture{width, height, TextureInternalFormat::RGBA16F} {}
 
-auto OpenGLAutoExposureRenderPass::draw(const OpenGLFrameBuffer& hdr_framebuffer
+auto OpenGLAutoExposureRenderPass::draw(
+    const OpenGLFrameBuffer& hdr_framebuffer, float delta_time
 ) -> void {
-    constexpr auto work_group_size = 16;
-    constexpr auto initial_data = std::array<uint32_t, 256>{};
+    constexpr auto histogram_work_group_size = 16;
+    constexpr auto initial_histogram_data = std::array<uint32_t, 256>{};
 
     this->luminance_histogram_shader.bind();
     hdr_framebuffer.bind_image(
         ImageBindingPoint::HDRFramebuffer, ImageAccess::Read
     );
     this->luminance_histogram_buffer.set_data(
-        0, gsl::narrow<int64_t>(sizeof(initial_data)), initial_data.data()
+        0,
+        gsl::narrow<int64_t>(sizeof(initial_histogram_data)),
+        initial_histogram_data.data()
     );
     this->luminance_histogram_shader.dispatch_compute(
-        hdr_framebuffer.get_width() / work_group_size,
-        hdr_framebuffer.get_height() / work_group_size,
+        hdr_framebuffer.get_width() / histogram_work_group_size,
+        hdr_framebuffer.get_height() / histogram_work_group_size,
         1
     );
     this->luminance_histogram_shader.unbind();
+
+    this->average_luminance_shader.bind();
+    this->average_luminance_shader.set_uniform("delta_time", delta_time);
+    this->average_luminance_shader.set_uniform(
+        "num_pixels", hdr_framebuffer.get_width() * hdr_framebuffer.get_height()
+    );
+    this->average_luminance_texture.bind_image(
+        ImageBindingPoint::AverageLuminance, ImageAccess::ReadWrite
+    );
+    this->average_luminance_shader.dispatch_compute(1, 1, 1);
+    this->average_luminance_shader.unbind();
 }
 
 }  // namespace Luminol::Graphics

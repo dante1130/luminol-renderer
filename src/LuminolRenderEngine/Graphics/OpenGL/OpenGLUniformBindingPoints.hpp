@@ -31,6 +31,7 @@ enum class SamplerBindingPoint {
 enum class ImageBindingPoint {
     Screen = 0,
     HDRFramebuffer,
+    AverageLuminance,
 };
 
 }  // namespace Luminol::Graphics

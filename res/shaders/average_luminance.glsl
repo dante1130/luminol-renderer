@@ -1,5 +1,5 @@
 #version 460 core
-layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 layout(rgba16f, binding = 2) uniform image2D average_luminance_image;
 
 const uint group_size = gl_WorkGroupSize.x * gl_WorkGroupSize.y;
@@ -10,7 +10,7 @@ layout(std430, binding = 2) buffer LuminanceHistogramBuffer
 };
 
 uniform float delta_time;
-uniform float num_pixels;
+uniform int num_pixels;
 
 shared uint shared_luminance_histogram[group_size];
 
