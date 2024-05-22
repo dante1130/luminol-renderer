@@ -7,9 +7,9 @@ namespace {
 using namespace Luminol::Graphics;
 
 auto create_luminance_histogram_shader() -> OpenGLShader {
-    auto luminance_histogram_shader = OpenGLShader{
-        ShaderPaths{.compute_shader_path = "res/shaders/test_compute.glsl"}
-    };
+    auto luminance_histogram_shader = OpenGLShader{ShaderPaths{
+        .compute_shader_path = "res/shaders/luminance_histogram.glsl",
+    }};
 
     luminance_histogram_shader.bind();
     luminance_histogram_shader.set_image_binding_point(
