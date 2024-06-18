@@ -19,9 +19,6 @@ class RenderableManager {
 public:
     RenderableManager(GraphicsApi api);
 
-    [[nodiscard]] auto get_graphics_factory() const
-        -> const Graphics::GraphicsFactory&;
-
     [[nodiscard]] auto create_renderable(
         gsl::span<const float> vertices,
         gsl::span<const uint32_t> indices,

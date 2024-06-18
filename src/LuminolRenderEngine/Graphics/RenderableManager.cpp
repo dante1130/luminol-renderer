@@ -7,10 +7,6 @@ namespace Luminol::Graphics {
 RenderableManager::RenderableManager(GraphicsApi api)
     : graphics_factory{GraphicsFactory::create(api)} {}
 
-auto RenderableManager::get_graphics_factory() const -> const GraphicsFactory& {
-    return *this->graphics_factory;
-}
-
 auto RenderableManager::create_renderable(
     gsl::span<const float> vertices,
     gsl::span<const uint32_t> indices,
