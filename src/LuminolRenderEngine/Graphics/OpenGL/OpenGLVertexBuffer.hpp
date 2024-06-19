@@ -13,6 +13,8 @@ public:
     auto operator=(const OpenGLVertexBuffer&) -> OpenGLVertexBuffer& = delete;
     auto operator=(OpenGLVertexBuffer&&) -> OpenGLVertexBuffer& = default;
 
+    auto bind() const -> void;
+
     [[nodiscard]] auto get_vertex_buffer_id() const -> uint32_t;
 
 private:

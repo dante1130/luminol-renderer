@@ -235,6 +235,17 @@ auto main() -> int {
             luminol_engine.get_renderer().queue_draw(model_id, model_matrix);
         }
 
+        {
+            constexpr static auto line_position_a = glm::vec3(0.0f);
+            constexpr static auto line_position_b = glm::vec3(1.0f);
+            constexpr static auto line_color = glm::vec3(1.0f);
+            constexpr static auto scale = 100.0f;
+
+            luminol_engine.get_renderer().queue_draw_line(
+                line_position_a, line_position_b, line_color, scale
+            );
+        }
+
         luminol_engine.get_renderer().draw();
 
         luminol_engine.get_window().swap_buffers();

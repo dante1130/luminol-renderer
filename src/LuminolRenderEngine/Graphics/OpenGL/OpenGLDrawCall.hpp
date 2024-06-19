@@ -19,4 +19,15 @@ struct ColorInstancedDrawCall {
     std::vector<glm::vec4> colors = {};
 };
 
+struct LineDrawCall {
+    struct Line {
+        glm::vec3 start_position;
+        glm::vec3 end_position;
+    };
+
+    std::vector<Line> lines = {};
+    std::vector<glm::vec4> colors = {};
+    std::vector<float> widths = {};
+};
+
 }  // namespace Luminol::Graphics

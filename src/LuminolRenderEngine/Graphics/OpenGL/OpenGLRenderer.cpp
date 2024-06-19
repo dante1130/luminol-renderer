@@ -161,6 +161,21 @@ auto OpenGLRenderer::queue_draw_with_color(
     );
 }
 
+auto OpenGLRenderer::queue_draw_line(
+    const glm::vec3& start_position,
+    const glm::vec3& end_position,
+    const glm::vec3& color,
+    float width
+) -> void {
+    this->line_draw_call.lines.emplace_back(LineDrawCall::Line{
+        .start_position = start_position,
+        .end_position = end_position,
+    });
+
+    this->line_draw_call.colors.emplace_back(color, 1.0f);
+    this->line_draw_call.widths.emplace_back(width);
+}
+
 auto OpenGLRenderer::draw() -> void {
     this->update_lights();
 
@@ -201,6 +216,14 @@ auto OpenGLRenderer::draw() -> void {
         this->instancing_color_buffer
     );
 
+    if (!this->line_draw_call.lines.empty()) {
+        this->primitive_render_pass.draw_lines(
+            this->hdr_frame_buffer,
+            this->line_draw_call,
+            this->instancing_color_buffer
+        );
+    }
+
     this->skybox_render_pass.draw(
         this->hdr_frame_buffer,
         this->transform_uniform_buffer,
@@ -216,6 +239,10 @@ auto OpenGLRenderer::draw() -> void {
     this->instanced_color_draw_queue.clear();
     this->instanced_draw_call_map.clear();
     this->instanced_color_draw_call_map.clear();
+
+    this->line_draw_call.lines.clear();
+    this->line_draw_call.colors.clear();
+    this->line_draw_call.widths.clear();
 }
 
 auto OpenGLRenderer::update_lights() -> void {

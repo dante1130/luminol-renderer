@@ -17,6 +17,7 @@ add_library(Luminol.Graphics.OpenGL
     OpenGLGBufferRenderPass.cpp
     OpenGLLightingRenderPass.cpp
     OpenGLColorRenderPass.cpp
+    OpenGLPrimitiveRenderPass.cpp
     OpenGLSkyboxRenderPass.cpp
     OpenGLHDRRenderPass.cpp
     OpenGLAutoExposureRenderPass.cpp

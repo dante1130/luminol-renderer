@@ -7,6 +7,7 @@
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLGBufferRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLLightingRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLColorRenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLPrimitiveRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLSkyboxRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLHDRRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLAutoExposureRenderPass.hpp>
@@ -36,6 +37,13 @@ public:
         const glm::vec3& color
     ) -> void override;
 
+    auto queue_draw_line(
+        const glm::vec3& start,
+        const glm::vec3& end,
+        const glm::vec3& color,
+        float width
+    ) -> void override;
+
     auto draw() -> void override;
 
 private:
@@ -49,6 +57,7 @@ private:
 
     std::vector<InstancedDrawCall> instanced_draw_queue;
     std::vector<ColorInstancedDrawCall> instanced_color_draw_queue;
+    LineDrawCall line_draw_call;
 
     std::unordered_map<RenderableId, InstancedDrawCall&>
         instanced_draw_call_map;
@@ -60,6 +69,7 @@ private:
     OpenGLGBufferRenderPass gbuffer_render_pass;
     OpenGLLightingRenderPass lighting_render_pass;
     OpenGLColorRenderPass color_render_pass;
+    OpenGLPrimitiveRenderPass primitive_render_pass;
     OpenGLSkyboxRenderPass skybox_render_pass;
     OpenGLHDRRenderPass hdr_render_pass;
     OpenGLAutoExposureRenderPass auto_exposure_render_pass;
