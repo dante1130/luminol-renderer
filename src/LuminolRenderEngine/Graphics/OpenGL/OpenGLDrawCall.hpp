@@ -27,7 +27,6 @@ struct LineDrawCall {
 
     std::vector<Line> lines = {};
     std::vector<glm::vec4> colors = {};
-    std::vector<float> widths = {};
 };
 
 }  // namespace Luminol::Graphics

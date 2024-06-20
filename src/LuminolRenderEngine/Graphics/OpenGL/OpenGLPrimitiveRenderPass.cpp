@@ -73,15 +73,11 @@ auto OpenGLPrimitiveRenderPass::draw_lines(
     );
     glEnableVertexAttribArray(0);
 
-    glLineWidth(line_draw_call.widths[0]);
-
     glDrawArrays(
         GL_LINES,
         0,
         gsl::narrow<GLsizei>(line_draw_call.lines.size() * line_position_count)
     );
-
-    glLineWidth(1.0f);
 
     this->line_shader.unbind();
     hdr_frame_buffer.unbind();

@@ -38,10 +38,7 @@ public:
     ) -> void override;
 
     auto queue_draw_line(
-        const glm::vec3& start,
-        const glm::vec3& end,
-        const glm::vec3& color,
-        float width
+        const glm::vec3& start, const glm::vec3& end, const glm::vec3& color
     ) -> void override;
 
     auto draw() -> void override;

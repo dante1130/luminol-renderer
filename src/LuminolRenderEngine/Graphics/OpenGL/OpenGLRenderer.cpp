@@ -164,8 +164,7 @@ auto OpenGLRenderer::queue_draw_with_color(
 auto OpenGLRenderer::queue_draw_line(
     const glm::vec3& start_position,
     const glm::vec3& end_position,
-    const glm::vec3& color,
-    float width
+    const glm::vec3& color
 ) -> void {
     this->line_draw_call.lines.emplace_back(LineDrawCall::Line{
         .start_position = start_position,
@@ -173,7 +172,6 @@ auto OpenGLRenderer::queue_draw_line(
     });
 
     this->line_draw_call.colors.emplace_back(color, 1.0f);
-    this->line_draw_call.widths.emplace_back(width);
 }
 
 auto OpenGLRenderer::draw() -> void {
@@ -242,7 +240,6 @@ auto OpenGLRenderer::draw() -> void {
 
     this->line_draw_call.lines.clear();
     this->line_draw_call.colors.clear();
-    this->line_draw_call.widths.clear();
 }
 
 auto OpenGLRenderer::update_lights() -> void {

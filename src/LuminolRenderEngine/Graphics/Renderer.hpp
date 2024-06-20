@@ -48,8 +48,7 @@ public:
     virtual auto queue_draw_line(
         const glm::vec3& start_position,
         const glm::vec3& end_position,
-        const glm::vec3& color,
-        float width
+        const glm::vec3& color
     ) -> void = 0;
 
     virtual auto draw() -> void = 0;
