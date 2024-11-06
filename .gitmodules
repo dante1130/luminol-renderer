@@ -13,9 +13,6 @@
 [submodule "lib/stb"]
 	path = lib/stb
 	url = https://github.com/nothings/stb
-[submodule "lib/assimp"]
-	path = lib/assimp
-	url = https://github.com/assimp/assimp
 [submodule "lib/Vulkan-Hpp"]
 	path = lib/Vulkan-Hpp
 	url = https://github.com/KhronosGroup/Vulkan-Hpp
