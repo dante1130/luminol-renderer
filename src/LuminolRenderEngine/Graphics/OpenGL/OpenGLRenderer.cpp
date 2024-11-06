@@ -111,8 +111,8 @@ auto OpenGLRenderer::set_exposure(float exposure) -> void {
     this->exposure = exposure;
 }
 
-auto OpenGLRenderer::clear_color(const glm::vec4& color) const -> void {
-    glClearColor(color.r, color.g, color.b, color.a);
+auto OpenGLRenderer::clear_color(const Maths::Vector4f& color) const -> void {
+    glClearColor(color.x(), color.y(), color.z(), color.w());
 }
 
 auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {

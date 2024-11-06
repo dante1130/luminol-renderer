@@ -177,7 +177,7 @@ auto main() -> int {
             gsl::narrow_cast<float>(mouse_delta.delta_y)
         );
 
-        constexpr auto color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        constexpr auto color = Maths::Vector4f{0.0f, 0.0f, 0.0f, 1.0f};
 
         luminol_engine.get_renderer().clear_color(color);
         luminol_engine.get_renderer().clear(Graphics::BufferBit::ColorDepth);

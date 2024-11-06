@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <LuminolMaths/Vector.hpp>
 
 #include <LuminolRenderEngine/Window/Window.hpp>
 #include <LuminolRenderEngine/Graphics/Renderable.hpp>
@@ -32,7 +33,7 @@ public:
 
     virtual auto set_exposure(float exposure) -> void = 0;
 
-    virtual auto clear_color(const glm::vec4& color) const -> void = 0;
+    virtual auto clear_color(const Maths::Vector4f& color) const -> void = 0;
     virtual auto clear(BufferBit buffer_bit) const -> void = 0;
 
     virtual auto queue_draw(

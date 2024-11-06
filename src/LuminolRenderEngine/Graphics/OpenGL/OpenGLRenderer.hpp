@@ -25,7 +25,7 @@ public:
 
     auto set_exposure(float exposure) -> void override;
 
-    auto clear_color(const glm::vec4& color) const -> void override;
+    auto clear_color(const Maths::Vector4f& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
 
     auto queue_draw(RenderableId renderable_id, const glm::mat4& model_matrix)
