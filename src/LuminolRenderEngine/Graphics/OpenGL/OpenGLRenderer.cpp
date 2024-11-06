@@ -141,19 +141,19 @@ auto OpenGLRenderer::queue_draw(
 auto OpenGLRenderer::queue_draw_with_color(
     RenderableId renderable_id,
     const glm::mat4& model_matrix,
-    const glm::vec3& color
+    const Maths::Vector3f& color
 ) -> void {
     if (this->instanced_color_draw_call_map.contains(renderable_id)) {
         auto& draw_call = this->instanced_color_draw_call_map.at(renderable_id);
         draw_call.model_matrices.emplace_back(model_matrix);
-        draw_call.colors.emplace_back(color, 1.0);
+        draw_call.colors.emplace_back(color.x(), color.y(), color.z(), 1.0f);
         return;
     }
 
     this->instanced_color_draw_queue.emplace_back(ColorInstancedDrawCall{
         .renderable_id = renderable_id,
         .model_matrices = {model_matrix},
-        .colors = {glm::vec4{color, 1.0f}},
+        .colors = {Maths::Vector4f{color.x(), color.y(), color.z(), 1.0f}},
     });
 
     this->instanced_color_draw_call_map.emplace(
@@ -162,16 +162,18 @@ auto OpenGLRenderer::queue_draw_with_color(
 }
 
 auto OpenGLRenderer::queue_draw_line(
-    const glm::vec3& start_position,
-    const glm::vec3& end_position,
-    const glm::vec3& color
+    const Maths::Vector3f& start_position,
+    const Maths::Vector3f& end_position,
+    const Maths::Vector3f& color
 ) -> void {
     this->line_draw_call.lines.emplace_back(LineDrawCall::Line{
         .start_position = start_position,
         .end_position = end_position,
     });
 
-    this->line_draw_call.colors.emplace_back(color, 1.0f);
+    this->line_draw_call.colors.emplace_back(
+        color.x(), color.y(), color.z(), 1.0f
+    );
 }
 
 auto OpenGLRenderer::draw() -> void {

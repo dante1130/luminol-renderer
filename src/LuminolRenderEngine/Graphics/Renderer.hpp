@@ -43,13 +43,13 @@ public:
     virtual auto queue_draw_with_color(
         RenderableId renderable_id,
         const glm::mat4& model_matrix,
-        const glm::vec3& color
+        const Maths::Vector3f& color
     ) -> void = 0;
 
     virtual auto queue_draw_line(
-        const glm::vec3& start_position,
-        const glm::vec3& end_position,
-        const glm::vec3& color
+        const Maths::Vector3f& start_position,
+        const Maths::Vector3f& end_position,
+        const Maths::Vector3f& color
     ) -> void = 0;
 
     virtual auto draw() -> void = 0;

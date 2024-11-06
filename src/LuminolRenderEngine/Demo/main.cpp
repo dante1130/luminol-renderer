@@ -15,7 +15,7 @@ using namespace Luminol::Graphics;
 
 struct LightDrawData {
     glm::mat4 model_matrix;
-    glm::vec3 color;
+    Maths::Vector3f color;
     LightManager::LightId light_id;
 };
 
@@ -101,11 +101,11 @@ auto main() -> int {
             std::uniform_real_distribution<float>(-5.0f, 5.0f)(random)
         );
 
-        const auto color = glm::vec3(
+        const auto color = Maths::Vector3f{
             std::uniform_real_distribution<float>(0.0f, 1.0f)(random),
             std::uniform_real_distribution<float>(0.0f, 1.0f)(random),
             std::uniform_real_distribution<float>(0.0f, 1.0f)(random)
-        );
+        };
 
         constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);
 
@@ -113,13 +113,11 @@ auto main() -> int {
         model_matrix = glm::translate(model_matrix, position);
         model_matrix = glm::scale(model_matrix, scale);
 
-        constexpr auto intensity = 1.0f;
-
         const auto point_light_id_opt =
             luminol_engine.get_renderer().get_light_manager().add_point_light(
                 PointLight{
                     .position = position,
-                    .color = color * intensity,
+                    .color = glm::vec3(color.x(), color.y(), color.z())
                 }
             );
 
@@ -217,7 +215,11 @@ auto main() -> int {
                     light_data.light_id,
                     PointLight{
                         .position = light_data.model_matrix[3],
-                        .color = light_data.color,
+                        .color = glm::vec3(
+                            light_data.color.x(),
+                            light_data.color.y(),
+                            light_data.color.z()
+                        )
                     }
                 );
 
@@ -233,16 +235,6 @@ auto main() -> int {
             model_matrix = glm::scale(model_matrix, scale);
 
             luminol_engine.get_renderer().queue_draw(model_id, model_matrix);
-        }
-
-        {
-            constexpr static auto line_position_a = glm::vec3(0.0f);
-            constexpr static auto line_position_b = glm::vec3(1.0f);
-            constexpr static auto line_color = glm::vec3(1.0f);
-
-            luminol_engine.get_renderer().queue_draw_line(
-                line_position_a, line_position_b, line_color
-            );
         }
 
         luminol_engine.get_renderer().draw();

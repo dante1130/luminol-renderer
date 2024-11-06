@@ -34,11 +34,13 @@ public:
     auto queue_draw_with_color(
         RenderableId renderable_id,
         const glm::mat4& model_matrix,
-        const glm::vec3& color
+        const Maths::Vector3f& color
     ) -> void override;
 
     auto queue_draw_line(
-        const glm::vec3& start, const glm::vec3& end, const glm::vec3& color
+        const Maths::Vector3f& start,
+        const Maths::Vector3f& end,
+        const Maths::Vector3f& color
     ) -> void override;
 
     auto draw() -> void override;

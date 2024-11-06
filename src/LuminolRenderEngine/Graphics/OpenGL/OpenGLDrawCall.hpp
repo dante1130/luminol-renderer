@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <glm/glm.hpp>
+#include <LuminolMaths/Vector.hpp>
 
 #include <LuminolRenderEngine/Graphics/Renderable.hpp>
 
@@ -16,17 +17,17 @@ struct InstancedDrawCall {
 struct ColorInstancedDrawCall {
     RenderableId renderable_id = 0;
     std::vector<glm::mat4> model_matrices = {};
-    std::vector<glm::vec4> colors = {};
+    std::vector<Maths::Vector4f> colors = {};
 };
 
 struct LineDrawCall {
     struct Line {
-        glm::vec3 start_position;
-        glm::vec3 end_position;
+        Maths::Vector3f start_position;
+        Maths::Vector3f end_position;
     };
 
     std::vector<Line> lines = {};
-    std::vector<glm::vec4> colors = {};
+    std::vector<Maths::Vector4f> colors = {};
 };
 
 }  // namespace Luminol::Graphics
