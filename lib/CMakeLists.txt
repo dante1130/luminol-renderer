@@ -10,5 +10,3 @@ set(ASSIMP_BUILD_FBX_IMPORTER ON CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_GLTF_IMPORTER ON CACHE BOOL "" FORCE)
 add_subdirectory(assimp)
-
-add_subdirectory(Vulkan-Hpp/Vulkan-Headers)
