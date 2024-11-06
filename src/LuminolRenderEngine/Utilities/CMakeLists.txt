@@ -13,9 +13,12 @@ target_compile_options(Luminol.Utilities PRIVATE
     $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra -pedantic -Werror>
 )
 
+target_link_libraries(Luminol.Utilities PUBLIC
+    LuminolMaths
+)
+
 target_link_libraries(Luminol.Utilities PRIVATE
     stb
-    glm
     GSL
     assimp
 )

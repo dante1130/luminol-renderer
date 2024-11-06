@@ -36,6 +36,7 @@ target_link_libraries(Luminol.Graphics.OpenGL PRIVATE
     glm
     GSL
     glad
+    Luminol.Utilities
 )
 
 target_include_directories(Luminol.Graphics.OpenGL PUBLIC

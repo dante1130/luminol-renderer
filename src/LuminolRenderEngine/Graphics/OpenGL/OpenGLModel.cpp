@@ -45,17 +45,17 @@ OpenGLModel::OpenGLModel(const std::filesystem::path& model_path) {
         mesh_vertices.reserve(mesh_data.vertices.size() * vertex_components);
 
         for (size_t i = 0; i < mesh_data.vertices.size(); ++i) {
-            mesh_vertices.push_back(mesh_data.vertices[i].x);
-            mesh_vertices.push_back(mesh_data.vertices[i].y);
-            mesh_vertices.push_back(mesh_data.vertices[i].z);
-            mesh_vertices.push_back(mesh_data.texture_coordinates[i].x);
-            mesh_vertices.push_back(mesh_data.texture_coordinates[i].y);
-            mesh_vertices.push_back(mesh_data.normals[i].x);
-            mesh_vertices.push_back(mesh_data.normals[i].y);
-            mesh_vertices.push_back(mesh_data.normals[i].z);
-            mesh_vertices.push_back(mesh_data.tangents[i].x);
-            mesh_vertices.push_back(mesh_data.tangents[i].y);
-            mesh_vertices.push_back(mesh_data.tangents[i].z);
+            mesh_vertices.push_back(mesh_data.vertices[i].x());
+            mesh_vertices.push_back(mesh_data.vertices[i].y());
+            mesh_vertices.push_back(mesh_data.vertices[i].z());
+            mesh_vertices.push_back(mesh_data.texture_coordinates[i].x());
+            mesh_vertices.push_back(mesh_data.texture_coordinates[i].y());
+            mesh_vertices.push_back(mesh_data.normals[i].x());
+            mesh_vertices.push_back(mesh_data.normals[i].y());
+            mesh_vertices.push_back(mesh_data.normals[i].z());
+            mesh_vertices.push_back(mesh_data.tangents[i].x());
+            mesh_vertices.push_back(mesh_data.tangents[i].y());
+            mesh_vertices.push_back(mesh_data.tangents[i].z());
         }
 
         const auto texture_images = TextureImages{

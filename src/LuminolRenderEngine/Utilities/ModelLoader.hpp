@@ -5,17 +5,17 @@
 #include <filesystem>
 #include <unordered_map>
 
-#include <glm/glm.hpp>
+#include <LuminolMaths/Vector.hpp>
 
 #include <LuminolRenderEngine/Utilities/ImageLoader.hpp>
 
 namespace Luminol::Utilities::ModelLoader {
 
 struct MeshData {
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec2> texture_coordinates;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec3> tangents;
+    std::vector<Luminol::Maths::Vector3f> vertices;
+    std::vector<Luminol::Maths::Vector2f> texture_coordinates;
+    std::vector<Luminol::Maths::Vector3f> normals;
+    std::vector<Luminol::Maths::Vector3f> tangents;
     std::vector<uint32_t> indices;
 
     std::vector<std::filesystem::path> diffuse_texture_paths;

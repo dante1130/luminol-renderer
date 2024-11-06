@@ -11,8 +11,9 @@ namespace {
 using namespace Luminol::Utilities::ImageLoader;
 using namespace Luminol::Utilities::ModelLoader;
 
-auto load_vertices(const aiMesh& mesh) -> std::vector<glm::vec3> {
-    auto vertices = std::vector<glm::vec3>{};
+auto load_vertices(const aiMesh& mesh)
+    -> std::vector<Luminol::Maths::Vector3f> {
+    auto vertices = std::vector<Luminol::Maths::Vector3f>{};
     vertices.reserve(mesh.mNumVertices);
 
     const auto vertices_span =
@@ -25,12 +26,13 @@ auto load_vertices(const aiMesh& mesh) -> std::vector<glm::vec3> {
     return vertices;
 }
 
-auto load_texture_coordinates(const aiMesh& mesh) -> std::vector<glm::vec2> {
+auto load_texture_coordinates(const aiMesh& mesh)
+    -> std::vector<Luminol::Maths::Vector2f> {
     if (!mesh.HasTextureCoords(0)) {
-        return std::vector<glm::vec2>{mesh.mNumVertices, glm::vec2{0.0f}};
+        return std::vector<Luminol::Maths::Vector2f>{mesh.mNumVertices};
     }
 
-    auto texture_coordinates = std::vector<glm::vec2>{};
+    auto texture_coordinates = std::vector<Luminol::Maths::Vector2f>{};
     texture_coordinates.reserve(mesh.mNumVertices);
 
     const auto texture_coordinates_span =
@@ -45,12 +47,12 @@ auto load_texture_coordinates(const aiMesh& mesh) -> std::vector<glm::vec2> {
     return texture_coordinates;
 }
 
-auto load_normals(const aiMesh& mesh) -> std::vector<glm::vec3> {
+auto load_normals(const aiMesh& mesh) -> std::vector<Luminol::Maths::Vector3f> {
     if (!mesh.HasNormals()) {
-        return std::vector<glm::vec3>{mesh.mNumVertices, glm::vec3{0.0f}};
+        return std::vector<Luminol::Maths::Vector3f>{mesh.mNumVertices};
     }
 
-    auto normals = std::vector<glm::vec3>{};
+    auto normals = std::vector<Luminol::Maths::Vector3f>{};
     normals.reserve(mesh.mNumVertices);
 
     const auto normals_span = gsl::make_span(mesh.mNormals, mesh.mNumVertices);
@@ -62,12 +64,13 @@ auto load_normals(const aiMesh& mesh) -> std::vector<glm::vec3> {
     return normals;
 }
 
-auto load_tangents(const aiMesh& mesh) -> std::vector<glm::vec3> {
+auto load_tangents(const aiMesh& mesh)
+    -> std::vector<Luminol::Maths::Vector3f> {
     if (!mesh.HasTangentsAndBitangents()) {
-        return std::vector<glm::vec3>{mesh.mNumVertices, glm::vec3{0.0f}};
+        return std::vector<Luminol::Maths::Vector3f>{mesh.mNumVertices};
     }
 
-    auto tangents = std::vector<glm::vec3>{};
+    auto tangents = std::vector<Luminol::Maths::Vector3f>{};
     tangents.reserve(mesh.mNumVertices);
 
     const auto tangents_span =
