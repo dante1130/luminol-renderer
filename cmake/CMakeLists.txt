@@ -34,3 +34,10 @@ CPMAddPackage(
     SYSTEM
 )
 
+CPMAddPackage(
+    NAME gsl
+    GITHUB_REPOSITORY microsoft/GSL
+    GIT_TAG v4.1.0
+    EXCLUDE_FROM_ALL
+    SYSTEM
+)
