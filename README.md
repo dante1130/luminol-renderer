@@ -40,7 +40,7 @@ pip install jinja2
 In a terminal with Git installed, clone the repository by typing in the following command in a directory where you want your project:
 
 ```bash
-$ git clone --recurse-submodules https://github.com/dante1130/luminol-renderer
+$ git clone https://github.com/dante1130/luminol-renderer
 ```
 
 ## Rendering samples
