@@ -1,6 +1,3 @@
-set(GLM_ENABLE_CXX_20 ON CACHE BOOL "" FORCE)
-add_subdirectory(glm)
-
 add_subdirectory(GSL)
 
 add_library(stb INTERFACE)
