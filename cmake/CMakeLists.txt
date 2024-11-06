@@ -70,3 +70,15 @@ CPMAddPackage(
     EXCLUDE_FROM_ALL
     SYSTEM
 )
+
+CPMAddPackage(
+    NAME luminol-maths
+    GITHUB_REPOSITORY dante1130/luminol-maths
+    GIT_TAG main
+    OPTIONS 
+        "LUMINOL_MATHS_EXPORT_COMPILE_COMMANDS OFF" 
+        "LUMINOL_MATHS_BUILD_DEMO OFF" 
+        "LUMINOL_MATHS_BUILD_TESTS OFF"
+    EXCLUDE_FROM_ALL
+    SYSTEM
+)
