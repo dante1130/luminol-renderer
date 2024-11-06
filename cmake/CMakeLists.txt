@@ -12,3 +12,15 @@ CPMAddPackage(
     EXCLUDE_FROM_ALL
     SYSTEM
 )
+
+CPMAddPackage(
+    NAME glad
+    GITHUB_REPOSITORY Dav1dde/glad
+    GIT_TAG v2.0.8
+    DOWNLOAD_ONLY TRUE
+    EXCLUDE_FROM_ALL
+    SYSTEM
+)
+
+add_subdirectory(${glad_SOURCE_DIR}/cmake ${LUMINOL_RENDER_ENGINE_ROOT_DIR} EXCLUDE_FROM_ALL SYSTEM)
+glad_add_library(glad STATIC API gl:core=4.6)
