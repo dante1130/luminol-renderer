@@ -74,8 +74,8 @@ auto main() -> int {
             .create_renderable("res/models/Sponza/glTF/Sponza.gltf");
 
     constexpr auto directional_light = Graphics::DirectionalLight{
-        .direction = glm::vec3(0.5f, -0.5f, 1.0f),
-        .color = glm::vec3(0.1f, 0.1f, 0.1f),
+        .direction = Maths::Vector3f{0.5f, -0.5f, 1.0f},
+        .color = Maths::Vector3f{0.1f, 0.1f, 0.1f},
     };
 
     luminol_engine.get_renderer().get_light_manager().update_directional_light(
@@ -95,11 +95,11 @@ auto main() -> int {
     auto random = std::mt19937{std::random_device{}()};
 
     for (auto i = 0u; i < lights_count; ++i) {
-        const auto position = glm::vec3(
+        const auto position = Maths::Vector3f{
             std::uniform_real_distribution<float>(-5.0f, 5.0f)(random),
             std::uniform_real_distribution<float>(-5.0f, 5.0f)(random) + 5.0f,
             std::uniform_real_distribution<float>(-5.0f, 5.0f)(random)
-        );
+        };
 
         const auto color = Maths::Vector3f{
             std::uniform_real_distribution<float>(0.0f, 1.0f)(random),
@@ -110,14 +110,16 @@ auto main() -> int {
         constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);
 
         auto model_matrix = glm::mat4(1.0f);
-        model_matrix = glm::translate(model_matrix, position);
+        model_matrix = glm::translate(
+            model_matrix, glm::vec3(position.x(), position.y(), position.z())
+        );
         model_matrix = glm::scale(model_matrix, scale);
 
         const auto point_light_id_opt =
             luminol_engine.get_renderer().get_light_manager().add_point_light(
                 PointLight{
                     .position = position,
-                    .color = glm::vec3(color.x(), color.y(), color.z())
+                    .color = Maths::Vector3f(color.x(), color.y(), color.z())
                 }
             );
 
@@ -134,9 +136,17 @@ auto main() -> int {
     }
 
     const auto initial_flash_light = Graphics::SpotLight{
-        .position = camera.get_position(),
-        .direction = camera.get_forward(),
-        .color = glm::vec3(1.0f, 1.0f, 1.0f),
+        .position = Maths::Vector3f(
+            camera.get_position().x,
+            camera.get_position().y,
+            camera.get_position().z
+        ),
+        .direction = Maths::Vector3f(
+            camera.get_forward().x,
+            camera.get_forward().y,
+            camera.get_forward().z
+        ),
+        .color = Maths::Vector3f(1.0f, 1.0f, 1.0f),
         .cut_off = glm::cos(glm::radians(12.5f)),
         .outer_cut_off = glm::cos(glm::radians(17.5f))
     };
@@ -190,8 +200,16 @@ auto main() -> int {
             camera.get_projection_matrix()
         );
 
-        flash_light.position = camera.get_position();
-        flash_light.direction = camera.get_forward();
+        flash_light.position = Maths::Vector3f(
+            camera.get_position().x,
+            camera.get_position().y,
+            camera.get_position().z
+        );
+        flash_light.direction = Maths::Vector3f(
+            camera.get_forward().x,
+            camera.get_forward().y,
+            camera.get_forward().z
+        );
 
         luminol_engine.get_renderer().get_light_manager().update_spot_light(
             flash_light_id, flash_light
@@ -209,18 +227,17 @@ auto main() -> int {
 
             light_data.model_matrix = rotation * light_data.model_matrix;
 
+            const auto position = Maths::Vector3f(
+                light_data.model_matrix[3].x,
+                light_data.model_matrix[3].y,
+                light_data.model_matrix[3].z
+            );
+
             luminol_engine.get_renderer()
                 .get_light_manager()
                 .update_point_light(
                     light_data.light_id,
-                    PointLight{
-                        .position = light_data.model_matrix[3],
-                        .color = glm::vec3(
-                            light_data.color.x(),
-                            light_data.color.y(),
-                            light_data.color.z()
-                        )
-                    }
+                    PointLight{.position = position, .color = light_data.color}
                 );
 
             luminol_engine.get_renderer().queue_draw_with_color(
