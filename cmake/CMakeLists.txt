@@ -54,3 +54,19 @@ CPMAddPackage(
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
 
+CPMAddPackage(
+    NAME assimp
+    GITHUB_REPOSITORY assimp/assimp
+    GIT_TAG v5.4.3
+    OPTIONS
+        "BUILD_SHARED_LIBS OFF"
+        "ASSIMP_BUILD_TESTS OFF"
+        "ASSIMP_NO_EXPORT ON"
+        "ASSIMP_INSTALL OFF"
+        "ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF"
+        "ASSIMP_BUILD_FBX_IMPORTER ON"
+        "ASSIMP_BUILD_OBJ_IMPORTER ON"
+        "ASSIMP_BUILD_GLTF_IMPORTER ON"
+    EXCLUDE_FROM_ALL
+    SYSTEM
+)
