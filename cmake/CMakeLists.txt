@@ -41,3 +41,16 @@ CPMAddPackage(
     EXCLUDE_FROM_ALL
     SYSTEM
 )
+
+CPMAddPackage(
+    NAME stb
+    GITHUB_REPOSITORY nothings/stb
+    GIT_TAG master
+    DOWNLOAD_ONLY TRUE
+    EXCLUDE_FROM_ALL
+    SYSTEM
+)
+
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
+
