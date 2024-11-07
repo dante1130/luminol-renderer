@@ -114,10 +114,7 @@ auto main() -> int {
 
         const auto point_light_id_opt =
             luminol_engine.get_renderer().get_light_manager().add_point_light(
-                PointLight{
-                    .position = position,
-                    .color = Maths::Vector3f(color.x(), color.y(), color.z())
-                }
+                PointLight{.position = position, .color = color}
             );
 
         if (!point_light_id_opt.has_value()) {
