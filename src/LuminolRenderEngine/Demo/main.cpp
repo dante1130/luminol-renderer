@@ -48,22 +48,13 @@ auto handle_key_events(
     }
 }
 
-constexpr auto glm_to_luminol(const glm::mat4& matrix) -> Maths::Matrix4x4f {
-    return Maths::Matrix4x4f{std::array{
-        std::array{matrix[0][0], matrix[0][1], matrix[0][2], matrix[0][3]},
-        std::array{matrix[1][0], matrix[1][1], matrix[1][2], matrix[1][3]},
-        std::array{matrix[2][0], matrix[2][1], matrix[2][2], matrix[2][3]},
-        std::array{matrix[3][0], matrix[3][1], matrix[3][2], matrix[3][3]}
-    }};
-}
-
 }  // namespace
 
 auto main() -> int {
     using namespace Luminol;
 
-    constexpr auto camera_initial_position = glm::vec3(5.0f, 0.0f, 0.0f);
-    constexpr auto camera_initial_forward = glm::vec3(-1.0f, 0.0f, 0.0f);
+    constexpr auto camera_initial_position = Maths::Vector3f{5.0f, 0.0f, 0.0f};
+    constexpr auto camera_initial_forward = Maths::Vector3f{-1.0f, 0.0f, 0.0f};
     constexpr auto camera_rotation_speed = 0.1f;
 
     auto luminol_engine = Luminol::RenderEngine(Luminol::Properties{});
@@ -145,16 +136,8 @@ auto main() -> int {
     }
 
     const auto initial_flash_light = Graphics::SpotLight{
-        .position = Maths::Vector3f(
-            camera.get_position().x,
-            camera.get_position().y,
-            camera.get_position().z
-        ),
-        .direction = Maths::Vector3f(
-            camera.get_forward().x,
-            camera.get_forward().y,
-            camera.get_forward().z
-        ),
+        .position = camera.get_position(),
+        .direction = camera.get_forward(),
         .color = Maths::Vector3f(1.0f, 1.0f, 1.0f),
         .cut_off = glm::cos(glm::radians(12.5f)),
         .outer_cut_off = glm::cos(glm::radians(17.5f))
@@ -204,23 +187,13 @@ auto main() -> int {
             static_cast<float>(luminol_engine.get_window().get_height())
         );
 
-        luminol_engine.get_renderer().set_view_matrix(
-            glm_to_luminol(camera.get_view_matrix())
-        );
+        luminol_engine.get_renderer().set_view_matrix(camera.get_view_matrix());
         luminol_engine.get_renderer().set_projection_matrix(
-            glm_to_luminol(camera.get_projection_matrix())
+            camera.get_projection_matrix()
         );
 
-        flash_light.position = Maths::Vector3f(
-            camera.get_position().x,
-            camera.get_position().y,
-            camera.get_position().z
-        );
-        flash_light.direction = Maths::Vector3f(
-            camera.get_forward().x,
-            camera.get_forward().y,
-            camera.get_forward().z
-        );
+        flash_light.position = camera.get_position();
+        flash_light.direction = camera.get_forward();
 
         luminol_engine.get_renderer().get_light_manager().update_spot_light(
             flash_light_id, flash_light

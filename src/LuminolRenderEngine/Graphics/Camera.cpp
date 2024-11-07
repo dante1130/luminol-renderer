@@ -3,28 +3,30 @@
 #include <algorithm>
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <LuminolMaths/Transform.hpp>
 
 namespace {
 
-constexpr auto up_vector_world = glm::vec3{0.0f, 1.0f, 0.0f};
+constexpr auto up_vector_world = Luminol::Maths::Vector3f{0.0f, 1.0f, 0.0f};
 
-}
+}  // namespace
 
 namespace Luminol::Graphics {
 
 Camera::Camera(const CameraProperties& properties)
     : position(properties.position),
-      forward(glm::normalize(properties.forward)),
-      right_vector(glm::normalize(glm::cross(this->forward, up_vector_world))),
-      up_vector(glm::normalize(glm::cross(this->right_vector, this->forward))),
+      forward(properties.forward.normalized()),
+      right_vector(this->forward.cross(up_vector_world).normalized()),
+      up_vector(this->right_vector.cross(this->forward).normalized()),
       fov_degrees(properties.fov_degrees),
       aspect_ratio(properties.aspect_ratio),
       near_plane(properties.near_plane),
       far_plane(properties.far_plane),
       translation_speed(properties.translation_speed),
       rotation_speed(properties.rotation_speed),
-      yaw_degrees(glm::degrees(std::atan2(this->forward.x, this->forward.z))),
-      pitch_degrees(glm::degrees(std::asin(this->forward.y))) {}
+      yaw_degrees(glm::degrees(std::atan2(this->forward.x(), this->forward.z()))
+      ),
+      pitch_degrees(glm::degrees(std::asin(this->forward.y()))) {}
 
 auto Camera::move(CameraMovement direction, float delta_time_in_seconds)
     -> void {
@@ -61,47 +63,55 @@ auto Camera::rotate(float yaw_degrees, float pitch_degrees) -> void {
     const auto yaw_radians = glm::radians(this->yaw_degrees);
     const auto pitch_radians = glm::radians(this->pitch_degrees);
 
-    this->forward.x = sin(yaw_radians) * cos(pitch_radians);
-    this->forward.y = sin(pitch_radians);
-    this->forward.z = cos(yaw_radians) * cos(pitch_radians);
+    this->forward.x() = std::sinf(yaw_radians) * std::cosf(pitch_radians);
+    this->forward.y() = std::sinf(pitch_radians);
+    this->forward.z() = std::cosf(yaw_radians) * std::cosf(pitch_radians);
 
-    this->forward = glm::normalize(this->forward);
+    this->forward = this->forward.normalized();
 
-    this->right_vector =
-        glm::normalize(glm::cross(up_vector_world, this->forward));
+    this->right_vector = up_vector_world.cross(this->forward).normalized();
 
-    this->up_vector =
-        glm::normalize(glm::cross(this->forward, this->right_vector));
+    this->up_vector = this->forward.cross(this->right_vector).normalized();
 }
 
-auto Camera::get_view_matrix() const -> glm::mat4 {
-    return glm::lookAtLH(
-        this->position, this->position + this->forward, up_vector_world
+auto Camera::get_view_matrix() const -> Maths::Matrix4x4f {
+    return Maths::Transform::left_handed_look_at_matrix(
+        Maths::Transform::LookAtParams<float>{
+            .eye = this->position,
+            .target = this->position + this->forward,
+            .up_vector = up_vector_world
+        }
     );
 }
 
-auto Camera::get_projection_matrix() const -> glm::mat4 {
-    return glm::perspectiveLH(
-        glm::radians(this->fov_degrees),
-        this->aspect_ratio,
-        this->near_plane,
-        this->far_plane
+auto Camera::get_projection_matrix() const -> Maths::Matrix4x4f {
+    return Maths::Transform::left_handed_perspective_projection_matrix(
+        Maths::Transform::PerspectiveMatrixParams<float>{
+            .fov = this->fov_degrees,
+            .aspect_ratio = this->aspect_ratio,
+            .near_plane = this->near_plane,
+            .far_plane = this->far_plane
+        }
     );
 }
 
-auto Camera::get_position() const -> const glm::vec3& { return this->position; }
+auto Camera::get_position() const -> const Maths::Vector3f& {
+    return this->position;
+}
 
-auto Camera::get_forward() const -> const glm::vec3& { return this->forward; }
+auto Camera::get_forward() const -> const Maths::Vector3f& {
+    return this->forward;
+}
 
-auto Camera::get_up_vector() const -> const glm::vec3& {
+auto Camera::get_up_vector() const -> const Maths::Vector3f& {
     return this->up_vector;
 }
 
-auto Camera::get_right_vector() const -> const glm::vec3& {
+auto Camera::get_right_vector() const -> const Maths::Vector3f& {
     return this->right_vector;
 }
 
-auto Camera::set_position(const glm::vec3& position) -> void {
+auto Camera::set_position(const Maths::Vector3f& position) -> void {
     this->position = position;
 }
 
