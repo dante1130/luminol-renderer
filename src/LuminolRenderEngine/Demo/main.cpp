@@ -1,8 +1,7 @@
 #include <iostream>
 #include <random>
 
-#include <glm/glm.hpp>
-#include <glm/ext/matrix_transform.hpp>
+#include <LuminolMaths/Transform.hpp>
 
 #include <LuminolRenderEngine/LuminolRenderEngine.hpp>
 #include <LuminolRenderEngine/Graphics/Camera.hpp>
@@ -14,7 +13,7 @@ using namespace Luminol;
 using namespace Luminol::Graphics;
 
 struct LightDrawData {
-    glm::mat4 model_matrix;
+    Maths::Matrix4x4f model_matrix;
     Maths::Vector3f color;
     LightManager::LightId light_id;
 };
@@ -107,13 +106,11 @@ auto main() -> int {
             std::uniform_real_distribution<float>(0.0f, 1.0f)(random)
         };
 
-        constexpr auto scale = glm::vec3(0.1f, 0.1f, 0.1f);
+        constexpr auto scale = Maths::Vector3f{0.1f, 0.1f, 0.1f};
 
-        auto model_matrix = glm::mat4(1.0f);
-        model_matrix = glm::translate(
-            model_matrix, glm::vec3(position.x(), position.y(), position.z())
-        );
-        model_matrix = glm::scale(model_matrix, scale);
+        auto model_matrix = Maths::Matrix4x4f::identity();
+        model_matrix = Maths::Transform::translate_4x4(position) * model_matrix;
+        model_matrix = Maths::Transform::scale_4x4(scale) * model_matrix;
 
         const auto point_light_id_opt =
             luminol_engine.get_renderer().get_light_manager().add_point_light(
@@ -139,8 +136,10 @@ auto main() -> int {
         .position = camera.get_position(),
         .direction = camera.get_forward(),
         .color = Maths::Vector3f(1.0f, 1.0f, 1.0f),
-        .cut_off = glm::cos(glm::radians(12.5f)),
-        .outer_cut_off = glm::cos(glm::radians(17.5f))
+        .cut_off =
+            std::cos(Units::Degrees_f{12.5f}.as<Units::Radian>().get_value()),
+        .outer_cut_off =
+            std::cos(Units::Degrees_f{17.5f}.as<Units::Radian>().get_value()),
     };
 
     auto flash_light = initial_flash_light;
@@ -200,21 +199,20 @@ auto main() -> int {
         );
 
         for (auto& light_data : lights.light_data) {
-            constexpr auto rotation_degrees = 90.0f;
+            const auto rotation_degrees = Units::Degrees_f{
+                90.0f * gsl::narrow_cast<float>(delta_time_seconds)
+            };
 
-            auto rotation = glm::rotate(
-                glm::mat4(1.0f),
-                glm::radians(rotation_degrees) *
-                    gsl::narrow_cast<float>(delta_time_seconds),
-                glm::vec3(0.0f, 1.0f, 0.0f)
+            auto rotation = Maths::Transform::rotate_y<float, 4>(
+                rotation_degrees.as<Units::Radian>()
             );
 
-            light_data.model_matrix = rotation * light_data.model_matrix;
+            light_data.model_matrix = light_data.model_matrix * rotation;
 
             const auto position = Maths::Vector3f(
-                light_data.model_matrix[3].x,
-                light_data.model_matrix[3].y,
-                light_data.model_matrix[3].z
+                light_data.model_matrix[3][0],
+                light_data.model_matrix[3][1],
+                light_data.model_matrix[3][2]
             );
 
             luminol_engine.get_renderer()
@@ -229,14 +227,9 @@ auto main() -> int {
             );
         }
 
-        {
-            constexpr auto scale = glm::vec3(1.0f);
-
-            auto model_matrix = glm::mat4(1.0f);
-            model_matrix = glm::scale(model_matrix, scale);
-
-            luminol_engine.get_renderer().queue_draw(model_id, model_matrix);
-        }
+        luminol_engine.get_renderer().queue_draw(
+            model_id, Maths::Matrix4x4f::identity()
+        );
 
         luminol_engine.get_renderer().draw();
 

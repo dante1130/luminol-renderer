@@ -122,7 +122,7 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
 }
 
 auto OpenGLRenderer::queue_draw(
-    RenderableId renderable_id, const glm::mat4& model_matrix
+    RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
 ) -> void {
     if (this->instanced_draw_call_map.contains(renderable_id)) {
         auto& draw_call = this->instanced_draw_call_map.at(renderable_id);
@@ -142,7 +142,7 @@ auto OpenGLRenderer::queue_draw(
 
 auto OpenGLRenderer::queue_draw_with_color(
     RenderableId renderable_id,
-    const glm::mat4& model_matrix,
+    const Maths::Matrix4x4f& model_matrix,
     const Maths::Vector3f& color
 ) -> void {
     if (this->instanced_color_draw_call_map.contains(renderable_id)) {

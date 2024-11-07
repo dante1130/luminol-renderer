@@ -28,12 +28,13 @@ public:
     auto clear_color(const Maths::Vector4f& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
 
-    auto queue_draw(RenderableId renderable_id, const glm::mat4& model_matrix)
-        -> void override;
+    auto queue_draw(
+        RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
+    ) -> void override;
 
     auto queue_draw_with_color(
         RenderableId renderable_id,
-        const glm::mat4& model_matrix,
+        const Maths::Matrix4x4f& model_matrix,
         const Maths::Vector3f& color
     ) -> void override;
 

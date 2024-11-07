@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include <glm/glm.hpp>
 #include <LuminolMaths/Vector.hpp>
+#include <LuminolMaths/Matrix.hpp>
 
 #include <LuminolRenderEngine/Graphics/Renderable.hpp>
 
@@ -11,12 +11,12 @@ namespace Luminol::Graphics {
 
 struct InstancedDrawCall {
     RenderableId renderable_id = 0;
-    std::vector<glm::mat4> model_matrices = {};
+    std::vector<Maths::Matrix4x4f> model_matrices = {};
 };
 
 struct ColorInstancedDrawCall {
     RenderableId renderable_id = 0;
-    std::vector<glm::mat4> model_matrices = {};
+    std::vector<Maths::Matrix4x4f> model_matrices = {};
     std::vector<Maths::Vector4f> colors = {};
 };
 

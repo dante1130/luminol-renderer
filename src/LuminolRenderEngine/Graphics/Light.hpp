@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include <glm/glm.hpp>
 #include <LuminolMaths/Vector.hpp>
 
 namespace Luminol::Graphics {

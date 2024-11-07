@@ -1,6 +1,5 @@
 #pragma once
 
-#include <glm/glm.hpp>
 #include <LuminolMaths/Vector.hpp>
 #include <LuminolMaths/Matrix.hpp>
 
@@ -40,12 +39,12 @@ public:
     virtual auto clear(BufferBit buffer_bit) const -> void = 0;
 
     virtual auto queue_draw(
-        RenderableId renderable_id, const glm::mat4& model_matrix
+        RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
     ) -> void = 0;
 
     virtual auto queue_draw_with_color(
         RenderableId renderable_id,
-        const glm::mat4& model_matrix,
+        const Maths::Matrix4x4f& model_matrix,
         const Maths::Vector3f& color
     ) -> void = 0;
 
