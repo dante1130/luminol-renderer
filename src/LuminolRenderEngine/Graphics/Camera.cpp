@@ -2,7 +2,6 @@
 
 #include <algorithm>
 
-#include <glm/gtc/matrix_transform.hpp>
 #include <LuminolMaths/Transform.hpp>
 
 namespace {
@@ -24,8 +23,8 @@ Camera::Camera(const CameraProperties& properties)
       far_plane(properties.far_plane),
       translation_speed(properties.translation_speed),
       rotation_speed(properties.rotation_speed),
-      yaw(glm::degrees(std::atan2(this->forward.x(), this->forward.z()))),
-      pitch(glm::degrees(std::asin(this->forward.y()))) {}
+      yaw(Units::Radians_f{std::atan2(this->forward.x(), this->forward.z())}),
+      pitch(Units::Radians_f{std::asin(this->forward.y())}) {}
 
 auto Camera::move(CameraMovement direction, Units::Seconds_f delta_time)
     -> void {

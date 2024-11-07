@@ -4,7 +4,6 @@
 
 #include <gsl/gsl>
 #include <glad/gl.h>
-#include <glm/gtc/matrix_transform.hpp>
 
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLError.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>

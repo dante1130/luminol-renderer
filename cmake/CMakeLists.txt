@@ -26,15 +26,6 @@ add_subdirectory(${glad_SOURCE_DIR}/cmake ${LUMINOL_RENDER_ENGINE_ROOT_DIR} EXCL
 glad_add_library(glad STATIC API gl:core=4.6)
 
 CPMAddPackage(
-    NAME glm
-    GITHUB_REPOSITORY g-truc/glm
-    GIT_TAG 1.0.1
-    OPTIONS "GLM_ENABLE_CXX_20 ON"
-    EXCLUDE_FROM_ALL
-    SYSTEM
-)
-
-CPMAddPackage(
     NAME gsl
     GITHUB_REPOSITORY microsoft/GSL
     GIT_TAG v4.1.0
