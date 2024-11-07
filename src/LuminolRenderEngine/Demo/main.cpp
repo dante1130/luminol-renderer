@@ -86,7 +86,8 @@ auto main() -> int {
     auto lights = Lights{
         .renderable_id = luminol_engine.get_renderer()
                              .get_renderable_manager()
-                             .create_renderable("res/models/cube/cube.obj")
+                             .create_renderable("res/models/cube/cube.obj"),
+        .light_data = {}
     };
 
     lights.light_data.reserve(lights_count);

@@ -12,6 +12,10 @@ auto create_skybox_shader() -> OpenGLShader {
             std::filesystem::path{"res/shaders/skybox_vert.glsl"},
         .fragment_shader_path =
             std::filesystem::path{"res/shaders/skybox_frag.glsl"},
+        .geometry_shader_path = std::nullopt,
+        .tessellation_control_shader_path = std::nullopt,
+        .tessellation_evaluation_shader_path = std::nullopt,
+        .compute_shader_path = std::nullopt,
     }};
 
     skybox_shader.bind();

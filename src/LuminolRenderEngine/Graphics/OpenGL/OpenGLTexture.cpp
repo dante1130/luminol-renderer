@@ -44,7 +44,9 @@ auto create_texture(
 
     glGenerateTextureMipmap(texture_id);
 
-    return TextureData{texture_id, internal_format};
+    return TextureData{
+        .texture_id = texture_id, .internal_format = internal_format
+    };
 }
 
 }  // namespace

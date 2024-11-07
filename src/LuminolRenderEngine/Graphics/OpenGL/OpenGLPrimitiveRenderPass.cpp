@@ -12,6 +12,10 @@ auto create_line_shader() -> OpenGLShader {
             std::filesystem::path{"res/shaders/line_vert.glsl"},
         .fragment_shader_path =
             std::filesystem::path{"res/shaders/line_frag.glsl"},
+        .geometry_shader_path = std::nullopt,
+        .tessellation_control_shader_path = std::nullopt,
+        .tessellation_evaluation_shader_path = std::nullopt,
+        .compute_shader_path = std::nullopt,
     }};
 
     line_shader.bind();

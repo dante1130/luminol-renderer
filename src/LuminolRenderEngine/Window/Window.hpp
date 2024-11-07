@@ -7,7 +7,7 @@
 
 namespace Luminol {
 
-enum class KeyEvent { Press = 0, Release = 1, Repeat = 2 };
+enum class KeyEvent : uint8_t { Press = 0, Release = 1, Repeat = 2 };
 
 struct MouseDelta {
     double delta_x = {0.0};

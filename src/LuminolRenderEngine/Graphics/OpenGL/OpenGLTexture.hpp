@@ -8,7 +8,7 @@
 
 namespace Luminol::Graphics {
 
-enum class ColorSpace { SRGB, Linear };
+enum class ColorSpace : uint8_t { SRGB, Linear };
 
 class OpenGLTexture {
 public:

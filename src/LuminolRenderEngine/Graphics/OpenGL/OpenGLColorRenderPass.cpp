@@ -10,6 +10,10 @@ auto create_color_shader() -> OpenGLShader {
             std::filesystem::path{"res/shaders/color_vert.glsl"},
         .fragment_shader_path =
             std::filesystem::path{"res/shaders/color_frag.glsl"},
+        .geometry_shader_path = std::nullopt,
+        .tessellation_control_shader_path = std::nullopt,
+        .tessellation_evaluation_shader_path = std::nullopt,
+        .compute_shader_path = std::nullopt,
     }};
 
     color_shader.bind();

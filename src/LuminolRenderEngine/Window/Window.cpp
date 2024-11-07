@@ -125,7 +125,7 @@ auto Window::get_mouse_delta() -> MouseDelta {
         last_mouse_y = mouse_y;
         first_mouse = false;
 
-        return {0.0, 0.0};
+        return {.delta_x = 0.0, .delta_y = 0.0};
     }
 
     const auto delta_x = mouse_x - last_mouse_x;
@@ -134,7 +134,7 @@ auto Window::get_mouse_delta() -> MouseDelta {
     last_mouse_x = mouse_x;
     last_mouse_y = mouse_y;
 
-    return {delta_x, delta_y};
+    return {.delta_x = delta_x, .delta_y = delta_y};
 }
 
 // NOLINTBEGIN(readability-convert-member-functions-to-static)

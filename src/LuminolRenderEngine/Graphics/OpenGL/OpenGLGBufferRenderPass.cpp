@@ -12,6 +12,10 @@ auto create_gbuffer_shader() -> OpenGLShader {
             std::filesystem::path{"res/shaders/gbuffer_vert.glsl"},
         .fragment_shader_path =
             std::filesystem::path{"res/shaders/gbuffer_frag.glsl"},
+        .geometry_shader_path = std::nullopt,
+        .tessellation_control_shader_path = std::nullopt,
+        .tessellation_evaluation_shader_path = std::nullopt,
+        .compute_shader_path = std::nullopt,
     }};
 
     gbuffer_shader.bind();
@@ -48,30 +52,33 @@ auto create_gbuffer_shader() -> OpenGLShader {
 auto create_geometry_frame_buffer(int32_t width, int32_t height)
     -> OpenGLFrameBuffer {
     return OpenGLFrameBuffer{OpenGLFrameBufferDescriptor{
-        width,
-        height,
-        {
-            OpenGLFrameBufferAttachment{
-                .internal_format = TextureInternalFormat::RGBA16F,
-                .format = TextureFormat::RGBA,
-                .binding_point = SamplerBindingPoint::GBufferPositionMetallic,
+        .width = width,
+        .height = height,
+        .color_attachments =
+            {
+                OpenGLFrameBufferAttachment{
+                    .internal_format = TextureInternalFormat::RGBA16F,
+                    .format = TextureFormat::RGBA,
+                    .binding_point =
+                        SamplerBindingPoint::GBufferPositionMetallic,
+                },
+                OpenGLFrameBufferAttachment{
+                    .internal_format = TextureInternalFormat::RGBA16F,
+                    .format = TextureFormat::RGBA,
+                    .binding_point =
+                        SamplerBindingPoint::GBufferNormalRoughness,
+                },
+                OpenGLFrameBufferAttachment{
+                    .internal_format = TextureInternalFormat::RGBA16F,
+                    .format = TextureFormat::RGBA,
+                    .binding_point = SamplerBindingPoint::GBufferEmissiveAO,
+                },
+                OpenGLFrameBufferAttachment{
+                    .internal_format = TextureInternalFormat::RGB8,
+                    .format = TextureFormat::RGB,
+                    .binding_point = SamplerBindingPoint::GBufferAlbedo,
+                },
             },
-            OpenGLFrameBufferAttachment{
-                .internal_format = TextureInternalFormat::RGBA16F,
-                .format = TextureFormat::RGBA,
-                .binding_point = SamplerBindingPoint::GBufferNormalRoughness,
-            },
-            OpenGLFrameBufferAttachment{
-                .internal_format = TextureInternalFormat::RGBA16F,
-                .format = TextureFormat::RGBA,
-                .binding_point = SamplerBindingPoint::GBufferEmissiveAO,
-            },
-            OpenGLFrameBufferAttachment{
-                .internal_format = TextureInternalFormat::RGB8,
-                .format = TextureFormat::RGB,
-                .binding_point = SamplerBindingPoint::GBufferAlbedo,
-            },
-        },
     }};
 }
 

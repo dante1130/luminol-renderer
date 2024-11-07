@@ -1,19 +1,21 @@
 #pragma once
 
+#include <cstdint>
+
 namespace Luminol::Graphics {
 
-enum class UniformBufferBindingPoint {
+enum class UniformBufferBindingPoint : uint8_t {
     Transform = 0,
     Light,
 };
 
-enum class ShaderStorageBufferBindingPoint {
+enum class ShaderStorageBufferBindingPoint : uint8_t {
     InstancingModelMatrices = 0,
     Color,
     LuminanceHistogram,
 };
 
-enum class SamplerBindingPoint {
+enum class SamplerBindingPoint : uint8_t {
     TextureDiffuse = 0,
     TextureEmissive,
     TextureNormal,
@@ -28,7 +30,7 @@ enum class SamplerBindingPoint {
     GBufferAlbedo,
 };
 
-enum class ImageBindingPoint {
+enum class ImageBindingPoint : uint8_t {
     Screen = 0,
     HDRFramebuffer,
     AverageLuminance,

@@ -8,6 +8,11 @@ using namespace Luminol::Graphics;
 
 auto create_luminance_histogram_shader() -> OpenGLShader {
     auto luminance_histogram_shader = OpenGLShader{ShaderPaths{
+        .vertex_shader_path = std::nullopt,
+        .fragment_shader_path = std::nullopt,
+        .geometry_shader_path = std::nullopt,
+        .tessellation_control_shader_path = std::nullopt,
+        .tessellation_evaluation_shader_path = std::nullopt,
         .compute_shader_path = "res/shaders/luminance_histogram.glsl",
     }};
 
@@ -26,6 +31,11 @@ auto create_luminance_histogram_shader() -> OpenGLShader {
 
 auto create_average_luminance_shader() -> OpenGLShader {
     auto average_luminance_shader = OpenGLShader{ShaderPaths{
+        .vertex_shader_path = std::nullopt,
+        .fragment_shader_path = std::nullopt,
+        .geometry_shader_path = std::nullopt,
+        .tessellation_control_shader_path = std::nullopt,
+        .tessellation_evaluation_shader_path = std::nullopt,
         .compute_shader_path = "res/shaders/average_luminance.glsl",
     }};
 

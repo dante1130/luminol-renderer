@@ -24,7 +24,7 @@ public:
 
 private:
     OpenGLTextureManager();
-    TextureMap texture_map = {};
+    TextureMap texture_map;
 };
 
 }  // namespace Luminol::Graphics

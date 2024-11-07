@@ -44,9 +44,9 @@ auto initialize_opengl(
 auto create_hdr_frame_buffer(int32_t width, int32_t height)
     -> OpenGLFrameBuffer {
     return OpenGLFrameBuffer{OpenGLFrameBufferDescriptor{
-        width,
-        height,
-        {OpenGLFrameBufferAttachment{
+        .width = width,
+        .height = height,
+        .color_attachments = {OpenGLFrameBufferAttachment{
             .internal_format = TextureInternalFormat::RGBA16F,
             .format = TextureFormat::RGBA,
             .binding_point = SamplerBindingPoint::HDRFramebuffer,
@@ -62,8 +62,8 @@ auto create_transform_uniform_buffer() -> OpenGLUniformBuffer {
 
 auto create_light_uniform_buffer() -> OpenGLUniformBuffer {
     const auto size_bytes = offsetof(Light, point_lights) +
-                            sizeof(AlignedPointLight) * max_point_lights +
-                            sizeof(AlignedSpotLight) * max_spot_lights;
+                            (sizeof(AlignedPointLight) * max_point_lights) +
+                            (sizeof(AlignedSpotLight) * max_spot_lights);
 
     return OpenGLUniformBuffer{
         UniformBufferBindingPoint::Light, gsl::narrow<int64_t>(size_bytes)
@@ -262,7 +262,7 @@ auto OpenGLRenderer::update_lights() -> void {
 
     const auto spot_light_offset =
         offsetof(Light, point_lights) +
-        sizeof(light_data.point_lights[0]) * max_point_lights;
+        (sizeof(light_data.point_lights[0]) * max_point_lights);
 
     this->light_uniform_buffer.set_data(
         gsl::narrow<int64_t>(spot_light_offset),

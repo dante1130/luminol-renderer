@@ -7,7 +7,7 @@
 
 namespace Luminol::Graphics {
 
-enum class CameraMovement {
+enum class CameraMovement : uint8_t {
     Forward,
     Backward,
     Left,

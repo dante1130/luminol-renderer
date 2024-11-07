@@ -11,13 +11,13 @@ namespace Luminol::Graphics {
 
 struct InstancedDrawCall {
     RenderableId renderable_id = 0;
-    std::vector<Maths::Matrix4x4f> model_matrices = {};
+    std::vector<Maths::Matrix4x4f> model_matrices;
 };
 
 struct ColorInstancedDrawCall {
     RenderableId renderable_id = 0;
-    std::vector<Maths::Matrix4x4f> model_matrices = {};
-    std::vector<Maths::Vector4f> colors = {};
+    std::vector<Maths::Matrix4x4f> model_matrices;
+    std::vector<Maths::Vector4f> colors;
 };
 
 struct LineDrawCall {
@@ -26,8 +26,8 @@ struct LineDrawCall {
         Maths::Vector3f end_position;
     };
 
-    std::vector<Line> lines = {};
-    std::vector<Maths::Vector4f> colors = {};
+    std::vector<Line> lines;
+    std::vector<Maths::Vector4f> colors;
 };
 
 }  // namespace Luminol::Graphics

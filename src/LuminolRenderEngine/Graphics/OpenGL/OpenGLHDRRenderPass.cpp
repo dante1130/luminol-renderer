@@ -10,6 +10,10 @@ auto create_hdr_shader() -> OpenGLShader {
             std::filesystem::path{"res/shaders/hdr_vert.glsl"},
         .fragment_shader_path =
             std::filesystem::path{"res/shaders/hdr_frag.glsl"},
+        .geometry_shader_path = std::nullopt,
+        .tessellation_control_shader_path = std::nullopt,
+        .tessellation_evaluation_shader_path = std::nullopt,
+        .compute_shader_path = std::nullopt,
     }};
 
     hdr_shader.bind();

@@ -1,8 +1,10 @@
 #pragma once
 
+#include <cstdint>
+
 namespace Luminol::Graphics {
 
-enum class BufferBit {
+enum class BufferBit : uint8_t {
     Color = 0b001,
     Depth = 0b010,
     Stencil = 0b100,

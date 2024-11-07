@@ -4,7 +4,7 @@
 
 namespace Luminol::Graphics {
 
-enum class TextureInternalFormat {
+enum class TextureInternalFormat : uint8_t {
     R8,
     RG8,
     RGB8,
@@ -21,14 +21,14 @@ enum class TextureInternalFormat {
     SRGB8_Alpha8,
 };
 
-enum class TextureFormat {
+enum class TextureFormat : uint8_t {
     Red,
     RG,
     RGB,
     RGBA,
 };
 
-enum class ImageAccess {
+enum class ImageAccess : uint8_t {
     Read,
     Write,
     ReadWrite,

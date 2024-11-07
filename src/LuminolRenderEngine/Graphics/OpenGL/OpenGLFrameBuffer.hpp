@@ -19,7 +19,7 @@ struct OpenGLFrameBufferAttachment {
 struct OpenGLFrameBufferDescriptor {
     int32_t width = {0};
     int32_t height = {0};
-    std::vector<OpenGLFrameBufferAttachment> color_attachments = {};
+    std::vector<OpenGLFrameBufferAttachment> color_attachments;
 };
 
 class OpenGLFrameBuffer {
@@ -58,7 +58,7 @@ private:
     int32_t height = {0};
 
     uint32_t frame_buffer_id = {0};
-    std::vector<OpenGLFrameBufferAttachment> color_attachments = {};
+    std::vector<OpenGLFrameBufferAttachment> color_attachments;
     uint32_t render_buffer_id = {0};
 };
 
