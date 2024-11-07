@@ -16,9 +16,9 @@ target_compile_options(Luminol.Graphics PRIVATE
 )
 
 target_link_libraries(Luminol.Graphics PUBLIC
-    glm
     GSL
     Luminol.Utilities
+    LuminolMaths
 )
 
 target_link_libraries(Luminol.Graphics PRIVATE

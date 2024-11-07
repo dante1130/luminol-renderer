@@ -29,8 +29,20 @@ auto LightManager::update_directional_light(
     const DirectionalLight& directional_light
 ) -> void {
     this->light_data.directional_light = AlignedDirectionalLight{
-        .direction = glm::vec4{directional_light.direction, 0.0f},
-        .color = glm::vec4{directional_light.color, 1.0f}
+        .direction =
+            Maths::Vector4f{
+                directional_light.direction.x(),
+                directional_light.direction.y(),
+                directional_light.direction.z(),
+                0.0f,
+            },
+        .color =
+            Maths::Vector4f{
+                directional_light.color.x(),
+                directional_light.color.y(),
+                directional_light.color.z(),
+                1.0f,
+            },
     };
 }
 
@@ -115,8 +127,20 @@ auto LightManager::remove_spot_light(LightId spot_light_id) -> void {
         for (const auto& [point_light_id, point_light] :
              this->point_lights_map) {
             this->light_data.point_lights[array_index] = AlignedPointLight{
-                .position = glm::vec4{point_light.position, 1.0f},
-                .color = glm::vec4{point_light.color, 1.0f}
+                .position =
+                    Maths::Vector4f{
+                        point_light.position.x(),
+                        point_light.position.y(),
+                        point_light.position.z(),
+                        1.0f,
+                    },
+                .color =
+                    Maths::Vector4f{
+                        point_light.color.x(),
+                        point_light.color.y(),
+                        point_light.color.z(),
+                        1.0f,
+                    },
             };
 
             ++array_index;
@@ -127,9 +151,26 @@ auto LightManager::remove_spot_light(LightId spot_light_id) -> void {
         size_t array_index = 0;
         for (const auto& [spot_light_id, spot_light] : this->spot_lights_map) {
             this->light_data.spot_lights[array_index] = AlignedSpotLight{
-                .position = glm::vec4{spot_light.position, 1.0f},
-                .direction = glm::vec4{spot_light.direction, 0.0f},
-                .color = glm::vec4{spot_light.color, 1.0f},
+                .position =
+                    Maths::Vector4f{
+                        spot_light.position.x(),
+                        spot_light.position.y(),
+                        spot_light.position.z(),
+                        1.0f,
+                    },
+                .direction =
+                    Maths::Vector4f{
+                        spot_light.direction.x(),
+                        spot_light.direction.y(),
+                        spot_light.direction.z(),
+                        0.0f,
+                    },
+                .color =
+                    Maths::Vector3f{
+                        spot_light.color.x(),
+                        spot_light.color.y(),
+                        spot_light.color.z(),
+                    },
                 .cut_off = spot_light.cut_off,
                 .outer_cut_off = spot_light.outer_cut_off
             };

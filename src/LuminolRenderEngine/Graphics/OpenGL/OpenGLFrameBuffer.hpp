@@ -1,9 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <vector> 
-
-#include <glm/glm.hpp>
+#include <vector>
 
 #include <LuminolRenderEngine/Graphics/BufferBit.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLTextureFormat.hpp>

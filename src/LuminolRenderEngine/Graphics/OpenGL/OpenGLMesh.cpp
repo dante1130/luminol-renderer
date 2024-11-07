@@ -3,8 +3,9 @@
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLMesh.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLTextureManager.hpp>
 
+#include <LuminolMaths/Vector.hpp>
+
 #include <glad/gl.h>
-#include <glm/glm.hpp>
 
 namespace {
 
@@ -223,36 +224,36 @@ auto OpenGLMesh::unbind_textures() const -> void {
 
 auto create_quad_mesh() -> OpenGLMesh {
     struct Vertex {
-        glm::vec3 position;
-        glm::vec2 tex_coords;
-        glm::vec3 normal;
-        glm::vec3 tangent;
+        Maths::Vector3f position;
+        Maths::Vector2f tex_coords;
+        Maths::Vector3f normal;
+        Maths::Vector3f tangent;
     };
 
     constexpr auto vertices = std::array{
         Vertex{
-            .position = glm::vec3{-1.0f, 1.0f, 0.0f},
-            .tex_coords = glm::vec2{0.0f, 1.0f},
-            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
-            .tangent = glm::vec3{1.0f, 0.0f, 0.0f},
+            .position = Maths::Vector3f{-1.0f, 1.0f, 0.0f},
+            .tex_coords = Maths::Vector2f{0.0f, 1.0f},
+            .normal = Maths::Vector3f{0.0f, 0.0f, 1.0f},
+            .tangent = Maths::Vector3f{1.0f, 0.0f, 0.0f},
         },
         Vertex{
-            .position = glm::vec3{-1.0f, -1.0f, 0.0f},
-            .tex_coords = glm::vec2{0.0f, 0.0f},
-            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
-            .tangent = glm::vec3{1.0f, 0.0f, 0.0f},
+            .position = Maths::Vector3f{-1.0f, -1.0f, 0.0f},
+            .tex_coords = Maths::Vector2f{0.0f, 0.0f},
+            .normal = Maths::Vector3f{0.0f, 0.0f, 1.0f},
+            .tangent = Maths::Vector3f{1.0f, 0.0f, 0.0f},
         },
         Vertex{
-            .position = glm::vec3{1.0f, -1.0f, 0.0f},
-            .tex_coords = glm::vec2{1.0f, 0.0f},
-            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
-            .tangent = glm::vec3{1.0f, 0.0f, 0.0f},
+            .position = Maths::Vector3f{1.0f, -1.0f, 0.0f},
+            .tex_coords = Maths::Vector2f{1.0f, 0.0f},
+            .normal = Maths::Vector3f{0.0f, 0.0f, 1.0f},
+            .tangent = Maths::Vector3f{1.0f, 0.0f, 0.0f},
         },
         Vertex{
-            .position = glm::vec3{1.0f, 1.0f, 0.0f},
-            .tex_coords = glm::vec2{1.0f, 1.0f},
-            .normal = glm::vec3{0.0f, 0.0f, 1.0f},
-            .tangent = glm::vec3{1.0f, 0.0f, 0.0f},
+            .position = Maths::Vector3f{1.0f, 1.0f, 0.0f},
+            .tex_coords = Maths::Vector2f{1.0f, 1.0f},
+            .normal = Maths::Vector3f{0.0f, 0.0f, 1.0f},
+            .tangent = Maths::Vector3f{1.0f, 0.0f, 0.0f},
         }
     };
 
@@ -265,20 +266,20 @@ auto create_quad_mesh() -> OpenGLMesh {
     vertices_float.reserve(vertices.size() * component_count);
 
     for (const auto& vertex : vertices) {
-        vertices_float.push_back(vertex.position.x);
-        vertices_float.push_back(vertex.position.y);
-        vertices_float.push_back(vertex.position.z);
+        vertices_float.push_back(vertex.position.x());
+        vertices_float.push_back(vertex.position.y());
+        vertices_float.push_back(vertex.position.z());
 
-        vertices_float.push_back(vertex.tex_coords.x);
-        vertices_float.push_back(vertex.tex_coords.y);
+        vertices_float.push_back(vertex.tex_coords.x());
+        vertices_float.push_back(vertex.tex_coords.y());
 
-        vertices_float.push_back(vertex.normal.x);
-        vertices_float.push_back(vertex.normal.y);
-        vertices_float.push_back(vertex.normal.z);
+        vertices_float.push_back(vertex.normal.x());
+        vertices_float.push_back(vertex.normal.y());
+        vertices_float.push_back(vertex.normal.z());
 
-        vertices_float.push_back(vertex.tangent.x);
-        vertices_float.push_back(vertex.tangent.y);
-        vertices_float.push_back(vertex.tangent.z);
+        vertices_float.push_back(vertex.tangent.x());
+        vertices_float.push_back(vertex.tangent.y());
+        vertices_float.push_back(vertex.tangent.z());
     }
 
     return OpenGLMesh{vertices_float, indices};

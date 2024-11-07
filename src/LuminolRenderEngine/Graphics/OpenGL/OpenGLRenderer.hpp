@@ -19,26 +19,29 @@ class OpenGLRenderer : public Renderer {
 public:
     OpenGLRenderer(Window& window, GraphicsApi graphics_api);
 
-    auto set_view_matrix(const glm::mat4& view_matrix) -> void override;
-    auto set_projection_matrix(const glm::mat4& projection_matrix)
+    auto set_view_matrix(const Maths::Matrix4x4f& view_matrix) -> void override;
+    auto set_projection_matrix(const Maths::Matrix4x4f& projection_matrix)
         -> void override;
 
     auto set_exposure(float exposure) -> void override;
 
-    auto clear_color(const glm::vec4& color) const -> void override;
+    auto clear_color(const Maths::Vector4f& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
 
-    auto queue_draw(RenderableId renderable_id, const glm::mat4& model_matrix)
-        -> void override;
+    auto queue_draw(
+        RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
+    ) -> void override;
 
     auto queue_draw_with_color(
         RenderableId renderable_id,
-        const glm::mat4& model_matrix,
-        const glm::vec3& color
+        const Maths::Matrix4x4f& model_matrix,
+        const Maths::Vector3f& color
     ) -> void override;
 
     auto queue_draw_line(
-        const glm::vec3& start, const glm::vec3& end, const glm::vec3& color
+        const Maths::Vector3f& start,
+        const Maths::Vector3f& end,
+        const Maths::Vector3f& color
     ) -> void override;
 
     auto draw() -> void override;
@@ -78,8 +81,8 @@ private:
 
     float exposure = 1.0f;
 
-    glm::mat4 view_matrix;
-    glm::mat4 projection_matrix;
+    Maths::Matrix4x4f view_matrix;
+    Maths::Matrix4x4f projection_matrix;
 };
 
 }  // namespace Luminol::Graphics

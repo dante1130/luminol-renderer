@@ -2,20 +2,20 @@
 
 #include <vector>
 
-#include <glm/glm.hpp>
+#include <LuminolMaths/Vector.hpp>
 
 namespace Luminol::Graphics {
 
 struct DirectionalLight {
-    glm::vec3 direction = {0.0f, 0.0f, 0.0f};
-    glm::vec3 color = {1.0f, 1.0f, 1.0f};
+    Maths::Vector3f direction = {0.0f, 0.0f, 0.0f};
+    Maths::Vector3f color = {1.0f, 1.0f, 1.0f};
 };
 
 constexpr static auto max_point_lights = 64u;
 
 struct PointLight {
-    glm::vec3 position = {0.0f, 0.0f, 0.0f};
-    glm::vec3 color = {1.0f, 1.0f, 1.0f};
+    Maths::Vector3f position = {0.0f, 0.0f, 0.0f};
+    Maths::Vector3f color = {1.0f, 1.0f, 1.0f};
 };
 
 constexpr static auto max_spot_lights = 64u;
@@ -23,37 +23,43 @@ constexpr static auto default_cut_off = 0.0f;
 constexpr static auto default_outer_cut_off = 0.0f;
 
 struct SpotLight {
-    glm::vec3 position = {0.0f, 0.0f, 0.0f};
-    glm::vec3 direction = {0.0f, 0.0f, 0.0f};
-    glm::vec3 color = {1.0f, 1.0f, 1.0f};
+    Maths::Vector3f position = {0.0f, 0.0f, 0.0f};
+    Maths::Vector3f direction = {0.0f, 0.0f, 0.0f};
+    Maths::Vector3f color = {1.0f, 1.0f, 1.0f};
     float cut_off = 0.0f;
     float outer_cut_off = 0.0f;
 };
 
 struct AlignedDirectionalLight {
-    glm::vec4 direction = {glm::vec4{0.0f, 0.0f, 0.0f, 0.0f}};  // 16 bytes
-    glm::vec4 color = {glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}};      // 16 bytes
+    Maths::Vector4f direction =
+        Maths::Vector4f{0.0f, 0.0f, 0.0f, 0.0f};  // 16 bytes
+    Maths::Vector4f color =
+        Maths::Vector4f{1.0f, 1.0f, 1.0f, 1.0f};  // 16 bytes
 };
 
 struct AlignedPointLight {
-    glm::vec4 position = {glm::vec4{0.0f, 0.0f, 0.0f, 0.0f}};  // 16 bytes
-    glm::vec4 color = {glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}};     // 16 bytes
+    Maths::Vector4f position =
+        Maths::Vector4f{0.0f, 0.0f, 0.0f, 0.0f};  // 16 bytes
+    Maths::Vector4f color =
+        Maths::Vector4f{1.0f, 1.0f, 1.0f, 1.0f};  // 16 bytes
 };
 
 struct AlignedSpotLight {
-    glm::vec4 position = {glm::vec4{0.0f, 0.0f, 0.0f, 0.0f}};   // 16 bytes
-    glm::vec4 direction = {glm::vec4{0.0f, 0.0f, 0.0f, 0.0f}};  // 16 bytes
-    glm::vec3 color = glm::vec3{1.0f, 1.0f, 1.0f};              // 12 bytes
-    float cut_off = default_cut_off;                            // 4 bytes
-    float outer_cut_off = default_outer_cut_off;                // 4 bytes
-    glm::vec3 padding = glm::vec3{0.0f, 0.0f, 0.0f};            // 12 bytes
+    Maths::Vector4f position =
+        Maths::Vector4f{0.0f, 0.0f, 0.0f, 0.0f};  // 16 bytes
+    Maths::Vector4f direction =
+        Maths::Vector4f{0.0f, 0.0f, 0.0f, 0.0f};                  // 16 bytes
+    Maths::Vector3f color = Maths::Vector3f{1.0f, 1.0f, 1.0f};    // 12 bytes
+    float cut_off = default_cut_off;                              // 4 bytes
+    float outer_cut_off = default_outer_cut_off;                  // 4 bytes
+    Maths::Vector3f padding = Maths::Vector3f{0.0f, 0.0f, 0.0f};  // 12 bytes
 };
 
 struct Light {
-    AlignedDirectionalLight directional_light;  // 64 bytes
-    uint32_t point_light_count = 0;             // 4 bytes
-    uint32_t spot_light_count = 0;              // 4 bytes
-    glm::vec2 padding = glm::vec2{0.0f, 0.0f};  // 8 bytes
+    AlignedDirectionalLight directional_light;              // 64 bytes
+    uint32_t point_light_count = 0;                         // 4 bytes
+    uint32_t spot_light_count = 0;                          // 4 bytes
+    Maths::Vector2f padding = Maths::Vector2f{0.0f, 0.0f};  // 8 bytes
     std::vector<AlignedPointLight> point_lights =
         std::vector<AlignedPointLight>{max_point_lights};
     std::vector<AlignedSpotLight> spot_lights =

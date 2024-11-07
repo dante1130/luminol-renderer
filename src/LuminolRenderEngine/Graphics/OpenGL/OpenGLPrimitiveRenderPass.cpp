@@ -2,9 +2,6 @@
 
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLVertexBuffer.hpp>
 
-#include <glm/ext/matrix_transform.hpp>
-#include "glad/gl.h"
-
 namespace {
 
 using namespace Luminol::Graphics;

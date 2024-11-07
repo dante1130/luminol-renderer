@@ -3,7 +3,8 @@
 #include <filesystem>
 #include <optional>
 
-#include <glm/glm.hpp>
+#include <LuminolMaths/Vector.hpp>
+#include <LuminolMaths/Matrix.hpp>
 
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniformBindingPoints.hpp>
 
@@ -52,14 +53,14 @@ public:
         ShaderStorageBufferBindingPoint binding_point
     ) const -> void;
 
-    auto set_uniform(const std::string& name, const glm::mat4& matrix) const
-        -> void;
-    auto set_uniform(const std::string& name, const glm::vec4& vector) const
-        -> void;
-    auto set_uniform(const std::string& name, const glm::vec3& vector) const
-        -> void;
-    auto set_uniform(const std::string& name, const glm::vec2& vector) const
-        -> void;
+    auto set_uniform(const std::string& name, const Maths::Matrix4x4f& matrix)
+        const -> void;
+    auto set_uniform(const std::string& name, const Maths::Vector4f& vector)
+        const -> void;
+    auto set_uniform(const std::string& name, const Maths::Vector3f& vector)
+        const -> void;
+    auto set_uniform(const std::string& name, const Maths::Vector2f& vector)
+        const -> void;
     auto set_uniform(const std::string& name, float value) const -> void;
     auto set_uniform(const std::string& name, int value) const -> void;
     auto set_uniform(const std::string& name, bool value) const -> void;

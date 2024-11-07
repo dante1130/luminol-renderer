@@ -4,7 +4,6 @@
 
 #include <gsl/gsl>
 #include <glad/gl.h>
-#include <glm/gtc/matrix_transform.hpp>
 
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLError.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
@@ -95,15 +94,17 @@ OpenGLRenderer::OpenGLRenderer(Window& window, GraphicsApi graphics_api)
           ShaderStorageBufferBindingPoint::InstancingModelMatrices
       },
       instancing_color_buffer{ShaderStorageBufferBindingPoint::Color},
-      view_matrix{glm::mat4{1.0f}},
-      projection_matrix{glm::mat4{1.0f}} {}
+      view_matrix{Maths::Matrix4x4f::identity()},
+      projection_matrix{Maths::Matrix4x4f::identity()} {}
 
-auto OpenGLRenderer::set_view_matrix(const glm::mat4& view_matrix) -> void {
+auto OpenGLRenderer::set_view_matrix(const Maths::Matrix4x4f& view_matrix)
+    -> void {
     this->view_matrix = view_matrix;
 }
 
-auto OpenGLRenderer::set_projection_matrix(const glm::mat4& projection_matrix)
-    -> void {
+auto OpenGLRenderer::set_projection_matrix(
+    const Maths::Matrix4x4f& projection_matrix
+) -> void {
     this->projection_matrix = projection_matrix;
 }
 
@@ -111,8 +112,8 @@ auto OpenGLRenderer::set_exposure(float exposure) -> void {
     this->exposure = exposure;
 }
 
-auto OpenGLRenderer::clear_color(const glm::vec4& color) const -> void {
-    glClearColor(color.r, color.g, color.b, color.a);
+auto OpenGLRenderer::clear_color(const Maths::Vector4f& color) const -> void {
+    glClearColor(color.x(), color.y(), color.z(), color.w());
 }
 
 auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
@@ -120,7 +121,7 @@ auto OpenGLRenderer::clear(BufferBit buffer_bit) const -> void {
 }
 
 auto OpenGLRenderer::queue_draw(
-    RenderableId renderable_id, const glm::mat4& model_matrix
+    RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
 ) -> void {
     if (this->instanced_draw_call_map.contains(renderable_id)) {
         auto& draw_call = this->instanced_draw_call_map.at(renderable_id);
@@ -140,20 +141,20 @@ auto OpenGLRenderer::queue_draw(
 
 auto OpenGLRenderer::queue_draw_with_color(
     RenderableId renderable_id,
-    const glm::mat4& model_matrix,
-    const glm::vec3& color
+    const Maths::Matrix4x4f& model_matrix,
+    const Maths::Vector3f& color
 ) -> void {
     if (this->instanced_color_draw_call_map.contains(renderable_id)) {
         auto& draw_call = this->instanced_color_draw_call_map.at(renderable_id);
         draw_call.model_matrices.emplace_back(model_matrix);
-        draw_call.colors.emplace_back(color, 1.0);
+        draw_call.colors.emplace_back(color.x(), color.y(), color.z(), 1.0f);
         return;
     }
 
     this->instanced_color_draw_queue.emplace_back(ColorInstancedDrawCall{
         .renderable_id = renderable_id,
         .model_matrices = {model_matrix},
-        .colors = {glm::vec4{color, 1.0f}},
+        .colors = {Maths::Vector4f{color.x(), color.y(), color.z(), 1.0f}},
     });
 
     this->instanced_color_draw_call_map.emplace(
@@ -162,16 +163,18 @@ auto OpenGLRenderer::queue_draw_with_color(
 }
 
 auto OpenGLRenderer::queue_draw_line(
-    const glm::vec3& start_position,
-    const glm::vec3& end_position,
-    const glm::vec3& color
+    const Maths::Vector3f& start_position,
+    const Maths::Vector3f& end_position,
+    const Maths::Vector3f& color
 ) -> void {
     this->line_draw_call.lines.emplace_back(LineDrawCall::Line{
         .start_position = start_position,
         .end_position = end_position,
     });
 
-    this->line_draw_call.colors.emplace_back(color, 1.0f);
+    this->line_draw_call.colors.emplace_back(
+        color.x(), color.y(), color.z(), 1.0f
+    );
 }
 
 auto OpenGLRenderer::draw() -> void {

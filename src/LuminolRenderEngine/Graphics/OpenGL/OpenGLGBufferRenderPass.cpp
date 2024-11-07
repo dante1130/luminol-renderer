@@ -98,7 +98,7 @@ auto OpenGLGBufferRenderPass::draw(
         instancing_model_matrix_buffer.set_data(
             0,
             gsl::narrow<int64_t>(
-                draw_call.model_matrices.size() * sizeof(glm::mat4)
+                draw_call.model_matrices.size() * sizeof(Maths::Matrix4x4f)
             ),
             draw_call.model_matrices.data()
         );

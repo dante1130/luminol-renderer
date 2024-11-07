@@ -3,6 +3,7 @@
 namespace {
 
 using namespace Luminol::Graphics;
+using namespace Luminol::Maths;
 
 auto create_pbr_shader() -> OpenGLShader {
     auto pbr_shader = OpenGLShader{ShaderPaths{
@@ -34,8 +35,14 @@ auto create_pbr_shader() -> OpenGLShader {
     return pbr_shader;
 }
 
-auto get_view_position(const glm::mat4& view_matrix) -> glm::vec3 {
-    return glm::inverse(view_matrix)[3];
+auto get_view_position(const Matrix4x4f& view_matrix) -> Vector3f {
+    const auto inverse_view_matrix = view_matrix.inverse();
+
+    return Vector3f{
+        inverse_view_matrix[3][0],
+        inverse_view_matrix[3][1],
+        inverse_view_matrix[3][2],
+    };
 }
 
 }  // namespace
@@ -48,7 +55,7 @@ OpenGLLightingRenderPass::OpenGLLightingRenderPass()
 auto OpenGLLightingRenderPass::draw(
     const OpenGLFrameBuffer& gbuffer_frame_buffer,
     const OpenGLFrameBuffer& hdr_frame_buffer,
-    const glm::mat4& view_matrix
+    const Maths::Matrix4x4f& view_matrix
 ) const -> void {
     hdr_frame_buffer.bind();
 

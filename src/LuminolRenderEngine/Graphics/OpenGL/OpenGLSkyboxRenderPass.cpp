@@ -45,11 +45,22 @@ OpenGLSkyboxRenderPass::OpenGLSkyboxRenderPass()
 auto OpenGLSkyboxRenderPass::draw(
     const OpenGLFrameBuffer& hdr_frame_buffer,
     OpenGLUniformBuffer& transform_uniform_buffer,
-    const glm::mat4& view_matrix
+    const Maths::Matrix4x4f& view_matrix
 ) const -> void {
     hdr_frame_buffer.bind();
 
-    const auto skybox_view_matrix = glm::mat4{glm::mat3{view_matrix}};
+    const auto skybox_view_matrix = Maths::Matrix4x4f{std::array{
+        std::array{
+            view_matrix[0][0], view_matrix[0][1], view_matrix[0][2], 0.0f
+        },
+        std::array{
+            view_matrix[1][0], view_matrix[1][1], view_matrix[1][2], 0.0f
+        },
+        std::array{
+            view_matrix[2][0], view_matrix[2][1], view_matrix[2][2], 0.0f
+        },
+        std::array{0.0f, 0.0f, 0.0f, 1.0f},
+    }};
 
     transform_uniform_buffer.set_data(
         offsetof(OpenGLUniforms::Transform, view_matrix),

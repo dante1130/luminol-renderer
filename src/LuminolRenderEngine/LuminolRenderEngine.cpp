@@ -1,7 +1,5 @@
 #include "LuminolRenderEngine.hpp"
 
-#include <glm/gtc/matrix_transform.hpp>
-
 #include <LuminolRenderEngine/Graphics/Light.hpp>
 
 namespace Luminol {
