@@ -35,10 +35,10 @@ auto create_pbr_shader() -> OpenGLShader {
     return pbr_shader;
 }
 
-auto get_view_position(const Matrix4x4f& view_matrix) -> glm::vec3 {
+auto get_view_position(const Matrix4x4f& view_matrix) -> Vector3f {
     const auto inverse_view_matrix = view_matrix.inverse();
 
-    return glm::vec3{
+    return Vector3f{
         inverse_view_matrix[3][0],
         inverse_view_matrix[3][1],
         inverse_view_matrix[3][2],

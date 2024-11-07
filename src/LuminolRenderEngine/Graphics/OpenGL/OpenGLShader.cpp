@@ -209,29 +209,33 @@ auto OpenGLShader::set_shader_storage_block_binding_point(
     );
 }
 
-auto OpenGLShader::set_uniform(const std::string& name, const glm::mat4& matrix)
-    const -> void {
+auto OpenGLShader::set_uniform(
+    const std::string& name, const Maths::Matrix4x4f& matrix
+) const -> void {
     const auto location =
         glGetUniformLocation(this->shader_program_id, name.c_str());
-    glUniformMatrix4fv(location, 1, GL_FALSE, &matrix[0][0]);
+    glUniformMatrix4fv(location, 1, GL_FALSE, matrix[0].data());
 }
 
-auto OpenGLShader::set_uniform(const std::string& name, const glm::vec4& vector)
-    const -> void {
+auto OpenGLShader::set_uniform(
+    const std::string& name, const Maths::Vector4f& vector
+) const -> void {
     const auto location =
         glGetUniformLocation(this->shader_program_id, name.c_str());
     glUniform4fv(location, 1, &vector[0]);
 }
 
-auto OpenGLShader::set_uniform(const std::string& name, const glm::vec3& vector)
-    const -> void {
+auto OpenGLShader::set_uniform(
+    const std::string& name, const Maths::Vector3f& vector
+) const -> void {
     const auto location =
         glGetUniformLocation(this->shader_program_id, name.c_str());
     glUniform3fv(location, 1, &vector[0]);
 }
 
-auto OpenGLShader::set_uniform(const std::string& name, const glm::vec2& vector)
-    const -> void {
+auto OpenGLShader::set_uniform(
+    const std::string& name, const Maths::Vector2f& vector
+) const -> void {
     const auto location =
         glGetUniformLocation(this->shader_program_id, name.c_str());
     glUniform2fv(location, 1, &vector[0]);
