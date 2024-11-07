@@ -95,15 +95,17 @@ OpenGLRenderer::OpenGLRenderer(Window& window, GraphicsApi graphics_api)
           ShaderStorageBufferBindingPoint::InstancingModelMatrices
       },
       instancing_color_buffer{ShaderStorageBufferBindingPoint::Color},
-      view_matrix{glm::mat4{1.0f}},
-      projection_matrix{glm::mat4{1.0f}} {}
+      view_matrix{Maths::Matrix4x4f::identity()},
+      projection_matrix{Maths::Matrix4x4f::identity()} {}
 
-auto OpenGLRenderer::set_view_matrix(const glm::mat4& view_matrix) -> void {
+auto OpenGLRenderer::set_view_matrix(const Maths::Matrix4x4f& view_matrix)
+    -> void {
     this->view_matrix = view_matrix;
 }
 
-auto OpenGLRenderer::set_projection_matrix(const glm::mat4& projection_matrix)
-    -> void {
+auto OpenGLRenderer::set_projection_matrix(
+    const Maths::Matrix4x4f& projection_matrix
+) -> void {
     this->projection_matrix = projection_matrix;
 }
 

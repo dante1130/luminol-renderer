@@ -2,6 +2,8 @@
 
 #include <gsl/gsl>
 
+#include <LuminolMaths/Matrix.hpp>
+
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLDrawCall.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLFrameBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
@@ -18,7 +20,7 @@ public:
     auto draw(
         const OpenGLFrameBuffer& gbuffer_frame_buffer,
         const OpenGLFrameBuffer& hdr_frame_buffer,
-        const glm::mat4& view_matrix
+        const Maths::Matrix4x4f& view_matrix
     ) const -> void;
 
 private:

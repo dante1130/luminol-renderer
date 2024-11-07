@@ -2,6 +2,7 @@
 
 #include <glm/glm.hpp>
 #include <LuminolMaths/Vector.hpp>
+#include <LuminolMaths/Matrix.hpp>
 
 #include <LuminolRenderEngine/Window/Window.hpp>
 #include <LuminolRenderEngine/Graphics/Renderable.hpp>
@@ -27,9 +28,11 @@ public:
     [[nodiscard]] auto get_light_manager() const -> const LightManager&;
     [[nodiscard]] auto get_light_manager() -> LightManager&;
 
-    virtual auto set_view_matrix(const glm::mat4& view_matrix) -> void = 0;
-    virtual auto set_projection_matrix(const glm::mat4& projection_matrix)
+    virtual auto set_view_matrix(const Maths::Matrix4x4f& view_matrix)
         -> void = 0;
+    virtual auto set_projection_matrix(
+        const Maths::Matrix4x4f& projection_matrix
+    ) -> void = 0;
 
     virtual auto set_exposure(float exposure) -> void = 0;
 

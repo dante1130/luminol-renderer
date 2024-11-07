@@ -48,6 +48,15 @@ auto handle_key_events(
     }
 }
 
+constexpr auto glm_to_luminol(const glm::mat4& matrix) -> Maths::Matrix4x4f {
+    return Maths::Matrix4x4f{std::array{
+        std::array{matrix[0][0], matrix[0][1], matrix[0][2], matrix[0][3]},
+        std::array{matrix[1][0], matrix[1][1], matrix[1][2], matrix[1][3]},
+        std::array{matrix[2][0], matrix[2][1], matrix[2][2], matrix[2][3]},
+        std::array{matrix[3][0], matrix[3][1], matrix[3][2], matrix[3][3]}
+    }};
+}
+
 }  // namespace
 
 auto main() -> int {
@@ -195,9 +204,11 @@ auto main() -> int {
             static_cast<float>(luminol_engine.get_window().get_height())
         );
 
-        luminol_engine.get_renderer().set_view_matrix(camera.get_view_matrix());
+        luminol_engine.get_renderer().set_view_matrix(
+            glm_to_luminol(camera.get_view_matrix())
+        );
         luminol_engine.get_renderer().set_projection_matrix(
-            camera.get_projection_matrix()
+            glm_to_luminol(camera.get_projection_matrix())
         );
 
         flash_light.position = Maths::Vector3f(

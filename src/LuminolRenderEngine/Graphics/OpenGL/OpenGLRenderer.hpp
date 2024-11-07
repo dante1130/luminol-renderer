@@ -19,8 +19,8 @@ class OpenGLRenderer : public Renderer {
 public:
     OpenGLRenderer(Window& window, GraphicsApi graphics_api);
 
-    auto set_view_matrix(const glm::mat4& view_matrix) -> void override;
-    auto set_projection_matrix(const glm::mat4& projection_matrix)
+    auto set_view_matrix(const Maths::Matrix4x4f& view_matrix) -> void override;
+    auto set_projection_matrix(const Maths::Matrix4x4f& projection_matrix)
         -> void override;
 
     auto set_exposure(float exposure) -> void override;
@@ -80,8 +80,8 @@ private:
 
     float exposure = 1.0f;
 
-    glm::mat4 view_matrix;
-    glm::mat4 projection_matrix;
+    Maths::Matrix4x4f view_matrix;
+    Maths::Matrix4x4f projection_matrix;
 };
 
 }  // namespace Luminol::Graphics
