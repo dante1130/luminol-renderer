@@ -30,3 +30,4 @@ target_include_directories(Luminol.Graphics PUBLIC
 )
 
 add_subdirectory(OpenGL)
+add_subdirectory(SDL_GPU)
