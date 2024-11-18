@@ -10,6 +10,20 @@ constexpr auto window_handle_to_sdl_window(Luminol::Window::WindowHandle handle)
     return static_cast<SDL_Window*>(handle);
 }
 
+constexpr auto init_state_handle_to_sdl_init_state(
+    Luminol::Window::InitStateHandle handle
+) -> SDL_InitState* {
+    return static_cast<SDL_InitState*>(handle);
+}
+
+// NOLINTBEGIN(cppcoreguidelines-owning-memory)
+auto create_init_state_handle()
+    -> std::unique_ptr<Luminol::Window::InitStateHandle> {
+    return std::make_unique<Luminol::Window::InitStateHandle>(new SDL_InitState
+    );
+}
+// NOLINTEND(cppcoreguidelines-owning-memory)
+
 /* auto framebuffer_size_callback_function(
     GLFWwindow* window, int32_t width, int32_t height
 ) -> void {
@@ -28,7 +42,8 @@ constexpr auto window_handle_to_sdl_window(Luminol::Window::WindowHandle handle)
 
 namespace Luminol {
 
-Window::Window(int32_t width, int32_t height, const std::string& title) {
+Window::Window(int32_t width, int32_t height, const std::string& title)
+    : init_state_handle{create_init_state_handle()} {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_LogError(
             SDL_LOG_CATEGORY_ERROR,
@@ -51,9 +66,14 @@ Window::Window(int32_t width, int32_t height, const std::string& title) {
         Ensures(false);
     }
 
+    SDL_SetWindowRelativeMouseMode(
+        window_handle_to_sdl_window(window_handle), true
+    );
     SDL_GL_CreateContext(window_handle_to_sdl_window(this->window_handle));
 
-    SDL_SetInitialized(this->sdl_state.get(), true);
+    SDL_SetInitialized(
+        init_state_handle_to_sdl_init_state(*this->init_state_handle), true
+    );
 }
 
 Window::~Window() { SDL_Quit(); }
@@ -144,7 +164,10 @@ auto Window::set_framebuffer_size_callback(
 }
 
 auto Window::should_close() -> bool {
-    const auto status = SDL_GetAtomicInt(&this->sdl_state->status);
+    auto* const sdl_handle =
+        init_state_handle_to_sdl_init_state(*this->init_state_handle);
+
+    const auto status = SDL_GetAtomicInt(&sdl_handle->status);
 
     return status == SDL_INIT_STATUS_UNINITIALIZING ||
            status == SDL_INIT_STATUS_UNINITIALIZED;
@@ -152,7 +175,9 @@ auto Window::should_close() -> bool {
 
 auto Window::close() -> void {
     SDL_DestroyWindow(window_handle_to_sdl_window(window_handle));
-    SDL_SetInitialized(this->sdl_state.get(), false);
+    SDL_SetInitialized(
+        init_state_handle_to_sdl_init_state(*this->init_state_handle), false
+    );
 }
 
 auto Window::swap_buffers() const -> void {

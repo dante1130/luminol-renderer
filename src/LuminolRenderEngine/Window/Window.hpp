@@ -6,8 +6,6 @@
 #include <string>
 #include <functional>
 
-struct SDL_InitState;
-
 namespace Luminol {
 
 enum class KeyEvent : uint8_t { Press = 0, Release };
@@ -20,6 +18,7 @@ struct MouseDelta {
 class Window {
 public:
     using WindowHandle = void*;
+    using InitStateHandle = void*;
     using WindowProc = void (*(*)(const char*))();
     using FramebufferSizeCallback = std::function<void(int32_t, int32_t)>;
 
@@ -55,8 +54,7 @@ private:
     std::optional<FramebufferSizeCallback> framebuffer_size_callback =
         std::nullopt;
     WindowHandle window_handle = nullptr;
-    std::unique_ptr<SDL_InitState> sdl_state =
-        std::make_unique<SDL_InitState>();
+    std::unique_ptr<InitStateHandle> init_state_handle = nullptr;
 
     std::unordered_map<uint32_t, KeyEvent> key_states;
 
