@@ -26,23 +26,23 @@ struct Lights {
 auto handle_key_events(
     RenderEngine& engine, Camera& camera, float delta_time_seconds
 ) -> void {
-    if (engine.get_window().is_key_event('W', KeyEvent::Press)) {
+    if (engine.get_window().is_key_event('w', KeyEvent::Press)) {
         camera.move(Graphics::CameraMovement::Forward, delta_time_seconds);
     }
 
-    if (engine.get_window().is_key_event('S', KeyEvent::Press)) {
+    if (engine.get_window().is_key_event('s', KeyEvent::Press)) {
         camera.move(Graphics::CameraMovement::Backward, delta_time_seconds);
     }
 
-    if (engine.get_window().is_key_event('A', KeyEvent::Press)) {
+    if (engine.get_window().is_key_event('a', KeyEvent::Press)) {
         camera.move(Graphics::CameraMovement::Left, delta_time_seconds);
     }
 
-    if (engine.get_window().is_key_event('D', KeyEvent::Press)) {
+    if (engine.get_window().is_key_event('d', KeyEvent::Press)) {
         camera.move(Graphics::CameraMovement::Right, delta_time_seconds);
     }
 
-    if (engine.get_window().is_key_event('Q', KeyEvent::Press)) {
+    if (engine.get_window().is_key_event('q', KeyEvent::Press)) {
         engine.get_window().close();
     }
 }

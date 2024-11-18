@@ -22,20 +22,6 @@ constexpr auto window_handle_to_sdl_window(Luminol::Window::WindowHandle handle)
     if (framebuffer_size_callback.has_value()) {
         framebuffer_size_callback.value()(width, height);
     }
-}
-
-constexpr auto key_event_to_glfw_key_event(Luminol::KeyEvent event) ->
-int32_t {
-    switch (event) {
-        case Luminol::KeyEvent::Press:
-            return GLFW_PRESS;
-        case Luminol::KeyEvent::Release:
-            return GLFW_RELEASE;
-        case Luminol::KeyEvent::Repeat:
-            return GLFW_REPEAT;
-        default:
-            return GLFW_RELEASE;
-    }
 } */
 
 }  // namespace
@@ -98,41 +84,53 @@ auto Window::get_proc_address() const -> Window::WindowProc {
 }
 // NOLINTEND(readability-convert-member-functions-to-static)
 
-auto Window::is_key_event(int32_t /*key*/, KeyEvent /*event*/) const -> bool {
-    return false;
-    /* return glfwGetKey(window_handle_to_glfw_window(window_handle), key) ==
-       key_event_to_glfw_key_event(event); */
+auto Window::is_key_event(uint32_t key, KeyEvent event) const -> bool {
+    return this->key_states.contains(key) && this->key_states.at(key) == event;
 }
 
-auto Window::get_mouse_delta() -> MouseDelta {
-    return {.delta_x = 0.0, .delta_y = 0.0};
+auto Window::get_mouse_delta() const -> MouseDelta { return this->mouse_delta; }
 
-    /* double mouse_x = 0.0;
-    double mouse_y = 0.0;
-    glfwGetCursorPos(
-        window_handle_to_glfw_window(window_handle), &mouse_x, &mouse_y
-    );
+auto Window::poll_events() -> void {
+    this->key_states.clear();
 
-    if (first_mouse) {
-        last_mouse_x = mouse_x;
-        last_mouse_y = mouse_y;
-        first_mouse = false;
-
-        return {.delta_x = 0.0, .delta_y = 0.0};
+    if (!SDL_HasEvent(SDL_EVENT_MOUSE_MOTION)) {
+        this->mouse_delta.delta_x = 0.0;
+        this->mouse_delta.delta_y = 0.0;
     }
 
-    const auto delta_x = mouse_x - last_mouse_x;
-    const auto delta_y = last_mouse_y - mouse_y;
+    auto sdl_event = SDL_Event{};
 
-    last_mouse_x = mouse_x;
-    last_mouse_y = mouse_y;
+    while (SDL_PollEvent(&sdl_event)) {
+        switch (sdl_event.type) {
+            case SDL_EVENT_QUIT:
+                this->close();
+                break;
 
-    return {.delta_x = delta_x, .delta_y = delta_y}; */
+            case SDL_EVENT_KEY_DOWN:
+            case SDL_EVENT_KEY_UP: {
+                if (sdl_event.key.key < SDLK_A && sdl_event.key.key > SDLK_Z) {
+                    break;
+                }
+
+                const auto event = sdl_event.key.type == SDL_EVENT_KEY_DOWN
+                                       ? KeyEvent::Press
+                                       : KeyEvent::Release;
+
+                this->key_states[sdl_event.key.key] = event;
+                break;
+            }
+
+            case SDL_EVENT_MOUSE_MOTION: {
+                this->mouse_delta.delta_x = sdl_event.motion.xrel;
+                this->mouse_delta.delta_y = -sdl_event.motion.yrel;
+                break;
+            }
+
+            default:
+                break;
+        }
+    }
 }
-
-// NOLINTBEGIN(readability-convert-member-functions-to-static)
-auto Window::poll_events() const -> void { SDL_PumpEvents(); }
-// NOLINTEND(readability-convert-member-functions-to-static)
 
 auto Window::get_framebuffer_size_callback() const
     -> const std::optional<FramebufferSizeCallback>& {
