@@ -1,13 +1,14 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <functional>
 
 namespace Luminol {
 
-enum class KeyEvent : uint8_t { Press = 0, Release = 1, Repeat = 2 };
+enum class KeyEvent : uint8_t { Press = 0, Release };
 
 struct MouseDelta {
     double delta_x = {0.0};
@@ -17,6 +18,7 @@ struct MouseDelta {
 class Window {
 public:
     using WindowHandle = void*;
+    using InitStateHandle = void*;
     using WindowProc = void (*(*)(const char*))();
     using FramebufferSizeCallback = std::function<void(int32_t, int32_t)>;
 
@@ -33,18 +35,18 @@ public:
 
     [[nodiscard]] auto get_proc_address() const -> WindowProc;
 
-    [[nodiscard]] auto is_key_event(int32_t key, KeyEvent event) const -> bool;
-    [[nodiscard]] auto get_mouse_delta() -> MouseDelta;
+    [[nodiscard]] auto is_key_event(uint32_t key, KeyEvent event) const -> bool;
+    [[nodiscard]] auto get_mouse_delta() const -> MouseDelta;
 
-    auto poll_events() const -> void;
+    auto poll_events() -> void;
 
     [[nodiscard]] auto get_framebuffer_size_callback() const
         -> const std::optional<FramebufferSizeCallback>&;
     auto set_framebuffer_size_callback(const FramebufferSizeCallback& callback)
         -> void;
 
-    [[nodiscard]] auto should_close() const -> bool;
-    auto close() const -> void;
+    [[nodiscard]] auto should_close() -> bool;
+    auto close() -> void;
 
     auto swap_buffers() const -> void;
 
@@ -52,11 +54,11 @@ private:
     std::optional<FramebufferSizeCallback> framebuffer_size_callback =
         std::nullopt;
     WindowHandle window_handle = nullptr;
+    std::unique_ptr<InitStateHandle> init_state_handle = nullptr;
 
-    double last_mouse_x = {0.0};
-    double last_mouse_y = {0.0};
+    std::unordered_map<uint32_t, KeyEvent> key_states;
 
-    bool first_mouse = {true};
+    MouseDelta mouse_delta = {.delta_x = 0.0, .delta_y = 0.0};
 };
 
 }  // namespace Luminol

@@ -13,8 +13,8 @@ target_compile_options(Luminol.Window PRIVATE
 
 
 target_link_libraries(Luminol.Window PRIVATE
-    glfw
     GSL
+    SDL3::SDL3-static
 )
 
 target_compile_definitions(Luminol.Window PRIVATE
