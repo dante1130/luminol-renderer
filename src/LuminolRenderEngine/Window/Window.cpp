@@ -24,20 +24,6 @@ auto create_init_state_handle()
 }
 // NOLINTEND(cppcoreguidelines-owning-memory)
 
-/* auto framebuffer_size_callback_function(
-    GLFWwindow* window, int32_t width, int32_t height
-) -> void {
-    auto* user_data = glfwGetWindowUserPointer(window);
-    auto* luminol_window = reinterpret_cast<Luminol::Window*>(user_data);
-
-    const auto& framebuffer_size_callback =
-        luminol_window->get_framebuffer_size_callback();
-
-    if (framebuffer_size_callback.has_value()) {
-        framebuffer_size_callback.value()(width, height);
-    }
-} */
-
 }  // namespace
 
 namespace Luminol {
@@ -144,6 +130,14 @@ auto Window::poll_events() -> void {
                 this->mouse_delta.delta_x = sdl_event.motion.xrel;
                 this->mouse_delta.delta_y = -sdl_event.motion.yrel;
                 break;
+            }
+
+            case SDL_EVENT_WINDOW_RESIZED: {
+                if (this->framebuffer_size_callback.has_value()) {
+                    this->framebuffer_size_callback.value()(
+                        sdl_event.window.data1, sdl_event.window.data2
+                    );
+                }
             }
 
             default:
