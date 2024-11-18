@@ -1,18 +1,16 @@
 #include "Window.hpp"
 
-#include <iostream>
-
 #include <gsl/gsl>
-#include <GLFW/glfw3.h>
+#include <SDL3/SDL.h>
 
 namespace {
 
-constexpr auto window_handle_to_glfw_window(Luminol::Window::WindowHandle handle
-) -> GLFWwindow* {
-    return static_cast<GLFWwindow*>(handle);
+constexpr auto window_handle_to_sdl_window(Luminol::Window::WindowHandle handle)
+    -> SDL_Window* {
+    return static_cast<SDL_Window*>(handle);
 }
 
-auto framebuffer_size_callback_function(
+/* auto framebuffer_size_callback_function(
     GLFWwindow* window, int32_t width, int32_t height
 ) -> void {
     auto* user_data = glfwGetWindowUserPointer(window);
@@ -26,7 +24,8 @@ auto framebuffer_size_callback_function(
     }
 }
 
-constexpr auto key_event_to_glfw_key_event(Luminol::KeyEvent event) -> int32_t {
+constexpr auto key_event_to_glfw_key_event(Luminol::KeyEvent event) ->
+int32_t {
     switch (event) {
         case Luminol::KeyEvent::Press:
             return GLFW_PRESS;
@@ -37,56 +36,47 @@ constexpr auto key_event_to_glfw_key_event(Luminol::KeyEvent event) -> int32_t {
         default:
             return GLFW_RELEASE;
     }
-}
+} */
 
 }  // namespace
 
 namespace Luminol {
 
 Window::Window(int32_t width, int32_t height, const std::string& title) {
-    if (glfwInit() == GLFW_FALSE) {
-        std::cerr << "Failed to initialize GLFW\n";
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_ERROR,
+            "Failed to initialize SDL: %s",
+            SDL_GetError()
+        );
         Ensures(false);
     }
 
-    this->window_handle =
-        glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+    this->window_handle = SDL_CreateWindow(
+        title.c_str(), width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
+    );
 
     if (this->window_handle == nullptr) {
-        std::cerr << "Failed to create GLFW window\n";
-        glfwTerminate();
+        SDL_LogError(
+            SDL_LOG_CATEGORY_ERROR,
+            "Failed to create SDL window: %s",
+            SDL_GetError()
+        );
         Ensures(false);
     }
 
-    glfwMakeContextCurrent(window_handle_to_glfw_window(window_handle));
-    glfwSetWindowUserPointer(window_handle_to_glfw_window(window_handle), this);
-    glfwSetFramebufferSizeCallback(
-        window_handle_to_glfw_window(window_handle),
-        framebuffer_size_callback_function
-    );
+    SDL_GL_CreateContext(window_handle_to_sdl_window(this->window_handle));
 
-    glfwSetInputMode(
-        window_handle_to_glfw_window(window_handle),
-        GLFW_CURSOR,
-        GLFW_CURSOR_DISABLED
-    );
-
-    if (glfwRawMouseMotionSupported() == GLFW_TRUE) {
-        glfwSetInputMode(
-            window_handle_to_glfw_window(window_handle),
-            GLFW_RAW_MOUSE_MOTION,
-            GLFW_TRUE
-        );
-    }
+    SDL_SetInitialized(this->sdl_state.get(), true);
 }
 
-Window::~Window() { glfwTerminate(); }
+Window::~Window() { SDL_Quit(); }
 
 auto Window::get_width() const -> int32_t {
     int32_t width = 0;
     int32_t height = 0;
-    glfwGetWindowSize(
-        window_handle_to_glfw_window(window_handle), &width, &height
+    SDL_GetWindowSize(
+        window_handle_to_sdl_window(window_handle), &width, &height
     );
 
     return width;
@@ -95,8 +85,8 @@ auto Window::get_width() const -> int32_t {
 auto Window::get_height() const -> int32_t {
     int32_t width = 0;
     int32_t height = 0;
-    glfwGetWindowSize(
-        window_handle_to_glfw_window(window_handle), &width, &height
+    SDL_GetWindowSize(
+        window_handle_to_sdl_window(window_handle), &width, &height
     );
 
     return height;
@@ -104,17 +94,20 @@ auto Window::get_height() const -> int32_t {
 
 // NOLINTBEGIN(readability-convert-member-functions-to-static)
 auto Window::get_proc_address() const -> Window::WindowProc {
-    return glfwGetProcAddress;
+    return SDL_GL_GetProcAddress;
 }
 // NOLINTEND(readability-convert-member-functions-to-static)
 
-auto Window::is_key_event(int32_t key, KeyEvent event) const -> bool {
-    return glfwGetKey(window_handle_to_glfw_window(window_handle), key) ==
-           key_event_to_glfw_key_event(event);
+auto Window::is_key_event(int32_t /*key*/, KeyEvent /*event*/) const -> bool {
+    return false;
+    /* return glfwGetKey(window_handle_to_glfw_window(window_handle), key) ==
+       key_event_to_glfw_key_event(event); */
 }
 
 auto Window::get_mouse_delta() -> MouseDelta {
-    double mouse_x = 0.0;
+    return {.delta_x = 0.0, .delta_y = 0.0};
+
+    /* double mouse_x = 0.0;
     double mouse_y = 0.0;
     glfwGetCursorPos(
         window_handle_to_glfw_window(window_handle), &mouse_x, &mouse_y
@@ -134,11 +127,11 @@ auto Window::get_mouse_delta() -> MouseDelta {
     last_mouse_x = mouse_x;
     last_mouse_y = mouse_y;
 
-    return {.delta_x = delta_x, .delta_y = delta_y};
+    return {.delta_x = delta_x, .delta_y = delta_y}; */
 }
 
 // NOLINTBEGIN(readability-convert-member-functions-to-static)
-auto Window::poll_events() const -> void { glfwPollEvents(); }
+auto Window::poll_events() const -> void { SDL_PumpEvents(); }
 // NOLINTEND(readability-convert-member-functions-to-static)
 
 auto Window::get_framebuffer_size_callback() const
@@ -152,19 +145,20 @@ auto Window::set_framebuffer_size_callback(
     this->framebuffer_size_callback = callback;
 }
 
-auto Window::should_close() const -> bool {
-    return glfwWindowShouldClose(window_handle_to_glfw_window(window_handle)) ==
-           GLFW_TRUE;
+auto Window::should_close() -> bool {
+    const auto status = SDL_GetAtomicInt(&this->sdl_state->status);
+
+    return status == SDL_INIT_STATUS_UNINITIALIZING ||
+           status == SDL_INIT_STATUS_UNINITIALIZED;
 }
 
-auto Window::close() const -> void {
-    glfwSetWindowShouldClose(
-        window_handle_to_glfw_window(window_handle), GLFW_TRUE
-    );
+auto Window::close() -> void {
+    SDL_DestroyWindow(window_handle_to_sdl_window(window_handle));
+    SDL_SetInitialized(this->sdl_state.get(), false);
 }
 
 auto Window::swap_buffers() const -> void {
-    glfwSwapBuffers(window_handle_to_glfw_window(window_handle));
+    SDL_GL_SwapWindow(window_handle_to_sdl_window(window_handle));
 }
 
 }  // namespace Luminol

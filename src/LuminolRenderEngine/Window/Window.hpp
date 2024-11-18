@@ -1,9 +1,12 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <functional>
+
+struct SDL_InitState;
 
 namespace Luminol {
 
@@ -43,8 +46,8 @@ public:
     auto set_framebuffer_size_callback(const FramebufferSizeCallback& callback)
         -> void;
 
-    [[nodiscard]] auto should_close() const -> bool;
-    auto close() const -> void;
+    [[nodiscard]] auto should_close() -> bool;
+    auto close() -> void;
 
     auto swap_buffers() const -> void;
 
@@ -52,6 +55,8 @@ private:
     std::optional<FramebufferSizeCallback> framebuffer_size_callback =
         std::nullopt;
     WindowHandle window_handle = nullptr;
+    std::unique_ptr<SDL_InitState> sdl_state =
+        std::make_unique<SDL_InitState>();
 
     double last_mouse_x = {0.0};
     double last_mouse_y = {0.0};

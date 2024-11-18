@@ -1,14 +1,15 @@
 include(get_cpm.cmake)
 
 CPMAddPackage(
-    NAME glfw
-    GITHUB_REPOSITORY glfw/glfw
-    GIT_TAG 3.4
+    NAME sdl
+    GITHUB_REPOSITORY libsdl-org/SDL
+    GIT_TAG preview-3.1.6
     OPTIONS 
-        "GLFW_BUILD_EXAMPLES OFF" 
-        "GLFW_BUILD_TESTS OFF" 
-        "GLFW_BUILD_DOCS OFF" 
-        "GLFW_INSTALL OFF"
+        "SDL_SHARED OFF"
+        "SDL_STATIC ON"
+        "SDL_TEST_LIBRARY OFF"
+        "SDL_TESTS OFF"
+        "SDL_INSTALL_TESTS OFF"
     EXCLUDE_FROM_ALL
     SYSTEM
 )
