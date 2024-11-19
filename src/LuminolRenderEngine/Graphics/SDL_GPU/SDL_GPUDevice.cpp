@@ -38,12 +38,10 @@ auto create_sdl_gpu_device(SDL_Window* window) -> SDL_GPUDevice* {
 namespace Luminol::Graphics::SDL_GPU {
 
 GPUDevice::GPUDevice(SDL_Window* window)
-    : window{window},
-      device{create_sdl_gpu_device(window), [&window](SDL_GPUDevice* device) {
+    : device{create_sdl_gpu_device(window), [&window](SDL_GPUDevice* device) {
                  SDL_ReleaseWindowFromGPUDevice(device, window);
                  SDL_DestroyGPUDevice(device);
              }} {
-    Expects(this->window);
     Expects(this->device);
 }
 
