@@ -3,7 +3,7 @@ include(get_cpm.cmake)
 CPMAddPackage(
     NAME sdl
     GITHUB_REPOSITORY libsdl-org/SDL
-    GIT_TAG preview-3.1.6
+    GIT_TAG release-3.2.8
     OPTIONS 
         "SDL_SHARED OFF"
         "SDL_STATIC ON"
