@@ -8,12 +8,17 @@
 
 namespace Luminol::Graphics {
 
+constexpr auto histogram_bin_count = 256;
+
 class OpenGLAutoExposureRenderPass {
 public:
     OpenGLAutoExposureRenderPass(int32_t width, int32_t height);
 
-    auto draw(const OpenGLFrameBuffer& hdr_framebuffer, float delta_time)
-        -> void;
+    auto initialize_average_luminance(float value) -> void;
+
+    [[nodiscard]] auto draw(
+        const OpenGLFrameBuffer& hdr_framebuffer, float delta_time
+    ) -> float;
 
 private:
     OpenGLShader luminance_histogram_shader;
