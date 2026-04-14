@@ -1,6 +1,7 @@
 #include "OpenGLTexture.hpp"
 
 #include <glad/gl.h>
+#include <gsl/gsl>
 
 namespace {
 
@@ -140,6 +141,11 @@ auto OpenGLTexture::resize(int32_t width, int32_t height) const -> void {
 }
 
 auto OpenGLTexture::get_data() const -> std::vector<float> {
+    Expects(
+        this->internal_format == TextureInternalFormat::RGBA16F ||
+        this->internal_format == TextureInternalFormat::RGBA32F
+    );
+
     auto width = 0;
     auto height = 0;
     glGetTextureLevelParameteriv(this->texture_id, 0, GL_TEXTURE_WIDTH, &width);

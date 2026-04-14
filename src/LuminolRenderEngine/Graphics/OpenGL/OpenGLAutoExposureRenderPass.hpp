@@ -17,7 +17,9 @@ public:
     auto initialize_average_luminance(float value) -> void;
 
     [[nodiscard]] auto draw(
-        const OpenGLFrameBuffer& hdr_framebuffer, float delta_time
+        const OpenGLFrameBuffer& hdr_framebuffer,
+        float delta_time,
+        float exposure_multiplier
     ) -> float;
 
 private:

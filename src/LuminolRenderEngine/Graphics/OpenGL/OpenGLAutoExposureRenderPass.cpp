@@ -85,7 +85,9 @@ auto OpenGLAutoExposureRenderPass::initialize_average_luminance(
 }
 
 auto OpenGLAutoExposureRenderPass::draw(
-    const OpenGLFrameBuffer& hdr_framebuffer, float delta_time
+    const OpenGLFrameBuffer& hdr_framebuffer,
+    float delta_time,
+    const float exposure_multiplier
 ) -> float {
     constexpr auto histogram_work_group_size = 16;
     constexpr auto initial_histogram_data =
@@ -99,9 +101,8 @@ auto OpenGLAutoExposureRenderPass::draw(
     const auto dispatch_height =
         (hdr_framebuffer.get_height() + histogram_work_group_size - 1) /
         histogram_work_group_size;
-    const auto total_pixels = dispatch_width * dispatch_height *
-                              histogram_work_group_size *
-                              histogram_work_group_size;
+    const auto total_pixels =
+        hdr_framebuffer.get_width() * hdr_framebuffer.get_height();
 
     this->luminance_histogram_shader.bind();
     hdr_framebuffer.bind_image(
@@ -128,13 +129,16 @@ auto OpenGLAutoExposureRenderPass::draw(
     this->average_luminance_shader.dispatch_compute(1, 1, 1);
     this->average_luminance_shader.unbind();
 
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
     const auto average_luminance_data =
         this->average_luminance_texture.get_data();
     const auto average_luminance = average_luminance_data.empty()
                                        ? middle_gray
                                        : average_luminance_data[0];
 
-    return middle_gray / std::max(average_luminance, min_luminance);
+    return (middle_gray / std::max(average_luminance, min_luminance)) *
+           exposure_multiplier;
 }
 
 }  // namespace Luminol::Graphics

@@ -233,7 +233,7 @@ auto OpenGLRenderer::draw() -> void {
 
     constexpr float delta_time = 1.0f / 144.0f;
     const auto exposure = this->auto_exposure_render_pass.draw(
-        this->hdr_frame_buffer, delta_time
+        this->hdr_frame_buffer, delta_time, this->exposure
     );
 
     this->hdr_render_pass.draw(this->hdr_frame_buffer, exposure);
