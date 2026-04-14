@@ -15,19 +15,19 @@ void main() {
     const float log_luminance_range =
         abs(min_log_luminance) + max_log_luminance;
 
-    // Note: uint is safe for resolutions up to ~4K (max ~2.1 billion).
-    // Overflow may occur above 4K resolution.
-    uint total_weighted_sum = 0u;
+    // Using float for accumulation to support all resolutions.
+    // Float32 has ~7 significant digits, sufficient for 8K+ (max ~8.5 billion).
+    float total_weighted_sum = 0.0f;
     uint black_pixel_count = luminance_histogram[0];
 
     for (uint i = 1u; i <= 255u; ++i) {
-        total_weighted_sum += luminance_histogram[i] * i;
+        total_weighted_sum += float(luminance_histogram[i]) * float(i);
     }
 
     const float weighted_log_average =
-        (float(total_weighted_sum) /
+        (total_weighted_sum /
          max(float(num_pixels) - float(black_pixel_count), 1.0)) -
-        1.0;
+        1.0f;
     const float weighted_average_luminance = exp2(
         ((weighted_log_average / 254.0) * log_luminance_range) +
         min_log_luminance
