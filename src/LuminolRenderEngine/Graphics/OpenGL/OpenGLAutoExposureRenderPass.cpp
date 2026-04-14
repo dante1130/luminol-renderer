@@ -59,15 +59,14 @@ namespace Luminol::Graphics {
 constexpr auto initial_average_luminance = 0.18f;
 
 OpenGLAutoExposureRenderPass::OpenGLAutoExposureRenderPass(
-    int32_t width, int32_t height
+    int32_t /*width*/, int32_t /*height*/
 )
     : luminance_histogram_shader{create_luminance_histogram_shader()},
       luminance_histogram_buffer{
           ShaderStorageBufferBindingPoint::LuminanceHistogram
       },
       average_luminance_shader{create_average_luminance_shader()},
-      average_luminance_texture{1, 1, TextureInternalFormat::RGBA16F},
-      screen_texture{width, height, TextureInternalFormat::RGBA16F} {
+      average_luminance_texture{1, 1, TextureInternalFormat::RGBA16F} {
     this->initialize_average_luminance(initial_average_luminance);
 }
 

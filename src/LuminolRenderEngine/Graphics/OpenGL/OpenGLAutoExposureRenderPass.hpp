@@ -28,8 +28,6 @@ private:
 
     OpenGLShader average_luminance_shader;
     OpenGLTexture average_luminance_texture;
-
-    OpenGLTexture screen_texture;
 };
 
 }  // namespace Luminol::Graphics
