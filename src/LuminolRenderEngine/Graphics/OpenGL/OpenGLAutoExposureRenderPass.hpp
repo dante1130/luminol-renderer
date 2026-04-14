@@ -12,7 +12,7 @@ constexpr auto histogram_bin_count = 256;
 
 class OpenGLAutoExposureRenderPass {
 public:
-    OpenGLAutoExposureRenderPass(int32_t width, int32_t height);
+    OpenGLAutoExposureRenderPass();
 
     auto initialize_average_luminance(float value) -> void;
 

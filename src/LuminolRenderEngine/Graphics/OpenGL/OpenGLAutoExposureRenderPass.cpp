@@ -58,9 +58,7 @@ namespace Luminol::Graphics {
 
 constexpr auto initial_average_luminance = 0.18f;
 
-OpenGLAutoExposureRenderPass::OpenGLAutoExposureRenderPass(
-    int32_t /*width*/, int32_t /*height*/
-)
+OpenGLAutoExposureRenderPass::OpenGLAutoExposureRenderPass()
     : luminance_histogram_shader{create_luminance_histogram_shader()},
       luminance_histogram_buffer{
           ShaderStorageBufferBindingPoint::LuminanceHistogram

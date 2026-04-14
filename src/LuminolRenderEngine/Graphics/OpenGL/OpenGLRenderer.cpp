@@ -85,9 +85,6 @@ OpenGLRenderer::OpenGLRenderer(Window& window, GraphicsApi graphics_api)
           this->get_window_width(), this->get_window_height()
       )},
       gbuffer_render_pass{this->get_window_width(), this->get_window_height()},
-      auto_exposure_render_pass{
-          this->get_window_width(), this->get_window_height()
-      },
       transform_uniform_buffer{create_transform_uniform_buffer()},
       light_uniform_buffer{create_light_uniform_buffer()},
       instancing_model_matrix_buffer{
