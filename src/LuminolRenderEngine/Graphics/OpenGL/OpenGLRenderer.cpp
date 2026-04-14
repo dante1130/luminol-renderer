@@ -85,9 +85,6 @@ OpenGLRenderer::OpenGLRenderer(Window& window, GraphicsApi graphics_api)
           this->get_window_width(), this->get_window_height()
       )},
       gbuffer_render_pass{this->get_window_width(), this->get_window_height()},
-      auto_exposure_render_pass{
-          this->get_window_width(), this->get_window_height()
-      },
       transform_uniform_buffer{create_transform_uniform_buffer()},
       light_uniform_buffer{create_light_uniform_buffer()},
       instancing_model_matrix_buffer{
@@ -129,12 +126,10 @@ auto OpenGLRenderer::queue_draw(
         return;
     }
 
-    this->instanced_draw_queue.emplace_back(
-        InstancedDrawCall{
-            .renderable_id = renderable_id,
-            .model_matrices = {model_matrix},
-        }
-    );
+    this->instanced_draw_queue.emplace_back(InstancedDrawCall{
+        .renderable_id = renderable_id,
+        .model_matrices = {model_matrix},
+    });
 
     this->instanced_draw_call_map.emplace(
         renderable_id, this->instanced_draw_queue.back()
@@ -153,13 +148,11 @@ auto OpenGLRenderer::queue_draw_with_color(
         return;
     }
 
-    this->instanced_color_draw_queue.emplace_back(
-        ColorInstancedDrawCall{
-            .renderable_id = renderable_id,
-            .model_matrices = {model_matrix},
-            .colors = {Maths::Vector4f{color.x(), color.y(), color.z(), 1.0f}},
-        }
-    );
+    this->instanced_color_draw_queue.emplace_back(ColorInstancedDrawCall{
+        .renderable_id = renderable_id,
+        .model_matrices = {model_matrix},
+        .colors = {Maths::Vector4f{color.x(), color.y(), color.z(), 1.0f}},
+    });
 
     this->instanced_color_draw_call_map.emplace(
         renderable_id, this->instanced_color_draw_queue.back()
@@ -171,12 +164,10 @@ auto OpenGLRenderer::queue_draw_line(
     const Maths::Vector3f& end_position,
     const Maths::Vector3f& color
 ) -> void {
-    this->line_draw_call.lines.emplace_back(
-        LineDrawCall::Line{
-            .start_position = start_position,
-            .end_position = end_position,
-        }
-    );
+    this->line_draw_call.lines.emplace_back(LineDrawCall::Line{
+        .start_position = start_position,
+        .end_position = end_position,
+    });
 
     this->line_draw_call.colors.emplace_back(
         color.x(), color.y(), color.z(), 1.0f
@@ -238,9 +229,11 @@ auto OpenGLRenderer::draw() -> void {
     );
 
     constexpr float delta_time = 1.0f / 144.0f;
-    this->auto_exposure_render_pass.draw(this->hdr_frame_buffer, delta_time);
+    const auto exposure = this->auto_exposure_render_pass.draw(
+        this->hdr_frame_buffer, delta_time, this->exposure
+    );
 
-    this->hdr_render_pass.draw(this->hdr_frame_buffer, this->exposure);
+    this->hdr_render_pass.draw(this->hdr_frame_buffer, exposure);
 
     this->instanced_draw_queue.clear();
     this->instanced_color_draw_queue.clear();

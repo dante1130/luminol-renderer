@@ -1,6 +1,7 @@
 #include "OpenGLTexture.hpp"
 
 #include <glad/gl.h>
+#include <gsl/gsl>
 
 namespace {
 
@@ -137,6 +138,32 @@ auto OpenGLTexture::resize(int32_t width, int32_t height) const -> void {
         get_opengl_data_type_from_internal_format(this->internal_format),
         nullptr
     );
+}
+
+auto OpenGLTexture::get_data() const -> std::vector<float> {
+    Expects(
+        this->internal_format == TextureInternalFormat::RGBA16F ||
+        this->internal_format == TextureInternalFormat::RGBA32F
+    );
+
+    auto width = 0;
+    auto height = 0;
+    glGetTextureLevelParameteriv(this->texture_id, 0, GL_TEXTURE_WIDTH, &width);
+    glGetTextureLevelParameteriv(
+        this->texture_id, 0, GL_TEXTURE_HEIGHT, &height
+    );
+
+    auto data = std::vector<float>(static_cast<size_t>(width) * height * 4);
+    glGetTextureImage(
+        this->texture_id,
+        0,
+        GL_RGBA,
+        GL_FLOAT,
+        static_cast<GLsizei>(data.size() * sizeof(float)),
+        data.data()
+    );
+
+    return data;
 }
 
 }  // namespace Luminol::Graphics
