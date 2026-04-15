@@ -34,6 +34,7 @@ public:
     ) -> void = 0;
 
     virtual auto set_exposure(float exposure) -> void = 0;
+    virtual auto toggle_luminance_heatmap() -> void = 0;
 
     virtual auto clear_color(const Maths::Vector4f& color) const -> void = 0;
     virtual auto clear(BufferBit buffer_bit) const -> void = 0;

@@ -45,6 +45,10 @@ auto handle_key_events(
     if (engine.get_window().is_key_event('q', KeyEvent::Press)) {
         engine.get_window().close();
     }
+
+    if (engine.get_window().is_key_event('h', KeyEvent::Press)) {
+        engine.get_renderer().toggle_luminance_heatmap();
+    }
 }
 
 }  // namespace
