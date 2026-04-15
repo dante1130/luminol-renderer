@@ -47,7 +47,9 @@ auto handle_key_events(
     }
 
     if (engine.get_window().is_key_event('h', KeyEvent::Press)) {
-        engine.get_renderer().toggle_luminance_heatmap();
+        engine.get_renderer().set_luminance_heatmap_enabled(
+            !engine.get_renderer().get_luminance_heatmap_enabled()
+        );
     }
 }
 
