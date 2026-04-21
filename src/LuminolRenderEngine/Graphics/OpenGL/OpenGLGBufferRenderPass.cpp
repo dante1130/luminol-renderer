@@ -57,7 +57,7 @@ auto create_geometry_frame_buffer(int32_t width, int32_t height)
         .color_attachments =
             {
                 OpenGLFrameBufferAttachment{
-                    .internal_format = TextureInternalFormat::RGBA16F,
+                    .internal_format = TextureInternalFormat::RGBA32F,
                     .format = TextureFormat::RGBA,
                     .binding_point =
                         SamplerBindingPoint::GBufferPositionMetallic,
