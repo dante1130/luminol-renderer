@@ -21,6 +21,7 @@ add_library(Luminol.Graphics.OpenGL
     OpenGLSkyboxRenderPass.cpp
     OpenGLHDRRenderPass.cpp
     OpenGLAutoExposureRenderPass.cpp
+    OpenGLLuminanceHeatmapRenderPass.cpp
 )
 
 target_compile_features(Luminol.Graphics.OpenGL PRIVATE cxx_std_20)
