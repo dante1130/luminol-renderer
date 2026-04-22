@@ -71,6 +71,10 @@ public:
     auto operator=(OpenGLShaderStorageBuffer&&)
         -> OpenGLShaderStorageBuffer& = default;
 
+    [[nodiscard]] auto get_buffer_id() const -> uint32_t {
+        return this->shader_storage_buffer_id;
+    }
+
 private:
     ShaderStorageBufferBindingPoint binding_point;
     uint32_t shader_storage_buffer_id = 0;

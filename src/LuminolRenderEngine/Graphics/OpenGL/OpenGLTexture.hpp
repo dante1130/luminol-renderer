@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <vector>
 
 #include <LuminolRenderEngine/Utilities/ImageLoader.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniformBindingPoints.hpp>
@@ -35,6 +36,12 @@ public:
         -> void;
 
     auto resize(int32_t width, int32_t height) const -> void;
+
+    [[nodiscard]] auto get_data() const -> std::vector<float>;
+
+    [[nodiscard]] auto get_texture_id() const -> uint32_t {
+        return this->texture_id;
+    }
 
 private:
     uint32_t texture_id = {0};

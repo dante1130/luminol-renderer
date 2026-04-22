@@ -8,12 +8,19 @@
 
 namespace Luminol::Graphics {
 
+constexpr auto histogram_bin_count = 256;
+
 class OpenGLAutoExposureRenderPass {
 public:
-    OpenGLAutoExposureRenderPass(int32_t width, int32_t height);
+    OpenGLAutoExposureRenderPass();
 
-    auto draw(const OpenGLFrameBuffer& hdr_framebuffer, float delta_time)
-        -> void;
+    auto initialize_average_luminance(float value) -> void;
+
+    [[nodiscard]] auto draw(
+        const OpenGLFrameBuffer& hdr_framebuffer,
+        float delta_time,
+        float exposure_multiplier
+    ) -> float;
 
 private:
     OpenGLShader luminance_histogram_shader;
@@ -21,8 +28,6 @@ private:
 
     OpenGLShader average_luminance_shader;
     OpenGLTexture average_luminance_texture;
-
-    OpenGLTexture screen_texture;
 };
 
 }  // namespace Luminol::Graphics
