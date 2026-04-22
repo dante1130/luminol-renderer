@@ -11,7 +11,6 @@
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLSkyboxRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLHDRRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLAutoExposureRenderPass.hpp>
-#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLLuminanceHeatmapRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLDrawCall.hpp>
 
 namespace Luminol::Graphics {
@@ -25,8 +24,6 @@ public:
         -> void override;
 
     auto set_exposure(float exposure) -> void override;
-    auto set_luminance_heatmap_enabled(bool enabled) -> void override;
-    [[nodiscard]] auto get_luminance_heatmap_enabled() const -> bool override;
 
     auto clear_color(const Maths::Vector4f& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
@@ -76,7 +73,6 @@ private:
     OpenGLSkyboxRenderPass skybox_render_pass;
     OpenGLHDRRenderPass hdr_render_pass;
     OpenGLAutoExposureRenderPass auto_exposure_render_pass;
-    OpenGLLuminanceHeatmapRenderPass luminance_heatmap_render_pass;
 
     OpenGLUniformBuffer transform_uniform_buffer;
     OpenGLUniformBuffer light_uniform_buffer;
@@ -84,7 +80,6 @@ private:
     OpenGLShaderStorageBuffer instancing_color_buffer;
 
     float exposure = 1.0f;
-    bool luminance_heatmap_enabled = false;
 
     Maths::Matrix4x4f view_matrix;
     Maths::Matrix4x4f projection_matrix;

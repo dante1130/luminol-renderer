@@ -109,14 +109,6 @@ auto OpenGLRenderer::set_exposure(float exposure) -> void {
     this->exposure = exposure;
 }
 
-auto OpenGLRenderer::set_luminance_heatmap_enabled(bool enabled) -> void {
-    this->luminance_heatmap_enabled = enabled;
-}
-
-auto OpenGLRenderer::get_luminance_heatmap_enabled() const -> bool {
-    return this->luminance_heatmap_enabled;
-}
-
 auto OpenGLRenderer::clear_color(const Maths::Vector4f& color) const -> void {
     glClearColor(color.x(), color.y(), color.z(), color.w());
 }
@@ -242,10 +234,6 @@ auto OpenGLRenderer::draw() -> void {
     );
 
     this->hdr_render_pass.draw(this->hdr_frame_buffer, exposure);
-
-    if (this->luminance_heatmap_enabled) {
-        this->luminance_heatmap_render_pass.draw(this->hdr_frame_buffer);
-    }
 
     this->instanced_draw_queue.clear();
     this->instanced_color_draw_queue.clear();
