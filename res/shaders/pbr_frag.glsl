@@ -247,7 +247,9 @@ void main()
     const vec3 frag_pos = texture(gbuffer.position_metallic, tex_coords_out).rgb;
     const vec3 normal = texture(gbuffer.normal_roughness, tex_coords_out).rgb;
     const vec3 emission = texture(gbuffer.emissive_ao, tex_coords_out).rgb;
-    const vec3 albedo = texture(gbuffer.albedo, tex_coords_out).rgb;
+    const vec4 albedo_alpha = texture(gbuffer.albedo, tex_coords_out);
+    const vec3 albedo = albedo_alpha.rgb;
+    const float alpha = albedo_alpha.a;
     const float metallic = texture(gbuffer.position_metallic, tex_coords_out).a;
     const float roughness = texture(gbuffer.normal_roughness, tex_coords_out).a;
     const float ao = texture(gbuffer.emissive_ao, tex_coords_out).a;
@@ -301,5 +303,5 @@ void main()
     const vec3 ambient = vec3(0.03) * albedo * ao;
     const vec3 color = ambient + Lo + emission;
 
-    frag_color = vec4(color, 1.0);
+    frag_color = vec4(color, alpha);
 }

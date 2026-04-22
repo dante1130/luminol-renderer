@@ -74,8 +74,8 @@ auto create_geometry_frame_buffer(int32_t width, int32_t height)
                     .binding_point = SamplerBindingPoint::GBufferEmissiveAO,
                 },
                 OpenGLFrameBufferAttachment{
-                    .internal_format = TextureInternalFormat::RGB8,
-                    .format = TextureFormat::RGB,
+                    .internal_format = TextureInternalFormat::RGBA8,
+                    .format = TextureFormat::RGBA,
                     .binding_point = SamplerBindingPoint::GBufferAlbedo,
                 },
             },
