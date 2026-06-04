@@ -34,6 +34,7 @@ public:
     [[nodiscard]] auto get_height() const -> int32_t;
 
     [[nodiscard]] auto get_proc_address() const -> WindowProc;
+    [[nodiscard]] auto get_window_handle() const -> WindowHandle;
 
     [[nodiscard]] auto is_key_event(uint32_t key, KeyEvent event) const -> bool;
     [[nodiscard]] auto get_mouse_delta() const -> MouseDelta;

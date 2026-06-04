@@ -90,6 +90,10 @@ auto Window::get_proc_address() const -> Window::WindowProc {
 }
 // NOLINTEND(readability-convert-member-functions-to-static)
 
+auto Window::get_window_handle() const -> Window::WindowHandle {
+    return this->window_handle;
+}
+
 auto Window::is_key_event(uint32_t key, KeyEvent event) const -> bool {
     return this->key_states.contains(key) && this->key_states.at(key) == event;
 }
