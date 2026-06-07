@@ -8,6 +8,9 @@
 
 namespace Luminol::Graphics::SDL_GPU {
 
+class CommandBuffer;
+class Shader;
+
 class GPUDevice {
 public:
     GPUDevice(SDL_Window* window);
@@ -15,6 +18,8 @@ public:
     [[nodiscard]] auto get() const -> const SDL_GPUDevice&;
     [[nodiscard]] auto get() -> SDL_GPUDevice&;
 
+    [[nodiscard]] auto create_command_buffer() -> CommandBuffer;
+    [[nodiscard]] auto create_shader(const ShaderInfo& info) -> Shader;
 private:
     using SDL_GPUDeviceDeleter = std::function<void(SDL_GPUDevice*)>;
 

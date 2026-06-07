@@ -24,11 +24,11 @@ struct ShaderInfo {
 
 class Shader {
 public:
-    Shader(GPUDevice& device, const ShaderInfo& info);
-
-private:
     using SDL_GPUShaderDeleter = std::function<void(SDL_GPUShader*)>;
 
+    Shader(std::unique_ptr<SDL_GPUShader, SDL_GPUShaderDeleter> shader);
+
+private:
     std::unique_ptr<SDL_GPUShader, SDL_GPUShaderDeleter> shader;
 };
 

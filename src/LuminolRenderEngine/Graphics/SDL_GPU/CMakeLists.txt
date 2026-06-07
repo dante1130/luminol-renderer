@@ -2,6 +2,7 @@ add_library(Luminol.Graphics.SDL_GPU
     SDL_GPURenderer.cpp
     SDL_GPUDevice.cpp
     SDL_GPUShader.cpp
+    SDL_GPUCommandBuffer.cpp
 )
 
 target_compile_features(Luminol.Graphics.SDL_GPU PRIVATE cxx_std_20)
