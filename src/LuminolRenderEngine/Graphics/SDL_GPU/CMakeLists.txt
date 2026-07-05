@@ -3,6 +3,11 @@ add_library(Luminol.Graphics.SDL_GPU
     SDL_GPUDevice.cpp
     SDL_GPUShader.cpp
     SDL_GPUCommandBuffer.cpp
+    SDL_GPURenderPass.cpp
+    SDL_GPUGraphicsPipeline.cpp
+    SDL_GPUBuffer.cpp
+    SDL_GPUTransferBuffer.cpp
+    SDL_GPUFactory.cpp
 )
 
 target_compile_features(Luminol.Graphics.SDL_GPU PRIVATE cxx_std_20)
@@ -21,6 +26,7 @@ target_link_libraries(Luminol.Graphics.SDL_GPU PRIVATE
 
 target_link_libraries(Luminol.Graphics.SDL_GPU PUBLIC
     SDL3::SDL3-static
+    SDL3_shadercross-static
 )
 
 target_include_directories(Luminol.Graphics.SDL_GPU PUBLIC

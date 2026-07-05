@@ -7,4 +7,6 @@ Shader::Shader(std::unique_ptr<SDL_GPUShader, SDL_GPUShaderDeleter> shader)
     Expects(this->shader);
 }
 
+auto Shader::get() const -> SDL_GPUShader* { return shader.get(); }
+
 }  // namespace Luminol::Graphics::SDL_GPU

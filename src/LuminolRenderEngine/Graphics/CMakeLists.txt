@@ -23,6 +23,7 @@ target_link_libraries(Luminol.Graphics PUBLIC
 
 target_link_libraries(Luminol.Graphics PRIVATE
     Luminol.Graphics.OpenGL
+    Luminol.Graphics.SDL_GPU
 )
 
 target_include_directories(Luminol.Graphics PUBLIC

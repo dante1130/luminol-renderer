@@ -7,12 +7,14 @@
 auto main() -> int {
     using namespace Luminol;
 
-    auto luminol_engine = Luminol::RenderEngine(Luminol::Properties{});
+    auto luminol_engine = Luminol::RenderEngine(Luminol::Properties{
+        .graphics_api = Graphics::GraphicsApi::SDL_GPU,
+    });
 
     while (!luminol_engine.get_window().should_close()) {
         luminol_engine.get_window().poll_events();
 
-        constexpr auto color = Maths::Vector4f{0.0f, 0.0f, 0.0f, 1.0f};
+        constexpr auto color = Maths::Vector4f{1.0f, 0.0f, 0.0f, 1.0f};
 
         luminol_engine.get_renderer().clear_color(color);
         luminol_engine.get_renderer().clear(Graphics::BufferBit::ColorDepth);

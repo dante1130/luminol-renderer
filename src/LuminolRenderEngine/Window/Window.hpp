@@ -6,6 +6,8 @@
 #include <string>
 #include <functional>
 
+#include <LuminolRenderEngine/Graphics/GraphicsApi.hpp>
+
 namespace Luminol {
 
 enum class KeyEvent : uint8_t { Press = 0, Release };
@@ -22,7 +24,12 @@ public:
     using WindowProc = void (*(*)(const char*))();
     using FramebufferSizeCallback = std::function<void(int32_t, int32_t)>;
 
-    Window(int32_t width, int32_t height, const std::string& title);
+    Window(
+        int32_t width,
+        int32_t height,
+        const std::string& title,
+        Graphics::GraphicsApi graphics_api = Graphics::GraphicsApi::OpenGL
+    );
 
     Window(const Window&) = delete;
     Window(Window&&) = default;
@@ -60,6 +67,8 @@ private:
     std::unordered_map<uint32_t, KeyEvent> key_states;
 
     MouseDelta mouse_delta = {.delta_x = 0.0, .delta_y = 0.0};
+
+    Graphics::GraphicsApi graphics_api = Graphics::GraphicsApi::OpenGL;
 };
 
 }  // namespace Luminol

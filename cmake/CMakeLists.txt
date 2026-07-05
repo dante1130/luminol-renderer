@@ -3,13 +3,27 @@ include(get_cpm.cmake)
 CPMAddPackage(
     NAME sdl
     GITHUB_REPOSITORY libsdl-org/SDL
-    GIT_TAG release-3.2.8
+    GIT_TAG release-3.4.10
     OPTIONS 
         "SDL_SHARED OFF"
         "SDL_STATIC ON"
         "SDL_TEST_LIBRARY OFF"
         "SDL_TESTS OFF"
         "SDL_INSTALL_TESTS OFF"
+    EXCLUDE_FROM_ALL
+    SYSTEM
+)
+
+CPMAddPackage(
+    NAME sdl_shadercross
+    GITHUB_REPOSITORY libsdl-org/SDL_shadercross
+    GIT_TAG main
+    OPTIONS 
+        "SDLSHADERCROSS_STATIC ON"
+        "SDLSHADERCROSS_SHARED OFF"
+        "SDLSHADERCROSS_CLI OFF"
+        "SDLSHADERCROSS_SPIRVCROSS_SHARED OFF"
+        "SDLSHADERCROSS_VENDORED ON"
     EXCLUDE_FROM_ALL
     SYSTEM
 )

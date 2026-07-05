@@ -28,6 +28,8 @@ public:
 
     Shader(std::unique_ptr<SDL_GPUShader, SDL_GPUShaderDeleter> shader);
 
+    [[nodiscard]] auto get() const -> SDL_GPUShader*;
+
 private:
     std::unique_ptr<SDL_GPUShader, SDL_GPUShaderDeleter> shader;
 };

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <SDL3/SDL_gpu.h>
+
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 
@@ -14,6 +16,9 @@ public:
         -> void override;
 
     auto set_exposure(float exposure) -> void override;
+
+    auto set_luminance_heatmap_enabled(bool enabled) -> void override;
+    [[nodiscard]] auto get_luminance_heatmap_enabled() const -> bool override;
 
     auto clear_color(const Maths::Vector4f& color) const -> void override;
     auto clear(BufferBit buffer_bit) const -> void override;
@@ -43,6 +48,9 @@ private:
     std::function<int32_t()> get_window_height;
 
     GPUDevice gpu_device;
+
+    mutable SDL_FColor clear_color_value = {0.0F, 0.0F, 0.0F, 1.0F};
+    bool luminance_heatmap_enabled = false;
 };
 
 }  // namespace Luminol::Graphics::SDL_GPU
