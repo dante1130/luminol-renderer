@@ -4,14 +4,11 @@
 #include <functional>
 #include <memory>
 
-#include <SDL3/SDL_gpu.h>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
+
+struct SDL_GPUBuffer;
 
 namespace Luminol::Graphics::SDL_GPU {
-
-enum class BufferUsage : uint32_t {
-    Vertex = SDL_GPU_BUFFERUSAGE_VERTEX,
-    Index = SDL_GPU_BUFFERUSAGE_INDEX,
-};
 
 struct BufferInfo {
     BufferUsage usage;
@@ -27,7 +24,7 @@ public:
         uint32_t size
     );
 
-    [[nodiscard]] auto get() const -> SDL_GPUBuffer*;
+    [[nodiscard]] auto native_handle() const -> SDL_GPUBuffer*;
     [[nodiscard]] auto get_size() const -> uint32_t;
 
 private:

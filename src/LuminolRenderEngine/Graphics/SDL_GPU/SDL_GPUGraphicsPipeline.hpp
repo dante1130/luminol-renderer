@@ -4,19 +4,21 @@
 #include <memory>
 
 #include <gsl/gsl>
-#include <SDL3/SDL_gpu.h>
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
+
+struct SDL_GPUGraphicsPipeline;
 
 namespace Luminol::Graphics::SDL_GPU {
 
 struct GraphicsPipelineInfo {
     const Shader& vertex_shader;
     const Shader& fragment_shader;
-    SDL_GPUTextureFormat color_target_format;
-    SDL_GPUPrimitiveType primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
-    gsl::span<const SDL_GPUVertexBufferDescription> vertex_buffer_descriptions;
-    gsl::span<const SDL_GPUVertexAttribute> vertex_attributes;
+    TextureFormat color_target_format;
+    PrimitiveType primitive_type = PrimitiveType::TriangleList;
+    gsl::span<const VertexBufferDescription> vertex_buffer_descriptions;
+    gsl::span<const VertexAttribute> vertex_attributes;
 };
 
 class GraphicsPipeline {
@@ -28,7 +30,7 @@ public:
                      SDL_GPUGraphicsPipeline,
                      SDL_GPUGraphicsPipelineDeleter> pipeline);
 
-    [[nodiscard]] auto get() const -> SDL_GPUGraphicsPipeline*;
+    [[nodiscard]] auto native_handle() const -> SDL_GPUGraphicsPipeline*;
 
 private:
     std::unique_ptr<SDL_GPUGraphicsPipeline, SDL_GPUGraphicsPipelineDeleter>

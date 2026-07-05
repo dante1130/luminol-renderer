@@ -2,6 +2,8 @@
 
 #include <gsl/gsl>
 
+#include <SDL3/SDL_gpu.h>
+
 namespace Luminol::Graphics::SDL_GPU {
 
 GraphicsPipeline::GraphicsPipeline(
@@ -12,7 +14,7 @@ GraphicsPipeline::GraphicsPipeline(
     Expects(this->pipeline);
 }
 
-auto GraphicsPipeline::get() const -> SDL_GPUGraphicsPipeline* {
+auto GraphicsPipeline::native_handle() const -> SDL_GPUGraphicsPipeline* {
     return pipeline.get();
 }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <SDL3/SDL_gpu.h>
+struct SDL_GPURenderPass;
 
 namespace Luminol::Graphics::SDL_GPU {
 
@@ -15,7 +15,7 @@ public:
     RenderPass(RenderPass&& other) noexcept;
     auto operator=(RenderPass&& other) noexcept -> RenderPass&;
 
-    [[nodiscard]] auto get() const -> SDL_GPURenderPass*;
+    [[nodiscard]] auto native_handle() const -> SDL_GPURenderPass*;
 
 private:
     auto end() noexcept -> void;

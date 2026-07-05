@@ -4,7 +4,40 @@
 
 #include <gsl/gsl>
 
+#include <SDL3/SDL_gpu.h>
 #include <SDL3/SDL_log.h>
+
+namespace {
+
+using namespace Luminol::Graphics::SDL_GPU;
+
+constexpr auto to_sdl_load_op(LoadOp op) -> SDL_GPULoadOp {
+    switch (op) {
+        case LoadOp::Load:
+            return SDL_GPU_LOADOP_LOAD;
+        case LoadOp::Clear:
+            return SDL_GPU_LOADOP_CLEAR;
+        case LoadOp::DontCare:
+            return SDL_GPU_LOADOP_DONT_CARE;
+    }
+    return SDL_GPU_LOADOP_DONT_CARE;
+}
+
+constexpr auto to_sdl_store_op(StoreOp op) -> SDL_GPUStoreOp {
+    switch (op) {
+        case StoreOp::Store:
+            return SDL_GPU_STOREOP_STORE;
+        case StoreOp::DontCare:
+            return SDL_GPU_STOREOP_DONT_CARE;
+        case StoreOp::Resolve:
+            return SDL_GPU_STOREOP_RESOLVE;
+        case StoreOp::ResolveAndStore:
+            return SDL_GPU_STOREOP_RESOLVE_AND_STORE;
+    }
+    return SDL_GPU_STOREOP_DONT_CARE;
+}
+
+}  // namespace
 
 namespace Luminol::Graphics::SDL_GPU {
 
@@ -59,7 +92,7 @@ auto CommandBuffer::acquire_swapchain_texture(SDL_Window* window)
     }
 
     return SwapchainTexture{
-        .texture = texture, .width = width, .height = height
+        .texture = Texture{texture}, .width = width, .height = height
     };
 }
 
@@ -71,13 +104,21 @@ auto CommandBuffer::begin_render_pass(
     auto sdl_color_targets =
         std::vector<SDL_GPUColorTargetInfo>(color_targets.size());
     for (auto i = size_t{0}; i < color_targets.size(); ++i) {
+        const auto& target = color_targets[i];
+        Expects(target.texture != nullptr);
         sdl_color_targets[i] = SDL_GPUColorTargetInfo{
-            .texture = color_targets[i].texture,
+            .texture = target.texture->native_handle(),
             .mip_level = 0,
             .layer_or_depth_plane = 0,
-            .clear_color = color_targets[i].clear_color,
-            .load_op = color_targets[i].load_op,
-            .store_op = color_targets[i].store_op,
+            .clear_color =
+                SDL_FColor{
+                    .r = target.clear_color.x(),
+                    .g = target.clear_color.y(),
+                    .b = target.clear_color.z(),
+                    .a = target.clear_color.w(),
+                },
+            .load_op = to_sdl_load_op(target.load_op),
+            .store_op = to_sdl_store_op(target.store_op),
             .resolve_texture = nullptr,
             .resolve_mip_level = 0,
             .resolve_layer = 0,

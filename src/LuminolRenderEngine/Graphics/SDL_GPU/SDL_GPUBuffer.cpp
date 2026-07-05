@@ -2,6 +2,8 @@
 
 #include <gsl/gsl>
 
+#include <SDL3/SDL_gpu.h>
+
 namespace Luminol::Graphics::SDL_GPU {
 
 Buffer::Buffer(
@@ -11,7 +13,7 @@ Buffer::Buffer(
     Expects(this->buffer);
 }
 
-auto Buffer::get() const -> SDL_GPUBuffer* { return buffer.get(); }
+auto Buffer::native_handle() const -> SDL_GPUBuffer* { return buffer.get(); }
 
 auto Buffer::get_size() const -> uint32_t { return size; }
 

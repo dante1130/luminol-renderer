@@ -31,9 +31,7 @@ auto SDL_GPURenderer::get_luminance_heatmap_enabled() const -> bool {
 }
 
 auto SDL_GPURenderer::clear_color(const Maths::Vector4f& color) const -> void {
-    clear_color_value = SDL_FColor{
-        .r = color.x(), .g = color.y(), .b = color.z(), .a = color.w()
-    };
+    clear_color_value = color;
 }
 
 auto SDL_GPURenderer::clear(BufferBit /*buffer_bit*/) const -> void {}
@@ -64,10 +62,10 @@ auto SDL_GPURenderer::draw() -> void {
     }
 
     const auto color_targets = std::array{ColorTargetInfo{
-        .texture = swapchain->texture,
+        .texture = &swapchain->texture,
         .clear_color = clear_color_value,
-        .load_op = SDL_GPU_LOADOP_CLEAR,
-        .store_op = SDL_GPU_STOREOP_STORE,
+        .load_op = LoadOp::Clear,
+        .store_op = StoreOp::Store,
     }};
 
     { auto render_pass = command_buffer.begin_render_pass(color_targets); }

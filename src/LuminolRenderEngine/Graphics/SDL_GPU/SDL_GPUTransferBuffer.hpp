@@ -5,14 +5,13 @@
 #include <memory>
 
 #include <gsl/gsl>
-#include <SDL3/SDL_gpu.h>
+
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
+
+struct SDL_GPUDevice;
+struct SDL_GPUTransferBuffer;
 
 namespace Luminol::Graphics::SDL_GPU {
-
-enum class TransferBufferUsage : uint32_t {
-    Upload = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-    Download = SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD,
-};
 
 struct TransferBufferInfo {
     TransferBufferUsage usage;
@@ -34,7 +33,7 @@ public:
     [[nodiscard]] auto map(bool cycle) -> gsl::span<uint8_t>;
     auto unmap() -> void;
 
-    [[nodiscard]] auto get() const -> SDL_GPUTransferBuffer*;
+    [[nodiscard]] auto native_handle() const -> SDL_GPUTransferBuffer*;
     [[nodiscard]] auto get_size() const -> uint32_t;
 
 private:

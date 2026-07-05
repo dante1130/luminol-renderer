@@ -8,6 +8,7 @@ add_library(Luminol.Graphics.SDL_GPU
     SDL_GPUBuffer.cpp
     SDL_GPUTransferBuffer.cpp
     SDL_GPUFactory.cpp
+    SDL_GPUTexture.cpp
 )
 
 target_compile_features(Luminol.Graphics.SDL_GPU PRIVATE cxx_std_20)

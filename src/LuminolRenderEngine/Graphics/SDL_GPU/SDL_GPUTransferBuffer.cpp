@@ -2,6 +2,8 @@
 
 #include <gsl/gsl>
 
+#include <SDL3/SDL_gpu.h>
+
 namespace Luminol::Graphics::SDL_GPU {
 
 TransferBuffer::TransferBuffer(
@@ -27,7 +29,7 @@ auto TransferBuffer::unmap() -> void {
     SDL_UnmapGPUTransferBuffer(device, transfer_buffer.get());
 }
 
-auto TransferBuffer::get() const -> SDL_GPUTransferBuffer* {
+auto TransferBuffer::native_handle() const -> SDL_GPUTransferBuffer* {
     return transfer_buffer.get();
 }
 

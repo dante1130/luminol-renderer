@@ -182,7 +182,6 @@ auto Window::should_close() -> bool {
 }
 
 auto Window::close() -> void {
-    SDL_DestroyWindow(window_handle_to_sdl_window(window_handle));
     SDL_SetInitialized(
         init_state_handle_to_sdl_init_state(*this->init_state_handle), false
     );

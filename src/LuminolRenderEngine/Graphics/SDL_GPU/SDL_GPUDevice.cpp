@@ -1,17 +1,18 @@
-#pragma once
-
 #include "SDL_GPUDevice.hpp"
 
 #include <fstream>
+#include <stdexcept>
+#include <vector>
 
 #include <gsl/gsl>
 
+#include <SDL3/SDL_gpu.h>
 #include <SDL3/SDL_log.h>
 
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTransferBuffer.hpp>
 
 namespace {
@@ -43,16 +44,92 @@ auto create_sdl_gpu_device(SDL_Window* window) -> SDL_GPUDevice* {
     return gpu_device;
 }
 
-constexpr auto luminol_shader_stage_to_sdl_gpu_shader_stage(ShaderStage stage)
-    -> SDL_GPUShaderStage {
+constexpr auto to_sdl_shader_stage(ShaderStage stage) -> SDL_GPUShaderStage {
     switch (stage) {
         case ShaderStage::Vertex:
             return SDL_GPU_SHADERSTAGE_VERTEX;
         case ShaderStage::Fragment:
             return SDL_GPU_SHADERSTAGE_FRAGMENT;
-        default:
-            throw std::runtime_error{"Invalid shader stage"};
     }
+    throw std::runtime_error{"Invalid shader stage"};
+}
+
+constexpr auto to_sdl_primitive_type(PrimitiveType type)
+    -> SDL_GPUPrimitiveType {
+    switch (type) {
+        case PrimitiveType::TriangleList:
+            return SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+        case PrimitiveType::TriangleStrip:
+            return SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP;
+        case PrimitiveType::LineList:
+            return SDL_GPU_PRIMITIVETYPE_LINELIST;
+        case PrimitiveType::LineStrip:
+            return SDL_GPU_PRIMITIVETYPE_LINESTRIP;
+        case PrimitiveType::PointList:
+            return SDL_GPU_PRIMITIVETYPE_POINTLIST;
+    }
+    return SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+}
+
+constexpr auto to_sdl_texture_format(TextureFormat format)
+    -> SDL_GPUTextureFormat {
+    switch (format) {
+        case TextureFormat::Invalid:
+            return SDL_GPU_TEXTUREFORMAT_INVALID;
+        case TextureFormat::B8G8R8A8_Unorm:
+            return SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
+        case TextureFormat::R8G8B8A8_Unorm:
+            return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+    }
+    return SDL_GPU_TEXTUREFORMAT_INVALID;
+}
+
+constexpr auto to_sdl_vertex_element_format(VertexElementFormat format)
+    -> SDL_GPUVertexElementFormat {
+    switch (format) {
+        case VertexElementFormat::Float:
+            return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT;
+        case VertexElementFormat::Float2:
+            return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+        case VertexElementFormat::Float3:
+            return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+        case VertexElementFormat::Float4:
+            return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+    }
+    return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT;
+}
+
+constexpr auto to_sdl_vertex_input_rate(VertexInputRate rate)
+    -> SDL_GPUVertexInputRate {
+    switch (rate) {
+        case VertexInputRate::Vertex:
+            return SDL_GPU_VERTEXINPUTRATE_VERTEX;
+        case VertexInputRate::Instance:
+            return SDL_GPU_VERTEXINPUTRATE_INSTANCE;
+    }
+    return SDL_GPU_VERTEXINPUTRATE_VERTEX;
+}
+
+constexpr auto to_sdl_buffer_usage(BufferUsage usage)
+    -> SDL_GPUBufferUsageFlags {
+    switch (usage) {
+        case BufferUsage::Vertex:
+            return SDL_GPU_BUFFERUSAGE_VERTEX;
+        case BufferUsage::Index:
+            return SDL_GPU_BUFFERUSAGE_INDEX;
+    }
+    return SDL_GPU_BUFFERUSAGE_VERTEX;
+}
+
+constexpr auto to_sdl_transfer_buffer_usage(TransferBufferUsage usage)
+    -> SDL_GPUTransferBufferUsage {
+    switch (usage) {
+        case TransferBufferUsage::Upload:
+            return SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+        case TransferBufferUsage::Download:
+            return SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD;
+    }
+    return SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
 }
 
 }  // namespace
@@ -78,23 +155,25 @@ GPUDevice::GPUDevice(SDL_Window* window)
     }
 }
 
-auto GPUDevice::create_command_buffer() -> CommandBuffer {
-	auto* command_buffer = SDL_AcquireGPUCommandBuffer(device.get());
-
-	if (command_buffer == nullptr) {
-		SDL_LogError(
-			SDL_LOG_CATEGORY_ERROR,
-			"Failed to create SDL_GPUCommandBuffer: %s",
-			SDL_GetError()
-		);
-		return nullptr;
-	}
-
-	return CommandBuffer{command_buffer};
+auto GPUDevice::native_handle() const -> SDL_GPUDevice* {
+    return device.get();
 }
 
-auto GPUDevice::create_shader(const ShaderInfo& info)
-    -> Shader {
+auto GPUDevice::create_command_buffer() -> CommandBuffer {
+    auto* command_buffer = SDL_AcquireGPUCommandBuffer(device.get());
+
+    if (command_buffer == nullptr) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_ERROR,
+            "Failed to create SDL_GPUCommandBuffer: %s",
+            SDL_GetError()
+        );
+    }
+
+    return CommandBuffer{command_buffer};
+}
+
+auto GPUDevice::create_shader(const ShaderInfo& info) -> Shader {
     auto shader_file = std::ifstream{
         info.path, std::ios::in | std::ios::binary | std::ios::ate
     };
@@ -111,7 +190,7 @@ auto GPUDevice::create_shader(const ShaderInfo& info)
         .code = code_vector.data(),
         .entrypoint = "main",
         .format = SDL_GPU_SHADERFORMAT_SPIRV,
-        .stage = luminol_shader_stage_to_sdl_gpu_shader_stage(info.stage),
+        .stage = to_sdl_shader_stage(info.stage),
         .num_samplers = info.sampler_count,
         .num_storage_textures = info.storage_texture_count,
         .num_storage_buffers = info.storage_buffer_count,
@@ -119,34 +198,61 @@ auto GPUDevice::create_shader(const ShaderInfo& info)
         .props = 0,
     };
 
-    return std::unique_ptr<SDL_GPUShader, Shader::SDL_GPUShaderDeleter>(
+    return Shader{std::unique_ptr<SDL_GPUShader, Shader::SDL_GPUShaderDeleter>(
         SDL_CreateGPUShader(this->device.get(), &sdl_gpu_shader_create_info),
-        [this](SDL_GPUShader* shader) { SDL_ReleaseGPUShader(this->device.get(), shader); }
-    );
+        [this](SDL_GPUShader* shader) {
+            SDL_ReleaseGPUShader(this->device.get(), shader);
+        }
+    )};
 }
 
 auto GPUDevice::create_graphics_pipeline(const GraphicsPipelineInfo& info)
     -> GraphicsPipeline {
+    auto sdl_vertex_buffer_descriptions =
+        std::vector<SDL_GPUVertexBufferDescription>{};
+    sdl_vertex_buffer_descriptions.reserve(
+        info.vertex_buffer_descriptions.size()
+    );
+    for (const auto& desc : info.vertex_buffer_descriptions) {
+        sdl_vertex_buffer_descriptions.push_back(SDL_GPUVertexBufferDescription{
+            .slot = desc.slot,
+            .pitch = desc.pitch,
+            .input_rate = to_sdl_vertex_input_rate(desc.input_rate),
+            .instance_step_rate = desc.instance_step_rate,
+        });
+    }
+
+    auto sdl_vertex_attributes = std::vector<SDL_GPUVertexAttribute>{};
+    sdl_vertex_attributes.reserve(info.vertex_attributes.size());
+    for (const auto& attr : info.vertex_attributes) {
+        sdl_vertex_attributes.push_back(SDL_GPUVertexAttribute{
+            .location = attr.location,
+            .buffer_slot = attr.buffer_slot,
+            .format = to_sdl_vertex_element_format(attr.format),
+            .offset = attr.offset,
+        });
+    }
+
     const auto color_target_description = SDL_GPUColorTargetDescription{
-        .format = info.color_target_format,
+        .format = to_sdl_texture_format(info.color_target_format),
         .blend_state = {},
     };
 
     const auto create_info = SDL_GPUGraphicsPipelineCreateInfo{
-        .vertex_shader = info.vertex_shader.get(),
-        .fragment_shader = info.fragment_shader.get(),
+        .vertex_shader = info.vertex_shader.native_handle(),
+        .fragment_shader = info.fragment_shader.native_handle(),
         .vertex_input_state =
             SDL_GPUVertexInputState{
                 .vertex_buffer_descriptions =
-                    info.vertex_buffer_descriptions.data(),
+                    sdl_vertex_buffer_descriptions.data(),
                 .num_vertex_buffers = static_cast<uint32_t>(
-                    info.vertex_buffer_descriptions.size()
+                    sdl_vertex_buffer_descriptions.size()
                 ),
-                .vertex_attributes = info.vertex_attributes.data(),
+                .vertex_attributes = sdl_vertex_attributes.data(),
                 .num_vertex_attributes =
-                    static_cast<uint32_t>(info.vertex_attributes.size()),
+                    static_cast<uint32_t>(sdl_vertex_attributes.size()),
             },
-        .primitive_type = info.primitive_type,
+        .primitive_type = to_sdl_primitive_type(info.primitive_type),
         .rasterizer_state = {},
         .multisample_state = {},
         .depth_stencil_state = {},
@@ -174,7 +280,7 @@ auto GPUDevice::create_graphics_pipeline(const GraphicsPipelineInfo& info)
         );
     }
 
-    return std::unique_ptr<
+    return GraphicsPipeline{std::unique_ptr<
         SDL_GPUGraphicsPipeline,
         GraphicsPipeline::SDL_GPUGraphicsPipelineDeleter>(
         pipeline,
@@ -183,18 +289,17 @@ auto GPUDevice::create_graphics_pipeline(const GraphicsPipelineInfo& info)
                 this->device.get(), pipeline_to_release
             );
         }
-    );
+    )};
 }
 
 auto GPUDevice::create_buffer(const BufferInfo& info) -> Buffer {
     const auto create_info = SDL_GPUBufferCreateInfo{
-        .usage = static_cast<SDL_GPUBufferUsageFlags>(info.usage),
+        .usage = to_sdl_buffer_usage(info.usage),
         .size = info.size,
         .props = 0,
     };
 
-    auto* raw_buffer =
-        SDL_CreateGPUBuffer(this->device.get(), &create_info);
+    auto* raw_buffer = SDL_CreateGPUBuffer(this->device.get(), &create_info);
 
     if (raw_buffer == nullptr) {
         SDL_LogError(
@@ -217,7 +322,7 @@ auto GPUDevice::create_buffer(const BufferInfo& info) -> Buffer {
 auto GPUDevice::create_transfer_buffer(const TransferBufferInfo& info)
     -> TransferBuffer {
     const auto create_info = SDL_GPUTransferBufferCreateInfo{
-        .usage = static_cast<SDL_GPUTransferBufferUsage>(info.usage),
+        .usage = to_sdl_transfer_buffer_usage(info.usage),
         .size = info.size,
         .props = 0,
     };

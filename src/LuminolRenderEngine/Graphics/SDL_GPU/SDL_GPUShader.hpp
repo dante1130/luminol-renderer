@@ -4,14 +4,11 @@
 #include <functional>
 #include <memory>
 
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
+
+struct SDL_GPUShader;
 
 namespace Luminol::Graphics::SDL_GPU {
-
-enum class ShaderStage : uint8_t {
-    Vertex,
-    Fragment,
-};
 
 struct ShaderInfo {
     std::filesystem::path path;
@@ -28,7 +25,7 @@ public:
 
     Shader(std::unique_ptr<SDL_GPUShader, SDL_GPUShaderDeleter> shader);
 
-    [[nodiscard]] auto get() const -> SDL_GPUShader*;
+    [[nodiscard]] auto native_handle() const -> SDL_GPUShader*;
 
 private:
     std::unique_ptr<SDL_GPUShader, SDL_GPUShaderDeleter> shader;

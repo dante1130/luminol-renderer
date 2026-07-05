@@ -2,6 +2,8 @@
 
 #include <gsl/gsl>
 
+#include <SDL3/SDL_gpu.h>
+
 namespace Luminol::Graphics::SDL_GPU {
 
 RenderPass::RenderPass(SDL_GPURenderPass* render_pass)
@@ -25,7 +27,9 @@ auto RenderPass::operator=(RenderPass&& other) noexcept -> RenderPass& {
     return *this;
 }
 
-auto RenderPass::get() const -> SDL_GPURenderPass* { return render_pass; }
+auto RenderPass::native_handle() const -> SDL_GPURenderPass* {
+    return render_pass;
+}
 
 auto RenderPass::end() noexcept -> void {
     if (render_pass != nullptr) {

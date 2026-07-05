@@ -1,6 +1,6 @@
 #pragma once
 
-#include <SDL3/SDL_gpu.h>
+#include <LuminolMaths/Vector.hpp>
 
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
@@ -49,7 +49,7 @@ private:
 
     GPUDevice gpu_device;
 
-    mutable SDL_FColor clear_color_value = {0.0F, 0.0F, 0.0F, 1.0F};
+    mutable Maths::Vector4f clear_color_value = {0.0F, 0.0F, 0.0F, 1.0F};
     bool luminance_heatmap_enabled = false;
 };
 
