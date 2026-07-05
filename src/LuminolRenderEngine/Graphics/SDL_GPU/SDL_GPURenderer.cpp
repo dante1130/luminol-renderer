@@ -4,6 +4,38 @@
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 
+namespace {
+
+using namespace Luminol::Graphics::SDL_GPU;
+
+auto make_triangle_shader(
+    GPUDevice& device, const std::filesystem::path& path, ShaderStage stage
+) -> Shader {
+    return device.create_shader(ShaderInfo{
+        .path = path,
+        .stage = stage,
+        .source_language = ShaderSourceLanguage::Hlsl,
+    });
+}
+
+auto make_triangle_pipeline(
+    GPUDevice& device,
+    SDL_Window* window,
+    const Shader& vertex_shader,
+    const Shader& fragment_shader
+) -> GraphicsPipeline {
+    return device.create_graphics_pipeline(GraphicsPipelineInfo{
+        .vertex_shader = vertex_shader,
+        .fragment_shader = fragment_shader,
+        .color_target_format = device.get_swapchain_texture_format(window),
+        .primitive_type = PrimitiveType::TriangleList,
+        .vertex_buffer_descriptions = {},
+        .vertex_attributes = {},
+    });
+}
+
+}  // namespace
+
 namespace Luminol::Graphics::SDL_GPU {
 
 SDL_GPURenderer::SDL_GPURenderer(Window& window, GraphicsApi graphics_api)
@@ -11,7 +43,23 @@ SDL_GPURenderer::SDL_GPURenderer(Window& window, GraphicsApi graphics_api)
       sdl_window{static_cast<SDL_Window*>(window.get_window_handle())},
       get_window_width([&window]() { return window.get_width(); }),
       get_window_height([&window]() { return window.get_height(); }),
-      gpu_device{sdl_window} {}
+      gpu_device{sdl_window},
+      triangle_vertex_shader{make_triangle_shader(
+          gpu_device,
+          "res/shaders/sdl_gpu/triangle_vert.hlsl",
+          ShaderStage::Vertex
+      )},
+      triangle_fragment_shader{make_triangle_shader(
+          gpu_device,
+          "res/shaders/sdl_gpu/triangle_frag.hlsl",
+          ShaderStage::Fragment
+      )},
+      triangle_pipeline{make_triangle_pipeline(
+          gpu_device,
+          sdl_window,
+          triangle_vertex_shader,
+          triangle_fragment_shader
+      )} {}
 
 auto SDL_GPURenderer::set_view_matrix(const Maths::Matrix4x4f& /*view_matrix*/)
     -> void {}
@@ -68,7 +116,11 @@ auto SDL_GPURenderer::draw() -> void {
         .store_op = StoreOp::Store,
     }};
 
-    { auto render_pass = command_buffer.begin_render_pass(color_targets); }
+    {
+        auto render_pass = command_buffer.begin_render_pass(color_targets);
+        render_pass.bind_graphics_pipeline(triangle_pipeline);
+        render_pass.draw_primitives(3);
+    }
 
     command_buffer.submit();
 }

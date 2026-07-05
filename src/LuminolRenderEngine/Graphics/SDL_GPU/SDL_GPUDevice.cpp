@@ -8,6 +8,7 @@
 
 #include <SDL3/SDL_gpu.h>
 #include <SDL3/SDL_log.h>
+#include <SDL3_shadercross/SDL_shadercross.h>
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
@@ -41,6 +42,15 @@ auto create_sdl_gpu_device(SDL_Window* window) -> SDL_GPUDevice* {
         return nullptr;
     }
 
+    if (!SDL_ShaderCross_Init()) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_ERROR,
+            "Failed to initialize SDL_shadercross: %s",
+            SDL_GetError()
+        );
+        return nullptr;
+    }
+
     return gpu_device;
 }
 
@@ -52,6 +62,31 @@ constexpr auto to_sdl_shader_stage(ShaderStage stage) -> SDL_GPUShaderStage {
             return SDL_GPU_SHADERSTAGE_FRAGMENT;
     }
     throw std::runtime_error{"Invalid shader stage"};
+}
+
+constexpr auto to_shadercross_stage(ShaderStage stage)
+    -> SDL_ShaderCross_ShaderStage {
+    switch (stage) {
+        case ShaderStage::Vertex:
+            return SDL_SHADERCROSS_SHADERSTAGE_VERTEX;
+        case ShaderStage::Fragment:
+            return SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT;
+    }
+    throw std::runtime_error{"Invalid shader stage"};
+}
+
+constexpr auto from_sdl_texture_format(SDL_GPUTextureFormat format)
+    -> TextureFormat {
+    switch (format) {
+        case SDL_GPU_TEXTUREFORMAT_INVALID:
+            return TextureFormat::Invalid;
+        case SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM:
+            return TextureFormat::B8G8R8A8_Unorm;
+        case SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM:
+            return TextureFormat::R8G8B8A8_Unorm;
+        default:
+            return TextureFormat::Invalid;
+    }
 }
 
 constexpr auto to_sdl_primitive_type(PrimitiveType type)
@@ -138,6 +173,7 @@ namespace Luminol::Graphics::SDL_GPU {
 
 GPUDevice::GPUDevice(SDL_Window* window)
     : device{create_sdl_gpu_device(window), [window](SDL_GPUDevice* device) {
+                 SDL_ShaderCross_Quit();
                  SDL_ReleaseWindowFromGPUDevice(device, window);
                  SDL_DestroyGPUDevice(device);
              }} {
@@ -174,6 +210,78 @@ auto GPUDevice::create_command_buffer() -> CommandBuffer {
 }
 
 auto GPUDevice::create_shader(const ShaderInfo& info) -> Shader {
+    auto shader_deleter = [this](SDL_GPUShader* shader) {
+        SDL_ReleaseGPUShader(this->device.get(), shader);
+    };
+
+    if (info.source_language == ShaderSourceLanguage::Hlsl) {
+        auto shader_file = std::ifstream{info.path, std::ios::in};
+        auto hlsl_source = std::string{
+            std::istreambuf_iterator<char>{shader_file},
+            std::istreambuf_iterator<char>{}
+        };
+
+        const auto hlsl_info = SDL_ShaderCross_HLSL_Info{
+            .source = hlsl_source.c_str(),
+            .entrypoint = info.entrypoint.c_str(),
+            .include_dir = nullptr,
+            .defines = nullptr,
+            .shader_stage = to_shadercross_stage(info.stage),
+            .props = 0,
+        };
+
+        size_t spirv_size = 0;
+        auto* spirv_bytes = static_cast<uint8_t*>(
+            SDL_ShaderCross_CompileSPIRVFromHLSL(&hlsl_info, &spirv_size)
+        );
+        if (spirv_bytes == nullptr) {
+            SDL_LogError(
+                SDL_LOG_CATEGORY_ERROR,
+                "Failed to compile HLSL to SPIRV (%s): %s",
+                info.path.string().c_str(),
+                SDL_GetError()
+            );
+            Ensures(false);
+        }
+
+        const auto spirv_info = SDL_ShaderCross_SPIRV_Info{
+            .bytecode = spirv_bytes,
+            .bytecode_size = spirv_size,
+            .entrypoint = info.entrypoint.c_str(),
+            .shader_stage = to_shadercross_stage(info.stage),
+            .props = 0,
+        };
+
+        const auto resource_info = SDL_ShaderCross_GraphicsShaderResourceInfo{
+            .num_samplers = info.sampler_count,
+            .num_storage_textures = info.storage_texture_count,
+            .num_storage_buffers = info.storage_buffer_count,
+            .num_uniform_buffers = info.uniform_buffer_count,
+        };
+
+        auto* sdl_shader = SDL_ShaderCross_CompileGraphicsShaderFromSPIRV(
+            this->device.get(), &spirv_info, &resource_info, 0
+        );
+
+        SDL_free(spirv_bytes);
+
+        if (sdl_shader == nullptr) {
+            SDL_LogError(
+                SDL_LOG_CATEGORY_ERROR,
+                "Failed to compile graphics shader from SPIRV (%s): %s",
+                info.path.string().c_str(),
+                SDL_GetError()
+            );
+            Ensures(false);
+        }
+
+        return Shader{
+            std::unique_ptr<SDL_GPUShader, Shader::SDL_GPUShaderDeleter>(
+                sdl_shader, shader_deleter
+            )
+        };
+    }
+
     auto shader_file = std::ifstream{
         info.path, std::ios::in | std::ios::binary | std::ios::ate
     };
@@ -188,7 +296,7 @@ auto GPUDevice::create_shader(const ShaderInfo& info) -> Shader {
     const auto sdl_gpu_shader_create_info = SDL_GPUShaderCreateInfo{
         .code_size = static_cast<size_t>(code_size),
         .code = code_vector.data(),
-        .entrypoint = "main",
+        .entrypoint = info.entrypoint.c_str(),
         .format = SDL_GPU_SHADERFORMAT_SPIRV,
         .stage = to_sdl_shader_stage(info.stage),
         .num_samplers = info.sampler_count,
@@ -200,9 +308,7 @@ auto GPUDevice::create_shader(const ShaderInfo& info) -> Shader {
 
     return Shader{std::unique_ptr<SDL_GPUShader, Shader::SDL_GPUShaderDeleter>(
         SDL_CreateGPUShader(this->device.get(), &sdl_gpu_shader_create_info),
-        [this](SDL_GPUShader* shader) {
-            SDL_ReleaseGPUShader(this->device.get(), shader);
-        }
+        shader_deleter
     )};
 }
 
@@ -350,6 +456,22 @@ auto GPUDevice::create_transfer_buffer(const TransferBufferInfo& info)
     );
 
     return TransferBuffer{std::move(owned), this->device.get(), info.size};
+}
+
+auto GPUDevice::get_swapchain_texture_format(SDL_Window* window) const
+    -> TextureFormat {
+    const auto sdl_format =
+        SDL_GetGPUSwapchainTextureFormat(this->device.get(), window);
+    const auto format = from_sdl_texture_format(sdl_format);
+    if (format == TextureFormat::Invalid) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_ERROR,
+            "Swapchain texture format %d has no Luminol mapping",
+            static_cast<int>(sdl_format)
+        );
+        Ensures(false);
+    }
+    return format;
 }
 
 }  // namespace Luminol::Graphics::SDL_GPU

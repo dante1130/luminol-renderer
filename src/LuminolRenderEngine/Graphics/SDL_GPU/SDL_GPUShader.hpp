@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <string>
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
 
@@ -13,6 +14,8 @@ namespace Luminol::Graphics::SDL_GPU {
 struct ShaderInfo {
     std::filesystem::path path;
     ShaderStage stage;
+    ShaderSourceLanguage source_language = ShaderSourceLanguage::SpirvBinary;
+    std::string entrypoint = "main";
     uint32_t sampler_count = {0};
     uint32_t uniform_buffer_count = {0};
     uint32_t storage_buffer_count = {0};

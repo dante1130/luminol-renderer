@@ -4,6 +4,8 @@
 
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
 
@@ -48,6 +50,10 @@ private:
     std::function<int32_t()> get_window_height;
 
     GPUDevice gpu_device;
+
+    Shader triangle_vertex_shader;
+    Shader triangle_fragment_shader;
+    GraphicsPipeline triangle_pipeline;
 
     mutable Maths::Vector4f clear_color_value = {0.0F, 0.0F, 0.0F, 1.0F};
     bool luminance_heatmap_enabled = false;

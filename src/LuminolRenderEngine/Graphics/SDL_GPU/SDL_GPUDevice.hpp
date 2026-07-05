@@ -3,6 +3,8 @@
 #include <functional>
 #include <memory>
 
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
+
 struct SDL_Window;
 struct SDL_GPUDevice;
 
@@ -31,6 +33,9 @@ public:
     [[nodiscard]] auto create_buffer(const BufferInfo& info) -> Buffer;
     [[nodiscard]] auto create_transfer_buffer(const TransferBufferInfo& info)
         -> TransferBuffer;
+
+    [[nodiscard]] auto get_swapchain_texture_format(SDL_Window* window) const
+        -> TextureFormat;
 
 private:
     using SDL_GPUDeviceDeleter = std::function<void(SDL_GPUDevice*)>;

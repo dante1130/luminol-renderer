@@ -62,6 +62,11 @@ enum class ShaderStage : uint8_t {
     Fragment,
 };
 
+enum class ShaderSourceLanguage : uint8_t {
+    SpirvBinary,
+    Hlsl,
+};
+
 enum class BufferUsage : uint8_t {
     Vertex,
     Index,
