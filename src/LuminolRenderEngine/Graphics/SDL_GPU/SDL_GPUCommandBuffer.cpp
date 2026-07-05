@@ -139,6 +139,11 @@ auto CommandBuffer::begin_render_pass(
     return RenderPass{render_pass};
 }
 
+auto CommandBuffer::begin_copy_pass() -> CopyPass {
+    Expects(command_buffer != nullptr);
+    return CopyPass{SDL_BeginGPUCopyPass(command_buffer)};
+}
+
 auto CommandBuffer::submit() -> void {
     Expects(command_buffer != nullptr);
 

@@ -6,6 +6,7 @@
 #include <gsl/gsl>
 #include <LuminolMaths/Vector.hpp>
 
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCopyPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
@@ -47,6 +48,8 @@ public:
     [[nodiscard]] auto begin_render_pass(
         gsl::span<const ColorTargetInfo> color_targets
     ) -> RenderPass;
+
+    [[nodiscard]] auto begin_copy_pass() -> CopyPass;
 
     auto submit() -> void;
     auto cancel() -> void;

@@ -1,12 +1,31 @@
 #include "SDL_GPURenderer.hpp"
 
 #include <array>
+#include <utility>
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMesh.hpp>
 
 namespace {
 
 using namespace Luminol::Graphics::SDL_GPU;
+
+constexpr auto vertex_stride_in_floats = 11U;
+constexpr auto vertex_stride_in_bytes =
+    sizeof(float) * vertex_stride_in_floats;
+
+constexpr auto triangle_vertex_buffer_descriptions =
+    std::array{VertexBufferDescription{
+        .slot = 0,
+        .pitch = vertex_stride_in_bytes,
+    }};
+
+constexpr auto triangle_vertex_attributes = std::array{VertexAttribute{
+    .location = 0,
+    .buffer_slot = 0,
+    .format = VertexElementFormat::Float3,
+    .offset = 0,
+}};
 
 auto make_triangle_shader(
     GPUDevice& device, const std::filesystem::path& path, ShaderStage stage
@@ -29,8 +48,8 @@ auto make_triangle_pipeline(
         .fragment_shader = fragment_shader,
         .color_target_format = device.get_swapchain_texture_format(window),
         .primitive_type = PrimitiveType::TriangleList,
-        .vertex_buffer_descriptions = {},
-        .vertex_attributes = {},
+        .vertex_buffer_descriptions = triangle_vertex_buffer_descriptions,
+        .vertex_attributes = triangle_vertex_attributes,
     });
 }
 
@@ -38,12 +57,17 @@ auto make_triangle_pipeline(
 
 namespace Luminol::Graphics::SDL_GPU {
 
-SDL_GPURenderer::SDL_GPURenderer(Window& window, GraphicsApi graphics_api)
-    : Renderer(graphics_api),
+SDL_GPURenderer::SDL_GPURenderer(
+    Window& window,
+    GraphicsApi graphics_api,
+    std::shared_ptr<GraphicsFactory> graphics_factory,
+    GPUDevice& gpu_device
+)
+    : Renderer(graphics_api, std::move(graphics_factory)),
       sdl_window{static_cast<SDL_Window*>(window.get_window_handle())},
       get_window_width([&window]() { return window.get_width(); }),
       get_window_height([&window]() { return window.get_height(); }),
-      gpu_device{sdl_window},
+      gpu_device{&gpu_device},
       triangle_vertex_shader{make_triangle_shader(
           gpu_device,
           "res/shaders/sdl_gpu/triangle_vert.hlsl",
@@ -85,8 +109,12 @@ auto SDL_GPURenderer::clear_color(const Maths::Vector4f& color) const -> void {
 auto SDL_GPURenderer::clear(BufferBit /*buffer_bit*/) const -> void {}
 
 auto SDL_GPURenderer::queue_draw(
-    RenderableId /*renderable_id*/, const Maths::Matrix4x4f& /*model_matrix*/
-) -> void {}
+    RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
+) -> void {
+    queued_draws.push_back(QueuedDraw{
+        .renderable_id = renderable_id, .model_matrix = model_matrix
+    });
+}
 
 auto SDL_GPURenderer::queue_draw_with_color(
     RenderableId /*renderable_id*/,
@@ -101,11 +129,12 @@ auto SDL_GPURenderer::queue_draw_line(
 ) -> void {}
 
 auto SDL_GPURenderer::draw() -> void {
-    auto command_buffer = gpu_device.create_command_buffer();
+    auto command_buffer = gpu_device->create_command_buffer();
 
     const auto swapchain = command_buffer.acquire_swapchain_texture(sdl_window);
     if (!swapchain.has_value()) {
         command_buffer.submit();
+        queued_draws.clear();
         return;
     }
 
@@ -119,10 +148,28 @@ auto SDL_GPURenderer::draw() -> void {
     {
         auto render_pass = command_buffer.begin_render_pass(color_targets);
         render_pass.bind_graphics_pipeline(triangle_pipeline);
-        render_pass.draw_primitives(3);
+
+        for (const auto& queued : queued_draws) {
+            const auto& renderable =
+                this->get_renderable_manager().get_renderable(
+                    queued.renderable_id
+                );
+            const auto& mesh = static_cast<const SDL_GPUMesh&>(renderable);
+
+            const auto vertex_bindings = std::array{VertexBufferBinding{
+                .buffer = &mesh.get_vertex_buffer(),
+                .offset = 0,
+            }};
+            render_pass.bind_vertex_buffers(0, vertex_bindings);
+            render_pass.bind_index_buffer(
+                mesh.get_index_buffer(), IndexElementSize::Bits32, 0
+            );
+            render_pass.draw_indexed_primitives(mesh.get_index_count());
+        }
     }
 
     command_buffer.submit();
+    queued_draws.clear();
 }
 
 }  // namespace Luminol::Graphics::SDL_GPU

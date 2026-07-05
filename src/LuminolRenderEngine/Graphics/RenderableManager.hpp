@@ -17,7 +17,7 @@ class GraphicsFactory;
 
 class RenderableManager {
 public:
-    RenderableManager(GraphicsApi api);
+    RenderableManager(std::shared_ptr<GraphicsFactory> graphics_factory);
 
     [[nodiscard]] auto create_renderable(
         gsl::span<const float> vertices,

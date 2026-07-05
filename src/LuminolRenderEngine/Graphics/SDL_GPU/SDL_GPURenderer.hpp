@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <vector>
+
 #include <LuminolMaths/Vector.hpp>
 
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
@@ -9,9 +12,19 @@
 
 namespace Luminol::Graphics::SDL_GPU {
 
+struct QueuedDraw {
+    RenderableId renderable_id;
+    Maths::Matrix4x4f model_matrix;
+};
+
 class SDL_GPURenderer : public Renderer {
 public:
-    SDL_GPURenderer(Window& window, GraphicsApi graphics_api);
+    SDL_GPURenderer(
+        Window& window,
+        GraphicsApi graphics_api,
+        std::shared_ptr<GraphicsFactory> graphics_factory,
+        GPUDevice& gpu_device
+    );
 
     auto set_view_matrix(const Maths::Matrix4x4f& view_matrix) -> void override;
     auto set_projection_matrix(const Maths::Matrix4x4f& projection_matrix)
@@ -49,11 +62,13 @@ private:
     std::function<int32_t()> get_window_width;
     std::function<int32_t()> get_window_height;
 
-    GPUDevice gpu_device;
+    GPUDevice* gpu_device = nullptr;
 
     Shader triangle_vertex_shader;
     Shader triangle_fragment_shader;
     GraphicsPipeline triangle_pipeline;
+
+    std::vector<QueuedDraw> queued_draws;
 
     mutable Maths::Vector4f clear_color_value = {0.0F, 0.0F, 0.0F, 1.0F};
     bool luminance_heatmap_enabled = false;

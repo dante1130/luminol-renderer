@@ -4,6 +4,13 @@
 
 namespace Luminol::Graphics::SDL_GPU {
 
+class Buffer;
+
+struct VertexBufferBinding {
+    const Buffer* buffer = nullptr;
+    uint32_t offset = 0;
+};
+
 enum class LoadOp : uint8_t {
     Load,
     Clear,
@@ -75,6 +82,11 @@ enum class BufferUsage : uint8_t {
 enum class TransferBufferUsage : uint8_t {
     Upload,
     Download,
+};
+
+enum class IndexElementSize : uint8_t {
+    Bits16,
+    Bits32,
 };
 
 }  // namespace Luminol::Graphics::SDL_GPU

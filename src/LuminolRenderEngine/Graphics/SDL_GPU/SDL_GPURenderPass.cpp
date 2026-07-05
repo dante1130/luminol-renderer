@@ -4,7 +4,27 @@
 
 #include <SDL3/SDL_gpu.h>
 
+#include <vector>
+
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
+
+namespace {
+
+using namespace Luminol::Graphics::SDL_GPU;
+
+constexpr auto to_sdl_index_element_size(IndexElementSize size)
+    -> SDL_GPUIndexElementSize {
+    switch (size) {
+        case IndexElementSize::Bits16:
+            return SDL_GPU_INDEXELEMENTSIZE_16BIT;
+        case IndexElementSize::Bits32:
+            return SDL_GPU_INDEXELEMENTSIZE_32BIT;
+    }
+    return SDL_GPU_INDEXELEMENTSIZE_32BIT;
+}
+
+}  // namespace
 
 namespace Luminol::Graphics::SDL_GPU {
 
@@ -35,6 +55,28 @@ auto RenderPass::bind_graphics_pipeline(const GraphicsPipeline& pipeline)
     SDL_BindGPUGraphicsPipeline(render_pass, pipeline.native_handle());
 }
 
+auto RenderPass::bind_vertex_buffers(
+    uint32_t first_slot, gsl::span<const VertexBufferBinding> bindings
+) -> void {
+    Expects(render_pass != nullptr);
+
+    auto sdl_bindings = std::vector<SDL_GPUBufferBinding>(bindings.size());
+    for (auto i = size_t{0}; i < bindings.size(); ++i) {
+        Expects(bindings[i].buffer != nullptr);
+        sdl_bindings[i] = SDL_GPUBufferBinding{
+            .buffer = bindings[i].buffer->native_handle(),
+            .offset = bindings[i].offset,
+        };
+    }
+
+    SDL_BindGPUVertexBuffers(
+        render_pass,
+        first_slot,
+        sdl_bindings.data(),
+        static_cast<uint32_t>(sdl_bindings.size())
+    );
+}
+
 auto RenderPass::draw_primitives(
     uint32_t num_vertices,
     uint32_t num_instances,
@@ -47,6 +89,37 @@ auto RenderPass::draw_primitives(
         num_vertices,
         num_instances,
         first_vertex,
+        first_instance
+    );
+}
+
+auto RenderPass::bind_index_buffer(
+    const Buffer& buffer, IndexElementSize element_size, uint32_t offset
+) -> void {
+    Expects(render_pass != nullptr);
+    const auto binding = SDL_GPUBufferBinding{
+        .buffer = buffer.native_handle(),
+        .offset = offset,
+    };
+    SDL_BindGPUIndexBuffer(
+        render_pass, &binding, to_sdl_index_element_size(element_size)
+    );
+}
+
+auto RenderPass::draw_indexed_primitives(
+    uint32_t num_indices,
+    uint32_t num_instances,
+    uint32_t first_index,
+    int32_t vertex_offset,
+    uint32_t first_instance
+) -> void {
+    Expects(render_pass != nullptr);
+    SDL_DrawGPUIndexedPrimitives(
+        render_pass,
+        num_indices,
+        num_instances,
+        first_index,
+        vertex_offset,
         first_instance
     );
 }

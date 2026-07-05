@@ -4,8 +4,10 @@
 
 namespace Luminol::Graphics {
 
-RenderableManager::RenderableManager(GraphicsApi api)
-    : graphics_factory{GraphicsFactory::create(api)} {}
+RenderableManager::RenderableManager(
+    std::shared_ptr<GraphicsFactory> graphics_factory
+)
+    : graphics_factory{std::move(graphics_factory)} {}
 
 auto RenderableManager::create_renderable(
     gsl::span<const float> vertices,

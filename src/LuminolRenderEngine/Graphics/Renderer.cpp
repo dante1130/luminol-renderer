@@ -4,8 +4,11 @@
 
 namespace Luminol::Graphics {
 
-Renderer::Renderer(GraphicsApi graphics_api)
-    : renderable_manager{graphics_api} {}
+Renderer::Renderer(
+    GraphicsApi /*graphics_api*/,
+    std::shared_ptr<GraphicsFactory> graphics_factory
+)
+    : renderable_manager{std::move(graphics_factory)} {}
 
 auto Renderer::get_renderable_manager() const -> const RenderableManager& {
     return this->renderable_manager;
