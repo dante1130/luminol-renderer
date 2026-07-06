@@ -34,4 +34,9 @@ namespace Luminol::Graphics::SDL_GPU {
 [[nodiscard]] auto to_sdl_transfer_buffer_usage(TransferBufferUsage usage)
     -> SDL_GPUTransferBufferUsage;
 
+[[nodiscard]] auto to_sdl_filter(SamplerFilter filter) -> SDL_GPUFilter;
+
+[[nodiscard]] auto to_sdl_sampler_address_mode(SamplerAddressMode address_mode)
+    -> SDL_GPUSamplerAddressMode;
+
 }  // namespace Luminol::Graphics::SDL_GPU

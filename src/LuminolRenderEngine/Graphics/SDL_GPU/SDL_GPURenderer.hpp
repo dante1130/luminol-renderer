@@ -60,9 +60,9 @@ private:
 
     std::shared_ptr<GPUDevice> gpu_device;
 
-    Shader triangle_vertex_shader;
-    Shader triangle_fragment_shader;
-    GraphicsPipeline triangle_pipeline;
+    Shader mesh_vertex_shader;
+    Shader mesh_fragment_shader;
+    GraphicsPipeline mesh_pipeline;
 
     std::vector<QueuedDraw> queued_draws;
 

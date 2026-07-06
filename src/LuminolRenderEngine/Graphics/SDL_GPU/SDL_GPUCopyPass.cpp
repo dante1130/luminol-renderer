@@ -5,6 +5,7 @@
 #include <SDL3/SDL_gpu.h>
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTransferBuffer.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
@@ -50,6 +51,40 @@ auto CopyPass::upload_to_buffer(
     };
 
     SDL_UploadToGPUBuffer(
+        copy_pass, &source_location, &destination_region, cycle
+    );
+}
+
+auto CopyPass::upload_to_texture(
+    const TransferBuffer& source,
+    uint32_t source_offset,
+    const Texture& destination,
+    uint32_t width,
+    uint32_t height,
+    bool cycle
+) -> void {
+    Expects(copy_pass != nullptr);
+
+    const auto source_location = SDL_GPUTextureTransferInfo{
+        .transfer_buffer = source.native_handle(),
+        .offset = source_offset,
+        .pixels_per_row = width,
+        .rows_per_layer = height,
+    };
+
+    const auto destination_region = SDL_GPUTextureRegion{
+        .texture = destination.native_handle(),
+        .mip_level = 0,
+        .layer = 0,
+        .x = 0,
+        .y = 0,
+        .z = 0,
+        .w = width,
+        .h = height,
+        .d = 1,
+    };
+
+    SDL_UploadToGPUTexture(
         copy_pass, &source_location, &destination_region, cycle
     );
 }
