@@ -14,14 +14,17 @@ namespace Luminol::Graphics::SDL_GPU {
 SDL_GPUFactory::SDL_GPUFactory() = default;
 SDL_GPUFactory::~SDL_GPUFactory() = default;
 
-auto SDL_GPUFactory::create_renderer(
-    Window& window, GraphicsApi graphics_api
-) -> std::unique_ptr<Renderer> {
+auto SDL_GPUFactory::create_renderer(Window& window)
+    -> std::unique_ptr<Renderer> {
     auto* sdl_window = static_cast<SDL_Window*>(window.get_window_handle());
-    gpu_device = std::make_unique<GPUDevice>(sdl_window);
+    gpu_device = std::make_shared<GPUDevice>(sdl_window);
     return std::make_unique<SDL_GPURenderer>(
-        window, graphics_api, shared_from_this(), *gpu_device
+        window, shared_from_this(), gpu_device
     );
+}
+
+auto SDL_GPUFactory::get_gpu_device() const -> std::shared_ptr<GPUDevice> {
+    return gpu_device;
 }
 
 auto SDL_GPUFactory::create_mesh(

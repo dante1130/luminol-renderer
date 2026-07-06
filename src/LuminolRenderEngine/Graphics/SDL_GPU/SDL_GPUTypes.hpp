@@ -7,6 +7,8 @@ namespace Luminol::Graphics::SDL_GPU {
 class Buffer;
 
 struct VertexBufferBinding {
+    // Required; asserted non-null in bind_vertex_buffers. Pointer (not
+    // reference) so callers can use designated-initializer syntax.
     const Buffer* buffer = nullptr;
     uint32_t offset = 0;
 };

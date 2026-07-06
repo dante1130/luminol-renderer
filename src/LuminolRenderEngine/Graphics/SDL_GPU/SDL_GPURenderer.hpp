@@ -21,9 +21,8 @@ class SDL_GPURenderer : public Renderer {
 public:
     SDL_GPURenderer(
         Window& window,
-        GraphicsApi graphics_api,
         std::shared_ptr<GraphicsFactory> graphics_factory,
-        GPUDevice& gpu_device
+        std::shared_ptr<GPUDevice> gpu_device
     );
 
     auto set_view_matrix(const Maths::Matrix4x4f& view_matrix) -> void override;
@@ -59,10 +58,7 @@ public:
 private:
     SDL_Window* sdl_window = nullptr;
 
-    std::function<int32_t()> get_window_width;
-    std::function<int32_t()> get_window_height;
-
-    GPUDevice* gpu_device = nullptr;
+    std::shared_ptr<GPUDevice> gpu_device;
 
     Shader triangle_vertex_shader;
     Shader triangle_fragment_shader;

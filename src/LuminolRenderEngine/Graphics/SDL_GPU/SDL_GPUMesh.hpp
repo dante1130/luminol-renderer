@@ -10,6 +10,7 @@
 namespace Luminol::Graphics::SDL_GPU {
 
 class GPUDevice;
+class RenderPass;
 
 class SDL_GPUMesh : public Mesh {
 public:
@@ -22,9 +23,9 @@ public:
     auto draw() const -> void override;
     auto draw_instanced(int32_t instance_count) const -> void override;
 
-    [[nodiscard]] auto get_vertex_buffer() const -> const Buffer&;
-    [[nodiscard]] auto get_index_buffer() const -> const Buffer&;
-    [[nodiscard]] auto get_index_count() const -> uint32_t;
+    auto draw(RenderPass& sdl_gpu_pass) const -> void override;
+    auto draw_instanced(int32_t instance_count, RenderPass& sdl_gpu_pass) const
+        -> void override;
 
 private:
     Buffer vertex_buffer;

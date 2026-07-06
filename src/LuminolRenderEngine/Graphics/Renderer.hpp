@@ -17,7 +17,7 @@ class GraphicsFactory;
 
 class Renderer {
 public:
-    Renderer(GraphicsApi api, std::shared_ptr<GraphicsFactory> graphics_factory);
+    Renderer(std::shared_ptr<GraphicsFactory> graphics_factory);
     virtual ~Renderer() = default;
     Renderer(const Renderer&) = delete;
     Renderer(Renderer&&) = delete;

@@ -103,7 +103,7 @@ constexpr auto to_sdl_primitive_type(PrimitiveType type)
         case PrimitiveType::PointList:
             return SDL_GPU_PRIMITIVETYPE_POINTLIST;
     }
-    return SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+    throw std::runtime_error{"Invalid primitive type"};
 }
 
 constexpr auto to_sdl_texture_format(TextureFormat format)
@@ -116,7 +116,7 @@ constexpr auto to_sdl_texture_format(TextureFormat format)
         case TextureFormat::R8G8B8A8_Unorm:
             return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
     }
-    return SDL_GPU_TEXTUREFORMAT_INVALID;
+    throw std::runtime_error{"Invalid texture format"};
 }
 
 constexpr auto to_sdl_vertex_element_format(VertexElementFormat format)
@@ -131,7 +131,7 @@ constexpr auto to_sdl_vertex_element_format(VertexElementFormat format)
         case VertexElementFormat::Float4:
             return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
     }
-    return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT;
+    throw std::runtime_error{"Invalid vertex element format"};
 }
 
 constexpr auto to_sdl_vertex_input_rate(VertexInputRate rate)
@@ -142,7 +142,7 @@ constexpr auto to_sdl_vertex_input_rate(VertexInputRate rate)
         case VertexInputRate::Instance:
             return SDL_GPU_VERTEXINPUTRATE_INSTANCE;
     }
-    return SDL_GPU_VERTEXINPUTRATE_VERTEX;
+    throw std::runtime_error{"Invalid vertex input rate"};
 }
 
 constexpr auto to_sdl_buffer_usage(BufferUsage usage)
@@ -153,7 +153,7 @@ constexpr auto to_sdl_buffer_usage(BufferUsage usage)
         case BufferUsage::Index:
             return SDL_GPU_BUFFERUSAGE_INDEX;
     }
-    return SDL_GPU_BUFFERUSAGE_VERTEX;
+    throw std::runtime_error{"Invalid buffer usage"};
 }
 
 constexpr auto to_sdl_transfer_buffer_usage(TransferBufferUsage usage)
@@ -164,13 +164,17 @@ constexpr auto to_sdl_transfer_buffer_usage(TransferBufferUsage usage)
         case TransferBufferUsage::Download:
             return SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD;
     }
-    return SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+    throw std::runtime_error{"Invalid transfer buffer usage"};
 }
 
 }  // namespace
 
 namespace Luminol::Graphics::SDL_GPU {
 
+// The deleter captures the SDL_Window* by value. The window must still be
+// alive when this fires: the destruction order in RenderEngine (renderer →
+// factory → device, then window) plus Window's explicit SDL_DestroyWindow in
+// its dtor keeps that invariant. Do not reorder those members.
 GPUDevice::GPUDevice(SDL_Window* window)
     : device{create_sdl_gpu_device(window), [window](SDL_GPUDevice* device) {
                  SDL_ShaderCross_Quit();
@@ -204,14 +208,15 @@ auto GPUDevice::create_command_buffer() -> CommandBuffer {
             "Failed to create SDL_GPUCommandBuffer: %s",
             SDL_GetError()
         );
+        Ensures(false);
     }
 
     return CommandBuffer{command_buffer};
 }
 
 auto GPUDevice::create_shader(const ShaderInfo& info) -> Shader {
-    auto shader_deleter = [this](SDL_GPUShader* shader) {
-        SDL_ReleaseGPUShader(this->device.get(), shader);
+    auto shader_deleter = [device = shared_from_this()](SDL_GPUShader* shader) {
+        SDL_ReleaseGPUShader(device->native_handle(), shader);
     };
 
     if (info.source_language == ShaderSourceLanguage::Hlsl) {
@@ -384,15 +389,18 @@ auto GPUDevice::create_graphics_pipeline(const GraphicsPipelineInfo& info)
             "Failed to create SDL_GPUGraphicsPipeline: %s",
             SDL_GetError()
         );
+        Ensures(false);
     }
 
     return GraphicsPipeline{std::unique_ptr<
         SDL_GPUGraphicsPipeline,
         GraphicsPipeline::SDL_GPUGraphicsPipelineDeleter>(
         pipeline,
-        [this](SDL_GPUGraphicsPipeline* pipeline_to_release) {
+        [device = shared_from_this()](
+            SDL_GPUGraphicsPipeline* pipeline_to_release
+        ) {
             SDL_ReleaseGPUGraphicsPipeline(
-                this->device.get(), pipeline_to_release
+                device->native_handle(), pipeline_to_release
             );
         }
     )};
@@ -413,12 +421,13 @@ auto GPUDevice::create_buffer(const BufferInfo& info) -> Buffer {
             "Failed to create SDL_GPUBuffer: %s",
             SDL_GetError()
         );
+        Ensures(false);
     }
 
     auto owned = std::unique_ptr<SDL_GPUBuffer, Buffer::SDL_GPUBufferDeleter>(
         raw_buffer,
-        [this](SDL_GPUBuffer* buffer_to_release) {
-            SDL_ReleaseGPUBuffer(this->device.get(), buffer_to_release);
+        [device = shared_from_this()](SDL_GPUBuffer* buffer_to_release) {
+            SDL_ReleaseGPUBuffer(device->native_handle(), buffer_to_release);
         }
     );
 
@@ -442,20 +451,25 @@ auto GPUDevice::create_transfer_buffer(const TransferBufferInfo& info)
             "Failed to create SDL_GPUTransferBuffer: %s",
             SDL_GetError()
         );
+        Ensures(false);
     }
 
     auto owned = std::unique_ptr<
         SDL_GPUTransferBuffer,
         TransferBuffer::SDL_GPUTransferBufferDeleter>(
         raw_transfer_buffer,
-        [this](SDL_GPUTransferBuffer* transfer_buffer_to_release) {
+        [device = shared_from_this()](
+            SDL_GPUTransferBuffer* transfer_buffer_to_release
+        ) {
             SDL_ReleaseGPUTransferBuffer(
-                this->device.get(), transfer_buffer_to_release
+                device->native_handle(), transfer_buffer_to_release
             );
         }
     );
 
-    return TransferBuffer{std::move(owned), this->device.get(), info.size};
+    return TransferBuffer{
+        std::move(owned), shared_from_this(), info.size
+    };
 }
 
 auto GPUDevice::get_swapchain_texture_format(SDL_Window* window) const

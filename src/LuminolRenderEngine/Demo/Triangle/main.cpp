@@ -1,12 +1,8 @@
 #include <array>
 #include <cstdint>
 
-#include <LuminolMaths/Transform.hpp>
-
 #include <LuminolRenderEngine/LuminolRenderEngine.hpp>
-#include <LuminolRenderEngine/Graphics/Camera.hpp>
 #include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
-#include <LuminolRenderEngine/Utilities/Timer.hpp>
 
 auto main() -> int {
     using namespace Luminol;
@@ -31,7 +27,7 @@ auto main() -> int {
     while (!luminol_engine.get_window().should_close()) {
         luminol_engine.get_window().poll_events();
 
-        constexpr auto color = Maths::Vector4f{1.0f, 0.0f, 0.0f, 1.0f};
+        constexpr auto color = Maths::Vector4f{1.0F, 0.0F, 0.0F, 1.0F};
 
         luminol_engine.get_renderer().clear_color(color);
         luminol_engine.get_renderer().clear(Graphics::BufferBit::ColorDepth);

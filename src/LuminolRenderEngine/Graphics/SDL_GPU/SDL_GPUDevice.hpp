@@ -20,7 +20,7 @@ struct BufferInfo;
 class TransferBuffer;
 struct TransferBufferInfo;
 
-class GPUDevice {
+class GPUDevice : public std::enable_shared_from_this<GPUDevice> {
 public:
     GPUDevice(SDL_Window* window);
 

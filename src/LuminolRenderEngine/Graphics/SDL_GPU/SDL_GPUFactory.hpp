@@ -18,7 +18,7 @@ public:
     auto operator=(const SDL_GPUFactory&) -> SDL_GPUFactory& = delete;
     auto operator=(SDL_GPUFactory&&) -> SDL_GPUFactory& = delete;
 
-    [[nodiscard]] auto create_renderer(Window& window, GraphicsApi graphics_api)
+    [[nodiscard]] auto create_renderer(Window& window)
         -> std::unique_ptr<Renderer> override;
 
     [[nodiscard]] auto create_mesh(
@@ -32,8 +32,10 @@ public:
 
     [[nodiscard]] auto get_graphics_api() const -> GraphicsApi override;
 
+    [[nodiscard]] auto get_gpu_device() const -> std::shared_ptr<GPUDevice>;
+
 private:
-    std::unique_ptr<GPUDevice> gpu_device;
+    std::shared_ptr<GPUDevice> gpu_device;
 };
 
 }  // namespace Luminol::Graphics::SDL_GPU

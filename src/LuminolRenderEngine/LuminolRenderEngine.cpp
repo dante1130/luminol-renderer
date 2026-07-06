@@ -12,7 +12,7 @@ RenderEngine::RenderEngine(const Properties& properties)
           properties.graphics_api
       ),
       renderer(Graphics::GraphicsFactory::create(properties.graphics_api)
-                   ->create_renderer(this->window, properties.graphics_api)) {}
+                   ->create_renderer(this->window)) {}
 
 auto RenderEngine::get_window() const -> const Window& { return this->window; }
 

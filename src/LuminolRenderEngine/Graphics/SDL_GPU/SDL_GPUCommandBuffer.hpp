@@ -17,13 +17,15 @@ struct SDL_Window;
 namespace Luminol::Graphics::SDL_GPU {
 
 struct SwapchainTexture {
-    Texture texture;
+    TextureView texture;
     uint32_t width;
     uint32_t height;
 };
 
 struct ColorTargetInfo {
-    const Texture* texture = nullptr;
+    // Required; asserted non-null in begin_render_pass. Pointer (not
+    // reference) so callers can use designated-initializer syntax.
+    const TextureView* texture = nullptr;
     Maths::Vector4f clear_color = {0.0F, 0.0F, 0.0F, 1.0F};
     LoadOp load_op = LoadOp::Clear;
     StoreOp store_op = StoreOp::Store;

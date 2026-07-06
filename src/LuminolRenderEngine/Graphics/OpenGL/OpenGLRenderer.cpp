@@ -75,11 +75,9 @@ auto create_light_uniform_buffer() -> OpenGLUniformBuffer {
 namespace Luminol::Graphics {
 
 OpenGLRenderer::OpenGLRenderer(
-    Window& window,
-    GraphicsApi graphics_api,
-    std::shared_ptr<GraphicsFactory> graphics_factory
+    Window& window, std::shared_ptr<GraphicsFactory> graphics_factory
 )
-    : Renderer{graphics_api, std::move(graphics_factory)},
+    : Renderer{std::move(graphics_factory)},
       opengl_version{
           initialize_opengl(window, this->get_framebuffer_resize_callback())
       },

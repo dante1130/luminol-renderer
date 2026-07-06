@@ -1,11 +1,13 @@
 #include "SDL_GPUMesh.hpp"
 
+#include <array>
 #include <cstring>
 
 #include <gsl/gsl>
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTransferBuffer.hpp>
 
 namespace {
@@ -71,14 +73,22 @@ auto SDL_GPUMesh::draw() const -> void {}
 
 auto SDL_GPUMesh::draw_instanced(int32_t /*instance_count*/) const -> void {}
 
-auto SDL_GPUMesh::get_vertex_buffer() const -> const Buffer& {
-    return vertex_buffer;
+auto SDL_GPUMesh::draw(RenderPass& sdl_gpu_pass) const -> void {
+    draw_instanced(1, sdl_gpu_pass);
 }
 
-auto SDL_GPUMesh::get_index_buffer() const -> const Buffer& {
-    return index_buffer;
+auto SDL_GPUMesh::draw_instanced(
+    int32_t instance_count, RenderPass& sdl_gpu_pass
+) const -> void {
+    const auto vertex_bindings = std::array{VertexBufferBinding{
+        .buffer = &vertex_buffer,
+        .offset = 0,
+    }};
+    sdl_gpu_pass.bind_vertex_buffers(0, vertex_bindings);
+    sdl_gpu_pass.bind_index_buffer(index_buffer, IndexElementSize::Bits32, 0);
+    sdl_gpu_pass.draw_indexed_primitives(
+        index_count, static_cast<uint32_t>(instance_count)
+    );
 }
-
-auto SDL_GPUMesh::get_index_count() const -> uint32_t { return index_count; }
 
 }  // namespace Luminol::Graphics::SDL_GPU

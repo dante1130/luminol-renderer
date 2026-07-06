@@ -20,7 +20,7 @@ constexpr auto to_sdl_load_op(LoadOp op) -> SDL_GPULoadOp {
         case LoadOp::DontCare:
             return SDL_GPU_LOADOP_DONT_CARE;
     }
-    return SDL_GPU_LOADOP_DONT_CARE;
+    throw std::runtime_error{"Invalid load op"};
 }
 
 constexpr auto to_sdl_store_op(StoreOp op) -> SDL_GPUStoreOp {
@@ -34,7 +34,7 @@ constexpr auto to_sdl_store_op(StoreOp op) -> SDL_GPUStoreOp {
         case StoreOp::ResolveAndStore:
             return SDL_GPU_STOREOP_RESOLVE_AND_STORE;
     }
-    return SDL_GPU_STOREOP_DONT_CARE;
+    throw std::runtime_error{"Invalid store op"};
 }
 
 }  // namespace
@@ -92,7 +92,7 @@ auto CommandBuffer::acquire_swapchain_texture(SDL_Window* window)
     }
 
     return SwapchainTexture{
-        .texture = Texture{texture}, .width = width, .height = height
+        .texture = TextureView{texture}, .width = width, .height = height
     };
 }
 

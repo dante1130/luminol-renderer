@@ -21,7 +21,7 @@ constexpr auto to_sdl_index_element_size(IndexElementSize size)
         case IndexElementSize::Bits32:
             return SDL_GPU_INDEXELEMENTSIZE_32BIT;
     }
-    return SDL_GPU_INDEXELEMENTSIZE_32BIT;
+    throw std::runtime_error{"Invalid index element size"};
 }
 
 }  // namespace

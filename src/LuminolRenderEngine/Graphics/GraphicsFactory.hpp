@@ -26,7 +26,7 @@ public:
     [[nodiscard]] static auto create(GraphicsApi api)
         -> std::shared_ptr<GraphicsFactory>;
 
-    [[nodiscard]] virtual auto create_renderer(Window& window, GraphicsApi api)
+    [[nodiscard]] virtual auto create_renderer(Window& window)
         -> std::unique_ptr<Renderer> = 0;
 
     [[nodiscard]] virtual auto create_mesh(

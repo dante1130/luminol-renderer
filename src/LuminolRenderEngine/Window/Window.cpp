@@ -74,7 +74,10 @@ Window::Window(
     );
 }
 
-Window::~Window() { SDL_Quit(); }
+Window::~Window() {
+    SDL_DestroyWindow(window_handle_to_sdl_window(window_handle));
+    SDL_Quit();
+}
 
 auto Window::get_width() const -> int32_t {
     int32_t width = 0;

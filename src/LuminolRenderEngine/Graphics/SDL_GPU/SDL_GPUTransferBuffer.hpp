@@ -8,10 +8,11 @@
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
 
-struct SDL_GPUDevice;
 struct SDL_GPUTransferBuffer;
 
 namespace Luminol::Graphics::SDL_GPU {
+
+class GPUDevice;
 
 struct TransferBufferInfo {
     TransferBufferUsage usage;
@@ -26,7 +27,7 @@ public:
     TransferBuffer(
         std::unique_ptr<SDL_GPUTransferBuffer, SDL_GPUTransferBufferDeleter>
             transfer_buffer,
-        SDL_GPUDevice* device,
+        std::shared_ptr<GPUDevice> device,
         uint32_t size
     );
 
@@ -39,7 +40,7 @@ public:
 private:
     std::unique_ptr<SDL_GPUTransferBuffer, SDL_GPUTransferBufferDeleter>
         transfer_buffer;
-    SDL_GPUDevice* device;
+    std::shared_ptr<GPUDevice> device;
     uint32_t size;
 };
 

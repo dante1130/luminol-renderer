@@ -4,7 +4,6 @@
 #include <utility>
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMesh.hpp>
 
 namespace {
 
@@ -59,27 +58,24 @@ namespace Luminol::Graphics::SDL_GPU {
 
 SDL_GPURenderer::SDL_GPURenderer(
     Window& window,
-    GraphicsApi graphics_api,
     std::shared_ptr<GraphicsFactory> graphics_factory,
-    GPUDevice& gpu_device
+    std::shared_ptr<GPUDevice> gpu_device
 )
-    : Renderer(graphics_api, std::move(graphics_factory)),
+    : Renderer(std::move(graphics_factory)),
       sdl_window{static_cast<SDL_Window*>(window.get_window_handle())},
-      get_window_width([&window]() { return window.get_width(); }),
-      get_window_height([&window]() { return window.get_height(); }),
-      gpu_device{&gpu_device},
+      gpu_device{std::move(gpu_device)},
       triangle_vertex_shader{make_triangle_shader(
-          gpu_device,
+          *this->gpu_device,
           "res/shaders/sdl_gpu/triangle_vert.hlsl",
           ShaderStage::Vertex
       )},
       triangle_fragment_shader{make_triangle_shader(
-          gpu_device,
+          *this->gpu_device,
           "res/shaders/sdl_gpu/triangle_frag.hlsl",
           ShaderStage::Fragment
       )},
       triangle_pipeline{make_triangle_pipeline(
-          gpu_device,
+          *this->gpu_device,
           sdl_window,
           triangle_vertex_shader,
           triangle_fragment_shader
@@ -106,6 +102,9 @@ auto SDL_GPURenderer::clear_color(const Maths::Vector4f& color) const -> void {
     clear_color_value = color;
 }
 
+// SDL_GPU handles the clear via LOADOP_CLEAR inside begin_render_pass, so
+// there is nothing to do here; the color set in clear_color is applied at that
+// point instead.
 auto SDL_GPURenderer::clear(BufferBit /*buffer_bit*/) const -> void {}
 
 auto SDL_GPURenderer::queue_draw(
@@ -154,17 +153,7 @@ auto SDL_GPURenderer::draw() -> void {
                 this->get_renderable_manager().get_renderable(
                     queued.renderable_id
                 );
-            const auto& mesh = static_cast<const SDL_GPUMesh&>(renderable);
-
-            const auto vertex_bindings = std::array{VertexBufferBinding{
-                .buffer = &mesh.get_vertex_buffer(),
-                .offset = 0,
-            }};
-            render_pass.bind_vertex_buffers(0, vertex_bindings);
-            render_pass.bind_index_buffer(
-                mesh.get_index_buffer(), IndexElementSize::Bits32, 0
-            );
-            render_pass.draw_indexed_primitives(mesh.get_index_count());
+            renderable.draw(render_pass);
         }
     }
 

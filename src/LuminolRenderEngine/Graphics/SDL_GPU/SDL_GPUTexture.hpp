@@ -4,9 +4,11 @@ struct SDL_GPUTexture;
 
 namespace Luminol::Graphics::SDL_GPU {
 
-class Texture {
+// Non-owning view of an SDL_GPUTexture. Used to hand off swapchain textures
+// (which SDL owns and reclaims each frame) to code that consumes them.
+class TextureView {
 public:
-    explicit Texture(SDL_GPUTexture* handle);
+    explicit TextureView(SDL_GPUTexture* handle);
 
     [[nodiscard]] auto native_handle() const -> SDL_GPUTexture*;
 
