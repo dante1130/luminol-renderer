@@ -20,3 +20,7 @@ target_link_libraries(Luminol.Window PRIVATE
 target_compile_definitions(Luminol.Window PRIVATE
     GLFW_INCLUDE_NONE
 )
+
+target_include_directories(Luminol.Window PUBLIC
+    ${LUMINOL_RENDER_ENGINE_SRC_DIR}
+)

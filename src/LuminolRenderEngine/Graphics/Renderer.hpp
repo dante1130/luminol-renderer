@@ -3,6 +3,8 @@
 #include <LuminolMaths/Vector.hpp>
 #include <LuminolMaths/Matrix.hpp>
 
+#include <memory>
+
 #include <LuminolRenderEngine/Window/Window.hpp>
 #include <LuminolRenderEngine/Graphics/Renderable.hpp>
 #include <LuminolRenderEngine/Graphics/BufferBit.hpp>
@@ -11,9 +13,11 @@
 
 namespace Luminol::Graphics {
 
+class GraphicsFactory;
+
 class Renderer {
 public:
-    Renderer(GraphicsApi api);
+    Renderer(std::shared_ptr<GraphicsFactory> graphics_factory);
     virtual ~Renderer() = default;
     Renderer(const Renderer&) = delete;
     Renderer(Renderer&&) = delete;

@@ -1,11 +1,23 @@
 #pragma once
 
+#include <memory>
+
 #include <LuminolRenderEngine/Graphics/GraphicsFactory.hpp>
 
-namespace Luminol::Graphics {
+namespace Luminol::Graphics::SDL_GPU {
 
-class OpenGLFactory : public GraphicsFactory {
+class GPUDevice;
+
+class SDL_GPUFactory : public GraphicsFactory {
 public:
+    SDL_GPUFactory();
+    ~SDL_GPUFactory() override;
+
+    SDL_GPUFactory(const SDL_GPUFactory&) = delete;
+    SDL_GPUFactory(SDL_GPUFactory&&) = delete;
+    auto operator=(const SDL_GPUFactory&) -> SDL_GPUFactory& = delete;
+    auto operator=(SDL_GPUFactory&&) -> SDL_GPUFactory& = delete;
+
     [[nodiscard]] auto create_renderer(Window& window)
         -> std::unique_ptr<Renderer> override;
 
@@ -19,6 +31,11 @@ public:
     ) const -> std::unique_ptr<Model> override;
 
     [[nodiscard]] auto get_graphics_api() const -> GraphicsApi override;
+
+    [[nodiscard]] auto get_gpu_device() const -> std::shared_ptr<GPUDevice>;
+
+private:
+    std::shared_ptr<GPUDevice> gpu_device;
 };
 
-}  // namespace Luminol::Graphics
+}  // namespace Luminol::Graphics::SDL_GPU
