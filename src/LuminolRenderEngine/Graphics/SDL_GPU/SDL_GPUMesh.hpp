@@ -8,6 +8,7 @@
 #include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
+#include <LuminolRenderEngine/Utilities/ImageLoader.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
 
@@ -21,6 +22,13 @@ public:
         gsl::span<const float> vertices,
         gsl::span<const uint32_t> indices,
         const TexturePaths& texture_paths
+    );
+
+    SDL_GPUMesh(
+        GPUDevice& device,
+        gsl::span<const float> vertices,
+        gsl::span<const uint32_t> indices,
+        const std::optional<Utilities::ImageLoader::Image>& diffuse_texture_image
     );
 
     auto draw() const -> void override;

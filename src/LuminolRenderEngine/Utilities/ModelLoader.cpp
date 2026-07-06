@@ -119,6 +119,8 @@ auto load_textures(
     auto texture_paths = std::vector<std::filesystem::path>{};
     texture_paths.reserve(textures_count);
 
+    constexpr auto desired_rgba_channels = int32_t{4};
+
     for (auto i = 0u; i < textures_count; ++i) {
         auto texture_path = aiString{};
         material->GetTexture(texture_type, i, &texture_path);
@@ -128,7 +130,8 @@ auto load_textures(
         texture_paths.emplace_back(texture_path_key);
 
         if (!textures_map.contains(texture_path_key)) {
-            textures_map[texture_path_key] = load_image(texture_path_key);
+            textures_map[texture_path_key] =
+                load_image(texture_path_key, desired_rgba_channels);
         }
     }
 

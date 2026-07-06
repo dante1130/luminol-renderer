@@ -1,12 +1,11 @@
 #include "SDL_GPUFactory.hpp"
 
-#include <stdexcept>
-
 #include <gsl/gsl>
 #include <SDL3/SDL_video.h>
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMesh.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUModel.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderer.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
@@ -38,10 +37,10 @@ auto SDL_GPUFactory::create_mesh(
     );
 }
 
-auto SDL_GPUFactory::create_model(
-    const std::filesystem::path& /*model_path*/
+auto SDL_GPUFactory::create_model(const std::filesystem::path& model_path
 ) const -> std::unique_ptr<Model> {
-    throw std::runtime_error("SDL_GPU model creation not implemented yet");
+    Expects(gpu_device != nullptr);
+    return std::make_unique<SDL_GPUModel>(*gpu_device, model_path);
 }
 
 auto SDL_GPUFactory::get_graphics_api() const -> GraphicsApi {

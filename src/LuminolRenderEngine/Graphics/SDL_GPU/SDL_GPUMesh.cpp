@@ -81,18 +81,39 @@ auto create_uploaded_texture(
 
 constexpr auto desired_rgba_channels = int32_t{4};
 
+auto create_white_pixel_texture(GPUDevice& device) -> Texture {
+    constexpr auto white_pixel =
+        std::array<uint8_t, 4>{0xFF, 0xFF, 0xFF, 0xFF};
+    return create_uploaded_texture(device, 1, 1, white_pixel.data());
+}
+
 auto create_diffuse_texture(
     GPUDevice& device, const Luminol::Graphics::TexturePaths& texture_paths
 ) -> Texture {
     if (!texture_paths.diffuse_texture_path.has_value()) {
-        constexpr auto white_pixel =
-            std::array<uint8_t, 4>{0xFF, 0xFF, 0xFF, 0xFF};
-        return create_uploaded_texture(device, 1, 1, white_pixel.data());
+        return create_white_pixel_texture(device);
     }
 
     const auto image = Luminol::Utilities::ImageLoader::load_image(
         texture_paths.diffuse_texture_path.value(), desired_rgba_channels
     );
+
+    const auto width = static_cast<uint32_t>(image.width);
+    const auto height = static_cast<uint32_t>(image.height);
+
+    return create_uploaded_texture(device, width, height, image.data.data());
+}
+
+auto create_diffuse_texture(
+    GPUDevice& device,
+    const std::optional<Luminol::Utilities::ImageLoader::Image>&
+        diffuse_texture_image
+) -> Texture {
+    if (!diffuse_texture_image.has_value()) {
+        return create_white_pixel_texture(device);
+    }
+
+    const auto& image = diffuse_texture_image.value();
 
     const auto width = static_cast<uint32_t>(image.width);
     const auto height = static_cast<uint32_t>(image.height);
@@ -124,6 +145,29 @@ SDL_GPUMesh::SDL_GPUMesh(
       )},
       index_count{static_cast<uint32_t>(indices.size())},
       texture{create_diffuse_texture(device, texture_paths)},
+      sampler{device.create_sampler(SamplerInfo{})} {}
+
+SDL_GPUMesh::SDL_GPUMesh(
+    GPUDevice& device,
+    gsl::span<const float> vertices,
+    gsl::span<const uint32_t> indices,
+    const std::optional<Luminol::Utilities::ImageLoader::Image>&
+        diffuse_texture_image
+)
+    : vertex_buffer{create_uploaded_buffer(
+          device,
+          vertices.data(),
+          static_cast<uint32_t>(vertices.size_bytes()),
+          BufferUsage::Vertex
+      )},
+      index_buffer{create_uploaded_buffer(
+          device,
+          indices.data(),
+          static_cast<uint32_t>(indices.size_bytes()),
+          BufferUsage::Index
+      )},
+      index_count{static_cast<uint32_t>(indices.size())},
+      texture{create_diffuse_texture(device, diffuse_texture_image)},
       sampler{device.create_sampler(SamplerInfo{})} {}
 
 auto SDL_GPUMesh::draw() const -> void {}
