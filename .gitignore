@@ -13,3 +13,4 @@ _deps
 build/
 .vs/
 CMakeSettings.json
+/CLAUDE.md
