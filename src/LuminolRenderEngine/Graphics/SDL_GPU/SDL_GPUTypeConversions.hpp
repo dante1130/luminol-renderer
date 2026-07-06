@@ -19,8 +19,16 @@ namespace Luminol::Graphics::SDL_GPU {
 [[nodiscard]] auto to_sdl_primitive_type(PrimitiveType type)
     -> SDL_GPUPrimitiveType;
 
+[[nodiscard]] auto to_sdl_cull_mode(CullMode mode) -> SDL_GPUCullMode;
+
+[[nodiscard]] auto to_sdl_front_face(FrontFace front_face)
+    -> SDL_GPUFrontFace;
+
 [[nodiscard]] auto to_sdl_texture_format(TextureFormat format)
     -> SDL_GPUTextureFormat;
+
+[[nodiscard]] auto to_sdl_texture_usage(TextureUsage usage)
+    -> SDL_GPUTextureUsageFlags;
 
 [[nodiscard]] auto to_sdl_vertex_element_format(VertexElementFormat format)
     -> SDL_GPUVertexElementFormat;

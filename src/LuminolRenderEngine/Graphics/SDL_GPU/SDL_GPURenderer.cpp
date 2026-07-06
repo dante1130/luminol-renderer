@@ -1,7 +1,11 @@
 #include "SDL_GPURenderer.hpp"
 
 #include <array>
+#include <cstddef>
 #include <utility>
+
+#include <gsl/gsl>
+#include <SDL3/SDL_video.h>
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 
@@ -34,6 +38,8 @@ constexpr auto mesh_vertex_attributes = std::array{
     },
 };
 
+constexpr auto depth_texture_format = TextureFormat::D24_Unorm;
+
 auto make_mesh_shader(
     GPUDevice& device, const std::filesystem::path& path, ShaderStage stage
 ) -> Shader {
@@ -42,6 +48,7 @@ auto make_mesh_shader(
         .stage = stage,
         .source_language = ShaderSourceLanguage::Hlsl,
         .sampler_count = (stage == ShaderStage::Fragment) ? 1U : 0U,
+        .uniform_buffer_count = (stage == ShaderStage::Vertex) ? 1U : 0U,
     });
 }
 
@@ -58,6 +65,23 @@ auto make_mesh_pipeline(
         .primitive_type = PrimitiveType::TriangleList,
         .vertex_buffer_descriptions = mesh_vertex_buffer_descriptions,
         .vertex_attributes = mesh_vertex_attributes,
+        .enable_depth_test = true,
+        .depth_stencil_format = depth_texture_format,
+        .cull_mode = CullMode::Back,
+        .front_face = FrontFace::Clockwise,
+    });
+}
+
+auto make_depth_texture(GPUDevice& device, SDL_Window* window) -> Texture {
+    auto width = int{0};
+    auto height = int{0};
+    SDL_GetWindowSizeInPixels(window, &width, &height);
+
+    return device.create_texture(TextureInfo{
+        .width = static_cast<uint32_t>(width),
+        .height = static_cast<uint32_t>(height),
+        .format = depth_texture_format,
+        .usage = TextureUsage::DepthStencilTarget,
     });
 }
 
@@ -88,14 +112,26 @@ SDL_GPURenderer::SDL_GPURenderer(
           sdl_window,
           mesh_vertex_shader,
           mesh_fragment_shader
-      )} {}
+      )},
+      depth_texture{make_depth_texture(*this->gpu_device, sdl_window)} {
+    window.set_framebuffer_size_callback(
+        [this](int32_t /*width*/, int32_t /*height*/) {
+            this->depth_texture =
+                make_depth_texture(*this->gpu_device, this->sdl_window);
+        }
+    );
+}
 
-auto SDL_GPURenderer::set_view_matrix(const Maths::Matrix4x4f& /*view_matrix*/)
-    -> void {}
+auto SDL_GPURenderer::set_view_matrix(const Maths::Matrix4x4f& view_matrix)
+    -> void {
+    this->view_matrix = view_matrix;
+}
 
 auto SDL_GPURenderer::set_projection_matrix(
-    const Maths::Matrix4x4f& /*projection_matrix*/
-) -> void {}
+    const Maths::Matrix4x4f& projection_matrix
+) -> void {
+    this->projection_matrix = projection_matrix;
+}
 
 auto SDL_GPURenderer::set_exposure(float /*exposure*/) -> void {}
 
@@ -153,8 +189,18 @@ auto SDL_GPURenderer::draw() -> void {
         .store_op = StoreOp::Store,
     }};
 
+    const auto depth_texture_view = TextureView{depth_texture.native_handle()};
+    const auto depth_stencil_target = DepthStencilTargetInfo{
+        .texture = &depth_texture_view,
+        .clear_depth = 1.0F,
+        .load_op = LoadOp::Clear,
+        .store_op = StoreOp::DontCare,
+    };
+
     {
-        auto render_pass = command_buffer.begin_render_pass(color_targets);
+        auto render_pass = command_buffer.begin_render_pass(
+            color_targets, &depth_stencil_target
+        );
         render_pass.bind_graphics_pipeline(mesh_pipeline);
 
         for (const auto& queued : queued_draws) {
@@ -162,6 +208,16 @@ auto SDL_GPURenderer::draw() -> void {
                 this->get_renderable_manager().get_renderable(
                     queued.renderable_id
                 );
+
+            const auto mvp = queued.model_matrix * view_matrix *
+                              projection_matrix;
+            command_buffer.push_vertex_uniform_data(
+                0,
+                gsl::span{
+                    reinterpret_cast<const std::byte*>(&mvp), sizeof(mvp)
+                }
+            );
+
             renderable.draw(render_pass);
         }
     }

@@ -18,7 +18,7 @@ auto main() -> int {
          0.5F, -0.5F, 0.0F,   1.0F, 1.0F,   0.0F, 0.0F, 1.0F,   1.0F, 0.0F, 0.0F,
          0.5F,  0.5F, 0.0F,   1.0F, 0.0F,   0.0F, 0.0F, 1.0F,   1.0F, 0.0F, 0.0F,
     };
-    constexpr auto quad_indices = std::array<uint32_t, 6>{0, 1, 2, 0, 2, 3};
+    constexpr auto quad_indices = std::array<uint32_t, 6>{0, 2, 1, 0, 3, 2};
 
     const auto quad_id =
         luminol_engine.get_renderer().get_renderable_manager().create_renderable(

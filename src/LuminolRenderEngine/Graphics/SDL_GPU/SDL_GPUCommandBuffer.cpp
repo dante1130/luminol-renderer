@@ -97,7 +97,8 @@ auto CommandBuffer::acquire_swapchain_texture(SDL_Window* window)
 }
 
 auto CommandBuffer::begin_render_pass(
-    gsl::span<const ColorTargetInfo> color_targets
+    gsl::span<const ColorTargetInfo> color_targets,
+    const DepthStencilTargetInfo* depth_stencil_target
 ) -> RenderPass {
     Expects(command_buffer != nullptr);
 
@@ -129,14 +130,41 @@ auto CommandBuffer::begin_render_pass(
         };
     }
 
+    auto sdl_depth_stencil_target = SDL_GPUDepthStencilTargetInfo{};
+    if (depth_stencil_target != nullptr) {
+        Expects(depth_stencil_target->texture != nullptr);
+        sdl_depth_stencil_target = SDL_GPUDepthStencilTargetInfo{
+            .texture = depth_stencil_target->texture->native_handle(),
+            .clear_depth = depth_stencil_target->clear_depth,
+            .load_op = to_sdl_load_op(depth_stencil_target->load_op),
+            .store_op = to_sdl_store_op(depth_stencil_target->store_op),
+            .stencil_load_op = SDL_GPU_LOADOP_DONT_CARE,
+            .stencil_store_op = SDL_GPU_STOREOP_DONT_CARE,
+            .cycle = false,
+            .clear_stencil = 0,
+        };
+    }
+
     auto* render_pass = SDL_BeginGPURenderPass(
         command_buffer,
         sdl_color_targets.data(),
         static_cast<uint32_t>(sdl_color_targets.size()),
-        nullptr
+        depth_stencil_target != nullptr ? &sdl_depth_stencil_target : nullptr
     );
 
     return RenderPass{render_pass};
+}
+
+auto CommandBuffer::push_vertex_uniform_data(
+    uint32_t slot, gsl::span<const std::byte> data
+) -> void {
+    Expects(command_buffer != nullptr);
+    SDL_PushGPUVertexUniformData(
+        command_buffer,
+        slot,
+        data.data(),
+        static_cast<uint32_t>(data.size())
+    );
 }
 
 auto CommandBuffer::begin_copy_pass() -> CopyPass {

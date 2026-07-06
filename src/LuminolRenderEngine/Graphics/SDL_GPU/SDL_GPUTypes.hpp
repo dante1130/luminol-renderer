@@ -35,6 +35,17 @@ enum class StoreOp : uint8_t {
     ResolveAndStore,
 };
 
+enum class CullMode : uint8_t {
+    None,
+    Front,
+    Back,
+};
+
+enum class FrontFace : uint8_t {
+    CounterClockwise,
+    Clockwise,
+};
+
 enum class PrimitiveType : uint8_t {
     TriangleList,
     TriangleStrip,
@@ -47,6 +58,12 @@ enum class TextureFormat : uint8_t {
     Invalid,
     B8G8R8A8_Unorm,
     R8G8B8A8_Unorm,
+    D24_Unorm,
+};
+
+enum class TextureUsage : uint8_t {
+    Sampler,
+    DepthStencilTarget,
 };
 
 enum class VertexElementFormat : uint8_t {

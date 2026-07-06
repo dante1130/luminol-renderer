@@ -252,15 +252,43 @@ auto GPUDevice::create_graphics_pipeline(const GraphicsPipelineInfo& info)
                     static_cast<uint32_t>(sdl_vertex_attributes.size()),
             },
         .primitive_type = to_sdl_primitive_type(info.primitive_type),
-        .rasterizer_state = {},
+        .rasterizer_state =
+            SDL_GPURasterizerState{
+                .fill_mode = SDL_GPU_FILLMODE_FILL,
+                .cull_mode = to_sdl_cull_mode(info.cull_mode),
+                .front_face = to_sdl_front_face(info.front_face),
+                .depth_bias_constant_factor = 0.0F,
+                .depth_bias_clamp = 0.0F,
+                .depth_bias_slope_factor = 0.0F,
+                .enable_depth_bias = false,
+                .enable_depth_clip = false,
+                .padding1 = 0,
+                .padding2 = 0,
+            },
         .multisample_state = {},
-        .depth_stencil_state = {},
+        .depth_stencil_state =
+            SDL_GPUDepthStencilState{
+                .compare_op = info.enable_depth_test
+                    ? SDL_GPU_COMPAREOP_LESS_OR_EQUAL
+                    : SDL_GPU_COMPAREOP_INVALID,
+                .back_stencil_state = {},
+                .front_stencil_state = {},
+                .compare_mask = 0,
+                .write_mask = 0,
+                .enable_depth_test = info.enable_depth_test,
+                .enable_depth_write = info.enable_depth_test,
+                .enable_stencil_test = false,
+                .padding1 = 0,
+                .padding2 = 0,
+                .padding3 = 0,
+            },
         .target_info =
             SDL_GPUGraphicsPipelineTargetInfo{
                 .color_target_descriptions = &color_target_description,
                 .num_color_targets = 1,
-                .depth_stencil_format = {},
-                .has_depth_stencil_target = false,
+                .depth_stencil_format =
+                    to_sdl_texture_format(info.depth_stencil_format),
+                .has_depth_stencil_target = info.enable_depth_test,
                 .padding1 = 0,
                 .padding2 = 0,
                 .padding3 = 0,
@@ -364,7 +392,7 @@ auto GPUDevice::create_texture(const TextureInfo& info) -> Texture {
     const auto create_info = SDL_GPUTextureCreateInfo{
         .type = SDL_GPU_TEXTURETYPE_2D,
         .format = to_sdl_texture_format(info.format),
-        .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
+        .usage = to_sdl_texture_usage(info.usage),
         .width = info.width,
         .height = info.height,
         .layer_count_or_depth = 1,

@@ -19,6 +19,10 @@ struct GraphicsPipelineInfo {
     PrimitiveType primitive_type = PrimitiveType::TriangleList;
     gsl::span<const VertexBufferDescription> vertex_buffer_descriptions;
     gsl::span<const VertexAttribute> vertex_attributes;
+    bool enable_depth_test = false;
+    TextureFormat depth_stencil_format = TextureFormat::Invalid;
+    CullMode cull_mode = CullMode::None;
+    FrontFace front_face = FrontFace::CounterClockwise;
 };
 
 class GraphicsPipeline {

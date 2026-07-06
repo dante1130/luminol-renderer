@@ -17,7 +17,7 @@ auto main() -> int {
        -0.5F, -0.5F,  0.0F,   0.0F, 0.0F,   0.0F, 0.0F, 1.0F,   1.0F, 0.0F, 0.0F,
         0.5F, -0.5F,  0.0F,   0.0F, 0.0F,   0.0F, 0.0F, 1.0F,   1.0F, 0.0F, 0.0F,
     };
-    constexpr auto triangle_indices = std::array<uint32_t, 3>{0, 1, 2};
+    constexpr auto triangle_indices = std::array<uint32_t, 3>{0, 2, 1};
 
     const auto triangle_id =
         luminol_engine.get_renderer().get_renderable_manager().create_renderable(

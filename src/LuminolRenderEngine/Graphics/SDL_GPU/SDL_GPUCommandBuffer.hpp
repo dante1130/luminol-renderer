@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 
@@ -31,6 +32,13 @@ struct ColorTargetInfo {
     StoreOp store_op = StoreOp::Store;
 };
 
+struct DepthStencilTargetInfo {
+    const TextureView* texture = nullptr;
+    float clear_depth = 1.0F;
+    LoadOp load_op = LoadOp::Clear;
+    StoreOp store_op = StoreOp::Store;
+};
+
 class CommandBuffer {
 public:
     CommandBuffer(SDL_GPUCommandBuffer* command_buffer);
@@ -48,10 +56,15 @@ public:
         -> std::optional<SwapchainTexture>;
 
     [[nodiscard]] auto begin_render_pass(
-        gsl::span<const ColorTargetInfo> color_targets
+        gsl::span<const ColorTargetInfo> color_targets,
+        const DepthStencilTargetInfo* depth_stencil_target = nullptr
     ) -> RenderPass;
 
     [[nodiscard]] auto begin_copy_pass() -> CopyPass;
+
+    auto push_vertex_uniform_data(
+        uint32_t slot, gsl::span<const std::byte> data
+    ) -> void;
 
     auto submit() -> void;
     auto cancel() -> void;

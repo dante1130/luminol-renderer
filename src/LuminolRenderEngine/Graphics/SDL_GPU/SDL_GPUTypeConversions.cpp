@@ -34,6 +34,8 @@ auto from_sdl_texture_format(SDL_GPUTextureFormat format)
             return TextureFormat::B8G8R8A8_Unorm;
         case SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM:
             return TextureFormat::R8G8B8A8_Unorm;
+        case SDL_GPU_TEXTUREFORMAT_D24_UNORM:
+            return TextureFormat::D24_Unorm;
         default:
             return TextureFormat::Invalid;
     }
@@ -56,6 +58,28 @@ auto to_sdl_primitive_type(PrimitiveType type)
     throw std::runtime_error{"Invalid primitive type"};
 }
 
+auto to_sdl_cull_mode(CullMode mode) -> SDL_GPUCullMode {
+    switch (mode) {
+        case CullMode::None:
+            return SDL_GPU_CULLMODE_NONE;
+        case CullMode::Front:
+            return SDL_GPU_CULLMODE_FRONT;
+        case CullMode::Back:
+            return SDL_GPU_CULLMODE_BACK;
+    }
+    throw std::runtime_error{"Invalid cull mode"};
+}
+
+auto to_sdl_front_face(FrontFace front_face) -> SDL_GPUFrontFace {
+    switch (front_face) {
+        case FrontFace::CounterClockwise:
+            return SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+        case FrontFace::Clockwise:
+            return SDL_GPU_FRONTFACE_CLOCKWISE;
+    }
+    throw std::runtime_error{"Invalid front face"};
+}
+
 auto to_sdl_texture_format(TextureFormat format)
     -> SDL_GPUTextureFormat {
     switch (format) {
@@ -65,8 +89,20 @@ auto to_sdl_texture_format(TextureFormat format)
             return SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
         case TextureFormat::R8G8B8A8_Unorm:
             return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+        case TextureFormat::D24_Unorm:
+            return SDL_GPU_TEXTUREFORMAT_D24_UNORM;
     }
     throw std::runtime_error{"Invalid texture format"};
+}
+
+auto to_sdl_texture_usage(TextureUsage usage) -> SDL_GPUTextureUsageFlags {
+    switch (usage) {
+        case TextureUsage::Sampler:
+            return SDL_GPU_TEXTUREUSAGE_SAMPLER;
+        case TextureUsage::DepthStencilTarget:
+            return SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
+    }
+    throw std::runtime_error{"Invalid texture usage"};
 }
 
 auto to_sdl_vertex_element_format(VertexElementFormat format)

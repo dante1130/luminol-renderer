@@ -9,6 +9,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
 
@@ -64,7 +65,12 @@ private:
     Shader mesh_fragment_shader;
     GraphicsPipeline mesh_pipeline;
 
+    Texture depth_texture;
+
     std::vector<QueuedDraw> queued_draws;
+
+    Maths::Matrix4x4f view_matrix = Maths::Matrix4x4f::identity();
+    Maths::Matrix4x4f projection_matrix = Maths::Matrix4x4f::identity();
 
     mutable Maths::Vector4f clear_color_value = {0.0F, 0.0F, 0.0F, 1.0F};
     bool luminance_heatmap_enabled = false;
