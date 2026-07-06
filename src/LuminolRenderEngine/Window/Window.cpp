@@ -155,6 +155,7 @@ auto Window::poll_events() -> void {
                         sdl_event.window.data1, sdl_event.window.data2
                     );
                 }
+                break;
             }
 
             default:

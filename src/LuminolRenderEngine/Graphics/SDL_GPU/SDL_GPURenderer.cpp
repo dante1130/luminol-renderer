@@ -72,17 +72,24 @@ auto make_mesh_pipeline(
     });
 }
 
+auto make_depth_texture(GPUDevice& device, uint32_t width, uint32_t height)
+    -> Texture {
+    return device.create_texture(TextureInfo{
+        .width = width,
+        .height = height,
+        .format = depth_texture_format,
+        .usage = TextureUsage::DepthStencilTarget,
+    });
+}
+
 auto make_depth_texture(GPUDevice& device, SDL_Window* window) -> Texture {
     auto width = int{0};
     auto height = int{0};
     SDL_GetWindowSizeInPixels(window, &width, &height);
 
-    return device.create_texture(TextureInfo{
-        .width = static_cast<uint32_t>(width),
-        .height = static_cast<uint32_t>(height),
-        .format = depth_texture_format,
-        .usage = TextureUsage::DepthStencilTarget,
-    });
+    return make_depth_texture(
+        device, static_cast<uint32_t>(width), static_cast<uint32_t>(height)
+    );
 }
 
 }  // namespace
@@ -113,14 +120,7 @@ SDL_GPURenderer::SDL_GPURenderer(
           mesh_vertex_shader,
           mesh_fragment_shader
       )},
-      depth_texture{make_depth_texture(*this->gpu_device, sdl_window)} {
-    window.set_framebuffer_size_callback(
-        [this](int32_t /*width*/, int32_t /*height*/) {
-            this->depth_texture =
-                make_depth_texture(*this->gpu_device, this->sdl_window);
-        }
-    );
-}
+      depth_texture{make_depth_texture(*this->gpu_device, sdl_window)} {}
 
 auto SDL_GPURenderer::set_view_matrix(const Maths::Matrix4x4f& view_matrix)
     -> void {
@@ -188,6 +188,13 @@ auto SDL_GPURenderer::draw() -> void {
         .load_op = LoadOp::Clear,
         .store_op = StoreOp::Store,
     }};
+
+    if (depth_texture.get_width() != swapchain->width ||
+        depth_texture.get_height() != swapchain->height) {
+        depth_texture = make_depth_texture(
+            *gpu_device, swapchain->width, swapchain->height
+        );
+    }
 
     const auto depth_texture_view = TextureView{depth_texture.native_handle()};
     const auto depth_stencil_target = DepthStencilTargetInfo{
