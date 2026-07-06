@@ -8,6 +8,7 @@ namespace Luminol::Graphics::SDL_GPU {
 
 class Buffer;
 class TransferBuffer;
+class Texture;
 
 class CopyPass {
 public:
@@ -26,6 +27,15 @@ public:
         const Buffer& destination,
         uint32_t destination_offset,
         uint32_t size,
+        bool cycle
+    ) -> void;
+
+    auto upload_to_texture(
+        const TransferBuffer& source,
+        uint32_t source_offset,
+        const Texture& destination,
+        uint32_t width,
+        uint32_t height,
         bool cycle
     ) -> void;
 

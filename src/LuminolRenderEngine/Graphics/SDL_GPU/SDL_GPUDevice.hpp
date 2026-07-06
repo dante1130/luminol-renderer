@@ -19,6 +19,10 @@ class Buffer;
 struct BufferInfo;
 class TransferBuffer;
 struct TransferBufferInfo;
+class Texture;
+struct TextureInfo;
+class Sampler;
+struct SamplerInfo;
 
 class GPUDevice : public std::enable_shared_from_this<GPUDevice> {
 public:
@@ -33,6 +37,8 @@ public:
     [[nodiscard]] auto create_buffer(const BufferInfo& info) -> Buffer;
     [[nodiscard]] auto create_transfer_buffer(const TransferBufferInfo& info)
         -> TransferBuffer;
+    [[nodiscard]] auto create_texture(const TextureInfo& info) -> Texture;
+    [[nodiscard]] auto create_sampler(const SamplerInfo& info) -> Sampler;
 
     [[nodiscard]] auto get_swapchain_texture_format(SDL_Window* window) const
         -> TextureFormat;

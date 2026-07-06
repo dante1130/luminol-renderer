@@ -117,4 +117,25 @@ auto to_sdl_transfer_buffer_usage(TransferBufferUsage usage)
     throw std::runtime_error{"Invalid transfer buffer usage"};
 }
 
+auto to_sdl_filter(SamplerFilter filter) -> SDL_GPUFilter {
+    switch (filter) {
+        case SamplerFilter::Nearest:
+            return SDL_GPU_FILTER_NEAREST;
+        case SamplerFilter::Linear:
+            return SDL_GPU_FILTER_LINEAR;
+    }
+    throw std::runtime_error{"Invalid sampler filter"};
+}
+
+auto to_sdl_sampler_address_mode(SamplerAddressMode address_mode)
+    -> SDL_GPUSamplerAddressMode {
+    switch (address_mode) {
+        case SamplerAddressMode::Repeat:
+            return SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
+        case SamplerAddressMode::ClampToEdge:
+            return SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+    }
+    throw std::runtime_error{"Invalid sampler address mode"};
+}
+
 }  // namespace Luminol::Graphics::SDL_GPU

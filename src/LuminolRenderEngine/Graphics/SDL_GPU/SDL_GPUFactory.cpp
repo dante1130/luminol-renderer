@@ -30,10 +30,12 @@ auto SDL_GPUFactory::get_gpu_device() const -> std::shared_ptr<GPUDevice> {
 auto SDL_GPUFactory::create_mesh(
     gsl::span<const float> vertices,
     gsl::span<const uint32_t> indices,
-    const TexturePaths& /*texture_paths*/
+    const TexturePaths& texture_paths
 ) const -> std::unique_ptr<Mesh> {
     Expects(gpu_device != nullptr);
-    return std::make_unique<SDL_GPUMesh>(*gpu_device, vertices, indices);
+    return std::make_unique<SDL_GPUMesh>(
+        *gpu_device, vertices, indices, texture_paths
+    );
 }
 
 auto SDL_GPUFactory::create_model(

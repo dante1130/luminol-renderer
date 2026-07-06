@@ -8,6 +8,7 @@
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 
 namespace {
 
@@ -70,6 +71,30 @@ auto RenderPass::bind_vertex_buffers(
     }
 
     SDL_BindGPUVertexBuffers(
+        render_pass,
+        first_slot,
+        sdl_bindings.data(),
+        static_cast<uint32_t>(sdl_bindings.size())
+    );
+}
+
+auto RenderPass::bind_fragment_samplers(
+    uint32_t first_slot, gsl::span<const TextureSamplerBinding> bindings
+) -> void {
+    Expects(render_pass != nullptr);
+
+    auto sdl_bindings =
+        std::vector<SDL_GPUTextureSamplerBinding>(bindings.size());
+    for (auto i = size_t{0}; i < bindings.size(); ++i) {
+        Expects(bindings[i].texture != nullptr);
+        Expects(bindings[i].sampler != nullptr);
+        sdl_bindings[i] = SDL_GPUTextureSamplerBinding{
+            .texture = bindings[i].texture->native_handle(),
+            .sampler = bindings[i].sampler->native_handle(),
+        };
+    }
+
+    SDL_BindGPUFragmentSamplers(
         render_pass,
         first_slot,
         sdl_bindings.data(),

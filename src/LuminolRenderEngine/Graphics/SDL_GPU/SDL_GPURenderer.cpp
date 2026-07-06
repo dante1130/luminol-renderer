@@ -13,30 +13,39 @@ constexpr auto vertex_stride_in_floats = 11U;
 constexpr auto vertex_stride_in_bytes =
     sizeof(float) * vertex_stride_in_floats;
 
-constexpr auto triangle_vertex_buffer_descriptions =
+constexpr auto mesh_vertex_buffer_descriptions =
     std::array{VertexBufferDescription{
         .slot = 0,
         .pitch = vertex_stride_in_bytes,
     }};
 
-constexpr auto triangle_vertex_attributes = std::array{VertexAttribute{
-    .location = 0,
-    .buffer_slot = 0,
-    .format = VertexElementFormat::Float3,
-    .offset = 0,
-}};
+constexpr auto mesh_vertex_attributes = std::array{
+    VertexAttribute{
+        .location = 0,
+        .buffer_slot = 0,
+        .format = VertexElementFormat::Float3,
+        .offset = 0,
+    },
+    VertexAttribute{
+        .location = 1,
+        .buffer_slot = 0,
+        .format = VertexElementFormat::Float2,
+        .offset = sizeof(float) * 3,
+    },
+};
 
-auto make_triangle_shader(
+auto make_mesh_shader(
     GPUDevice& device, const std::filesystem::path& path, ShaderStage stage
 ) -> Shader {
     return device.create_shader(ShaderInfo{
         .path = path,
         .stage = stage,
         .source_language = ShaderSourceLanguage::Hlsl,
+        .sampler_count = (stage == ShaderStage::Fragment) ? 1U : 0U,
     });
 }
 
-auto make_triangle_pipeline(
+auto make_mesh_pipeline(
     GPUDevice& device,
     SDL_Window* window,
     const Shader& vertex_shader,
@@ -47,8 +56,8 @@ auto make_triangle_pipeline(
         .fragment_shader = fragment_shader,
         .color_target_format = device.get_swapchain_texture_format(window),
         .primitive_type = PrimitiveType::TriangleList,
-        .vertex_buffer_descriptions = triangle_vertex_buffer_descriptions,
-        .vertex_attributes = triangle_vertex_attributes,
+        .vertex_buffer_descriptions = mesh_vertex_buffer_descriptions,
+        .vertex_attributes = mesh_vertex_attributes,
     });
 }
 
@@ -64,21 +73,21 @@ SDL_GPURenderer::SDL_GPURenderer(
     : Renderer(std::move(graphics_factory)),
       sdl_window{static_cast<SDL_Window*>(window.get_window_handle())},
       gpu_device{std::move(gpu_device)},
-      triangle_vertex_shader{make_triangle_shader(
+      mesh_vertex_shader{make_mesh_shader(
           *this->gpu_device,
-          "res/shaders/sdl_gpu/triangle_vert.hlsl",
+          "res/shaders/sdl_gpu/mesh_vert.hlsl",
           ShaderStage::Vertex
       )},
-      triangle_fragment_shader{make_triangle_shader(
+      mesh_fragment_shader{make_mesh_shader(
           *this->gpu_device,
-          "res/shaders/sdl_gpu/triangle_frag.hlsl",
+          "res/shaders/sdl_gpu/mesh_frag.hlsl",
           ShaderStage::Fragment
       )},
-      triangle_pipeline{make_triangle_pipeline(
+      mesh_pipeline{make_mesh_pipeline(
           *this->gpu_device,
           sdl_window,
-          triangle_vertex_shader,
-          triangle_fragment_shader
+          mesh_vertex_shader,
+          mesh_fragment_shader
       )} {}
 
 auto SDL_GPURenderer::set_view_matrix(const Maths::Matrix4x4f& /*view_matrix*/)
@@ -146,7 +155,7 @@ auto SDL_GPURenderer::draw() -> void {
 
     {
         auto render_pass = command_buffer.begin_render_pass(color_targets);
-        render_pass.bind_graphics_pipeline(triangle_pipeline);
+        render_pass.bind_graphics_pipeline(mesh_pipeline);
 
         for (const auto& queued : queued_draws) {
             const auto& renderable =
