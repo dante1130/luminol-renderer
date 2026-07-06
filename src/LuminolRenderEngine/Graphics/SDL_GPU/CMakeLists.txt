@@ -1,6 +1,7 @@
 add_library(Luminol.Graphics.SDL_GPU
     SDL_GPURenderer.cpp
     SDL_GPUDevice.cpp
+    SDL_GPUTypeConversions.cpp
     SDL_GPUShader.cpp
     SDL_GPUCommandBuffer.cpp
     SDL_GPURenderPass.cpp

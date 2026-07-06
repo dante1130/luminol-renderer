@@ -1,7 +1,6 @@
 #include "SDL_GPUDevice.hpp"
 
 #include <fstream>
-#include <stdexcept>
 #include <vector>
 
 #include <gsl/gsl>
@@ -15,6 +14,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTransferBuffer.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypeConversions.hpp>
 
 namespace {
 
@@ -52,119 +52,6 @@ auto create_sdl_gpu_device(SDL_Window* window) -> SDL_GPUDevice* {
     }
 
     return gpu_device;
-}
-
-constexpr auto to_sdl_shader_stage(ShaderStage stage) -> SDL_GPUShaderStage {
-    switch (stage) {
-        case ShaderStage::Vertex:
-            return SDL_GPU_SHADERSTAGE_VERTEX;
-        case ShaderStage::Fragment:
-            return SDL_GPU_SHADERSTAGE_FRAGMENT;
-    }
-    throw std::runtime_error{"Invalid shader stage"};
-}
-
-constexpr auto to_shadercross_stage(ShaderStage stage)
-    -> SDL_ShaderCross_ShaderStage {
-    switch (stage) {
-        case ShaderStage::Vertex:
-            return SDL_SHADERCROSS_SHADERSTAGE_VERTEX;
-        case ShaderStage::Fragment:
-            return SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT;
-    }
-    throw std::runtime_error{"Invalid shader stage"};
-}
-
-constexpr auto from_sdl_texture_format(SDL_GPUTextureFormat format)
-    -> TextureFormat {
-    switch (format) {
-        case SDL_GPU_TEXTUREFORMAT_INVALID:
-            return TextureFormat::Invalid;
-        case SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM:
-            return TextureFormat::B8G8R8A8_Unorm;
-        case SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM:
-            return TextureFormat::R8G8B8A8_Unorm;
-        default:
-            return TextureFormat::Invalid;
-    }
-}
-
-constexpr auto to_sdl_primitive_type(PrimitiveType type)
-    -> SDL_GPUPrimitiveType {
-    switch (type) {
-        case PrimitiveType::TriangleList:
-            return SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
-        case PrimitiveType::TriangleStrip:
-            return SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP;
-        case PrimitiveType::LineList:
-            return SDL_GPU_PRIMITIVETYPE_LINELIST;
-        case PrimitiveType::LineStrip:
-            return SDL_GPU_PRIMITIVETYPE_LINESTRIP;
-        case PrimitiveType::PointList:
-            return SDL_GPU_PRIMITIVETYPE_POINTLIST;
-    }
-    throw std::runtime_error{"Invalid primitive type"};
-}
-
-constexpr auto to_sdl_texture_format(TextureFormat format)
-    -> SDL_GPUTextureFormat {
-    switch (format) {
-        case TextureFormat::Invalid:
-            return SDL_GPU_TEXTUREFORMAT_INVALID;
-        case TextureFormat::B8G8R8A8_Unorm:
-            return SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
-        case TextureFormat::R8G8B8A8_Unorm:
-            return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-    }
-    throw std::runtime_error{"Invalid texture format"};
-}
-
-constexpr auto to_sdl_vertex_element_format(VertexElementFormat format)
-    -> SDL_GPUVertexElementFormat {
-    switch (format) {
-        case VertexElementFormat::Float:
-            return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT;
-        case VertexElementFormat::Float2:
-            return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
-        case VertexElementFormat::Float3:
-            return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-        case VertexElementFormat::Float4:
-            return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
-    }
-    throw std::runtime_error{"Invalid vertex element format"};
-}
-
-constexpr auto to_sdl_vertex_input_rate(VertexInputRate rate)
-    -> SDL_GPUVertexInputRate {
-    switch (rate) {
-        case VertexInputRate::Vertex:
-            return SDL_GPU_VERTEXINPUTRATE_VERTEX;
-        case VertexInputRate::Instance:
-            return SDL_GPU_VERTEXINPUTRATE_INSTANCE;
-    }
-    throw std::runtime_error{"Invalid vertex input rate"};
-}
-
-constexpr auto to_sdl_buffer_usage(BufferUsage usage)
-    -> SDL_GPUBufferUsageFlags {
-    switch (usage) {
-        case BufferUsage::Vertex:
-            return SDL_GPU_BUFFERUSAGE_VERTEX;
-        case BufferUsage::Index:
-            return SDL_GPU_BUFFERUSAGE_INDEX;
-    }
-    throw std::runtime_error{"Invalid buffer usage"};
-}
-
-constexpr auto to_sdl_transfer_buffer_usage(TransferBufferUsage usage)
-    -> SDL_GPUTransferBufferUsage {
-    switch (usage) {
-        case TransferBufferUsage::Upload:
-            return SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-        case TransferBufferUsage::Download:
-            return SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD;
-    }
-    throw std::runtime_error{"Invalid transfer buffer usage"};
 }
 
 }  // namespace
