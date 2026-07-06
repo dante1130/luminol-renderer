@@ -5,7 +5,9 @@
 #include <gsl/gsl>
 
 #include <LuminolRenderEngine/Graphics/Mesh.hpp>
+#include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
 
@@ -17,7 +19,8 @@ public:
     SDL_GPUMesh(
         GPUDevice& device,
         gsl::span<const float> vertices,
-        gsl::span<const uint32_t> indices
+        gsl::span<const uint32_t> indices,
+        const TexturePaths& texture_paths
     );
 
     auto draw() const -> void override;
@@ -31,6 +34,9 @@ private:
     Buffer vertex_buffer;
     Buffer index_buffer;
     uint32_t index_count;
+
+    Texture texture;
+    Sampler sampler;
 };
 
 }  // namespace Luminol::Graphics::SDL_GPU

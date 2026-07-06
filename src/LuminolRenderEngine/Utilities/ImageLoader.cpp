@@ -5,12 +5,21 @@
 
 namespace Luminol::Utilities::ImageLoader {
 
-auto load_image(const std::filesystem::path& path) -> Image {
+auto load_image(const std::filesystem::path& path, int32_t desired_channels)
+    -> Image {
     Image image = {.path = path, .data = {}};
 
     auto* image_data = stbi_load(
-        path.string().c_str(), &image.width, &image.height, &image.channels, 0
+        path.string().c_str(),
+        &image.width,
+        &image.height,
+        &image.channels,
+        desired_channels
     );
+
+    if (desired_channels != 0) {
+        image.channels = desired_channels;
+    }
 
     image.data.resize(
         static_cast<size_t>(image.width) * image.height * image.channels

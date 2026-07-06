@@ -12,7 +12,8 @@ struct Image {
     int32_t channels = {0};
 };
 
-auto load_image(const std::filesystem::path& path) -> Image;
+auto load_image(const std::filesystem::path& path, int32_t desired_channels = 0)
+    -> Image;
 
 auto get_default_normal_map() -> Image;
 

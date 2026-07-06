@@ -29,6 +29,10 @@ public:
         uint32_t first_slot, gsl::span<const VertexBufferBinding> bindings
     ) -> void;
 
+    auto bind_fragment_samplers(
+        uint32_t first_slot, gsl::span<const TextureSamplerBinding> bindings
+    ) -> void;
+
     auto bind_index_buffer(
         const Buffer& buffer,
         IndexElementSize element_size,

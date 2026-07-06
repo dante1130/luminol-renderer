@@ -13,6 +13,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTransferBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypeConversions.hpp>
 
@@ -357,6 +358,81 @@ auto GPUDevice::create_transfer_buffer(const TransferBufferInfo& info)
     return TransferBuffer{
         std::move(owned), shared_from_this(), info.size
     };
+}
+
+auto GPUDevice::create_texture(const TextureInfo& info) -> Texture {
+    const auto create_info = SDL_GPUTextureCreateInfo{
+        .type = SDL_GPU_TEXTURETYPE_2D,
+        .format = to_sdl_texture_format(info.format),
+        .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
+        .width = info.width,
+        .height = info.height,
+        .layer_count_or_depth = 1,
+        .num_levels = 1,
+        .sample_count = SDL_GPU_SAMPLECOUNT_1,
+        .props = 0,
+    };
+
+    auto* raw_texture = SDL_CreateGPUTexture(this->device.get(), &create_info);
+
+    if (raw_texture == nullptr) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_ERROR,
+            "Failed to create SDL_GPUTexture: %s",
+            SDL_GetError()
+        );
+        Ensures(false);
+    }
+
+    auto owned = std::unique_ptr<SDL_GPUTexture, Texture::SDL_GPUTextureDeleter>(
+        raw_texture,
+        [device = shared_from_this()](SDL_GPUTexture* texture_to_release) {
+            SDL_ReleaseGPUTexture(device->native_handle(), texture_to_release);
+        }
+    );
+
+    return Texture{std::move(owned), info.width, info.height};
+}
+
+auto GPUDevice::create_sampler(const SamplerInfo& info) -> Sampler {
+    const auto create_info = SDL_GPUSamplerCreateInfo{
+        .min_filter = to_sdl_filter(info.filter),
+        .mag_filter = to_sdl_filter(info.filter),
+        .mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
+        .address_mode_u = to_sdl_sampler_address_mode(info.address_mode),
+        .address_mode_v = to_sdl_sampler_address_mode(info.address_mode),
+        .address_mode_w = to_sdl_sampler_address_mode(info.address_mode),
+        .mip_lod_bias = 0.0F,
+        .max_anisotropy = 1.0F,
+        .compare_op = SDL_GPU_COMPAREOP_INVALID,
+        .min_lod = 0.0F,
+        .max_lod = 0.0F,
+        .enable_anisotropy = false,
+        .enable_compare = false,
+        .padding1 = 0,
+        .padding2 = 0,
+        .props = 0,
+    };
+
+    auto* raw_sampler = SDL_CreateGPUSampler(this->device.get(), &create_info);
+
+    if (raw_sampler == nullptr) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_ERROR,
+            "Failed to create SDL_GPUSampler: %s",
+            SDL_GetError()
+        );
+        Ensures(false);
+    }
+
+    auto owned = std::unique_ptr<SDL_GPUSampler, Sampler::SDL_GPUSamplerDeleter>(
+        raw_sampler,
+        [device = shared_from_this()](SDL_GPUSampler* sampler_to_release) {
+            SDL_ReleaseGPUSampler(device->native_handle(), sampler_to_release);
+        }
+    );
+
+    return Sampler{std::move(owned)};
 }
 
 auto GPUDevice::get_swapchain_texture_format(SDL_Window* window) const

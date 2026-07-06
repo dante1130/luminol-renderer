@@ -5,12 +5,21 @@
 namespace Luminol::Graphics::SDL_GPU {
 
 class Buffer;
+class Texture;
+class Sampler;
 
 struct VertexBufferBinding {
     // Required; asserted non-null in bind_vertex_buffers. Pointer (not
     // reference) so callers can use designated-initializer syntax.
     const Buffer* buffer = nullptr;
     uint32_t offset = 0;
+};
+
+struct TextureSamplerBinding {
+    // Required; asserted non-null in bind_fragment_samplers. Pointers (not
+    // references) so callers can use designated-initializer syntax.
+    const Texture* texture = nullptr;
+    const Sampler* sampler = nullptr;
 };
 
 enum class LoadOp : uint8_t {
@@ -89,6 +98,16 @@ enum class TransferBufferUsage : uint8_t {
 enum class IndexElementSize : uint8_t {
     Bits16,
     Bits32,
+};
+
+enum class SamplerFilter : uint8_t {
+    Nearest,
+    Linear,
+};
+
+enum class SamplerAddressMode : uint8_t {
+    Repeat,
+    ClampToEdge,
 };
 
 }  // namespace Luminol::Graphics::SDL_GPU
