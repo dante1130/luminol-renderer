@@ -7,7 +7,7 @@
 namespace Luminol::Graphics {
 
 struct DirectionalLight {
-    Maths::Vector3f direction = {0.0f, 0.0f, 0.0f};
+    Maths::Vector3f direction = {0.5f, -0.5f, 1.0f};
     Maths::Vector3f color = {1.0f, 1.0f, 1.0f};
 };
 
@@ -32,7 +32,7 @@ struct SpotLight {
 
 struct AlignedDirectionalLight {
     Maths::Vector4f direction =
-        Maths::Vector4f{0.0f, 0.0f, 0.0f, 0.0f};  // 16 bytes
+        Maths::Vector4f{0.5f, -0.5f, 1.0f, 0.0f};  // 16 bytes
     Maths::Vector4f color =
         Maths::Vector4f{1.0f, 1.0f, 1.0f, 1.0f};  // 16 bytes
 };

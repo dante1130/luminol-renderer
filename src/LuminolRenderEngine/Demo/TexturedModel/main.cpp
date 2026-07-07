@@ -59,6 +59,15 @@ auto main() -> int {
             "res/models/cut_fish/scene.gltf"
         );
 
+    constexpr auto directional_light = Graphics::DirectionalLight{
+        .direction = Maths::Vector3f{0.5f, -0.5f, 1.0f},
+        .color = Maths::Vector3f{1.0f, 1.0f, 1.0f},
+    };
+
+    luminol_engine.get_renderer().get_light_manager().update_directional_light(
+        directional_light
+    );
+
     auto last_frame_time_seconds = 0.0;
 
     while (!luminol_engine.get_window().should_close()) {
