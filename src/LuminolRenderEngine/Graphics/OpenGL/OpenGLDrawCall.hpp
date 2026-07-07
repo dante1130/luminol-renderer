@@ -5,7 +5,7 @@
 #include <LuminolMaths/Vector.hpp>
 #include <LuminolMaths/Matrix.hpp>
 
-#include <LuminolRenderEngine/Graphics/Renderable.hpp>
+#include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 
 namespace Luminol::Graphics {
 

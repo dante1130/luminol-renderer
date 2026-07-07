@@ -1,53 +1,24 @@
 #include "RenderableManager.hpp"
 
-#include <LuminolRenderEngine/Graphics/GraphicsFactory.hpp>
-
 namespace Luminol::Graphics {
 
-RenderableManager::RenderableManager(
-    std::shared_ptr<GraphicsFactory> graphics_factory
-)
-    : graphics_factory{std::move(graphics_factory)} {}
-
-auto RenderableManager::create_renderable(
-    gsl::span<const float> vertices,
-    gsl::span<const uint32_t> indices,
-    const TexturePaths& texture_paths
-) -> RenderableId {
-    auto renderable =
-        this->graphics_factory->create_mesh(vertices, indices, texture_paths);
-
-    auto renderable_id = this->get_free_renderable_id();
-
-    this->renderables_map[renderable_id] = std::move(renderable);
-
-    return renderable_id;
+auto RenderableManager::allocate_id() -> RenderableId {
+    return this->get_free_renderable_id();
 }
 
-auto RenderableManager::create_renderable(
-    const std::filesystem::path& model_path
-) -> RenderableId {
+auto RenderableManager::allocate_id(const std::filesystem::path& model_path)
+    -> RenderableId {
     if (this->renderable_ids_map.contains(model_path)) {
         return this->renderable_ids_map.at(model_path);
     }
 
-    auto renderable = this->graphics_factory->create_model(model_path);
-
-    auto renderable_id = this->get_free_renderable_id();
-
+    const auto renderable_id = this->get_free_renderable_id();
     this->renderable_ids_map[model_path] = renderable_id;
-    this->renderables_map[renderable_id] = std::move(renderable);
 
     return renderable_id;
 }
 
-auto RenderableManager::get_renderable(RenderableId renderable_id) const
-    -> const Renderable& {
-    return *this->renderables_map.at(renderable_id);
-}
-
 auto RenderableManager::remove_renderable(RenderableId renderable_id) -> void {
-    this->renderables_map.erase(renderable_id);
     this->used_renderable_ids.erase(renderable_id);
 
     for (const auto& [model_path, id] : this->renderable_ids_map) {
@@ -64,7 +35,7 @@ auto RenderableManager::get_free_renderable_id() -> RenderableId {
         return 0;
     }
 
-    auto free_renderable_id = *this->used_renderable_ids.crbegin() + 1;
+    const auto free_renderable_id = *this->used_renderable_ids.crbegin() + 1;
     this->used_renderable_ids.emplace(free_renderable_id);
 
     return free_renderable_id;

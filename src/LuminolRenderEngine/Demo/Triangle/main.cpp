@@ -20,7 +20,7 @@ auto main() -> int {
     constexpr auto triangle_indices = std::array<uint32_t, 3>{0, 2, 1};
 
     const auto triangle_id =
-        luminol_engine.get_renderer().get_renderable_manager().create_renderable(
+        luminol_engine.get_renderer().create_renderable(
             triangle_vertices, triangle_indices, Graphics::TexturePaths{}
         );
 

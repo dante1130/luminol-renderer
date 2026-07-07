@@ -7,9 +7,8 @@
 
 #include <LuminolRenderEngine/Graphics/GraphicsApi.hpp>
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
+#include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 #include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
-#include <LuminolRenderEngine/Graphics/Mesh.hpp>
-#include <LuminolRenderEngine/Graphics/Model.hpp>
 #include <LuminolRenderEngine/Window/Window.hpp>
 
 namespace Luminol::Graphics {
@@ -33,11 +32,13 @@ public:
         gsl::span<const float> vertices,
         gsl::span<const uint32_t> indices,
         const TexturePaths& texture_paths
-    ) const -> std::unique_ptr<Mesh> = 0;
+    ) -> RenderableId = 0;
 
     [[nodiscard]] virtual auto create_model(
         const std::filesystem::path& model_path
-    ) const -> std::unique_ptr<Model> = 0;
+    ) -> RenderableId = 0;
+
+    virtual auto remove_renderable(RenderableId renderable_id) -> void = 0;
 
     [[nodiscard]] virtual auto get_graphics_api() const -> GraphicsApi = 0;
 };

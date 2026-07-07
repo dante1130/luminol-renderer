@@ -44,7 +44,7 @@ OpenGLSkyboxRenderPass::OpenGLSkyboxRenderPass()
           .right = std::filesystem::path{"res/skybox/default/right.jpg"},
       }},
       skybox_shader{create_skybox_shader()},
-      cube{"res/models/cube/cube.obj"} {}
+      cube{load_meshes_from_model("res/models/cube/cube.obj")} {}
 
 auto OpenGLSkyboxRenderPass::draw(
     const OpenGLFrameBuffer& hdr_frame_buffer,
@@ -76,7 +76,9 @@ auto OpenGLSkyboxRenderPass::draw(
     glDepthFunc(GL_LEQUAL);
     this->skybox_shader.bind();
     this->skybox.bind();
-    this->cube.draw();
+    for (const auto& mesh : this->cube) {
+        mesh.draw();
+    }
     this->skybox.unbind();
     this->skybox_shader.unbind();
     glDepthFunc(GL_LESS);

@@ -6,7 +6,6 @@
 #include <gsl/gsl>
 #include <LuminolMaths/Matrix.hpp>
 
-#include <LuminolRenderEngine/Graphics/Renderable.hpp>
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBufferCache.hpp>
@@ -20,6 +19,7 @@ class GPUDevice;
 class CopyPass;
 class CommandBuffer;
 class RenderPass;
+class SDL_GPUFactory;
 
 struct InstanceBatch {
     RenderableId renderable_id;
@@ -44,7 +44,7 @@ public:
     ) -> std::vector<InstanceBatch>;
 
     auto draw(
-        const RenderableManager& renderable_manager,
+        const SDL_GPUFactory& graphics_factory,
         CommandBuffer& command_buffer,
         RenderPass& render_pass,
         gsl::span<const InstanceBatch> instance_batches,

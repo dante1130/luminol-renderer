@@ -3,15 +3,16 @@
 #include <LuminolMaths/Vector.hpp>
 #include <LuminolMaths/Matrix.hpp>
 
+#include <filesystem>
 #include <memory>
 
 #include <gsl/gsl>
 
 #include <LuminolRenderEngine/Window/Window.hpp>
-#include <LuminolRenderEngine/Graphics/Renderable.hpp>
 #include <LuminolRenderEngine/Graphics/BufferBit.hpp>
 #include <LuminolRenderEngine/Graphics/LightManager.hpp>
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
+#include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
 
 namespace Luminol::Graphics {
 
@@ -26,9 +27,17 @@ public:
     auto operator=(const Renderer&) -> Renderer& = delete;
     auto operator=(Renderer&&) -> Renderer& = delete;
 
-    [[nodiscard]] auto get_renderable_manager() const
-        -> const RenderableManager&;
-    [[nodiscard]] auto get_renderable_manager() -> RenderableManager&;
+    [[nodiscard]] auto create_renderable(
+        gsl::span<const float> vertices,
+        gsl::span<const uint32_t> indices,
+        const TexturePaths& texture_paths
+    ) -> RenderableId;
+
+    [[nodiscard]] auto create_renderable(
+        const std::filesystem::path& model_path
+    ) -> RenderableId;
+
+    auto remove_renderable(RenderableId renderable_id) -> void;
 
     [[nodiscard]] auto get_light_manager() const -> const LightManager&;
     [[nodiscard]] auto get_light_manager() -> LightManager&;
@@ -71,7 +80,7 @@ public:
     virtual auto draw() -> void = 0;
 
 private:
-    RenderableManager renderable_manager;
+    std::shared_ptr<GraphicsFactory> graphics_factory;
     LightManager light_manager;
 };
 

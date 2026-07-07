@@ -2,13 +2,14 @@
 
 #include <gsl/gsl>
 
-#include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLDrawCall.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLFrameBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShaderStorageBuffer.hpp>
 
 namespace Luminol::Graphics {
+
+class OpenGLFactory;
 
 class OpenGLGBufferRenderPass {
 public:
@@ -17,7 +18,7 @@ public:
     [[nodiscard]] auto get_gbuffer_frame_buffer() -> OpenGLFrameBuffer&;
 
     auto draw(
-        const RenderableManager& renderable_manager,
+        const OpenGLFactory& graphics_factory,
         gsl::span<InstancedDrawCall> draw_calls,
         OpenGLShaderStorageBuffer& instancing_model_matrix_buffer
     ) const -> void;

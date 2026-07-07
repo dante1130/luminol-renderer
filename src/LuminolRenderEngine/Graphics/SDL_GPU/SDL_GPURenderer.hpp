@@ -13,11 +13,13 @@
 
 namespace Luminol::Graphics::SDL_GPU {
 
+class SDL_GPUFactory;
+
 class SDL_GPURenderer : public Renderer {
 public:
     SDL_GPURenderer(
         Window& window,
-        std::shared_ptr<GraphicsFactory> graphics_factory,
+        std::shared_ptr<SDL_GPUFactory> graphics_factory,
         std::shared_ptr<GPUDevice> gpu_device
     );
 
@@ -59,6 +61,7 @@ public:
 private:
     SDL_Window* sdl_window = nullptr;
 
+    std::shared_ptr<SDL_GPUFactory> sdl_gpu_factory;
     std::shared_ptr<GPUDevice> gpu_device;
 
     SDL_GPUMeshRenderPass mesh_render_pass;

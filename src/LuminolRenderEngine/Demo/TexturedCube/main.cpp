@@ -102,7 +102,7 @@ auto main() -> int {
     };
 
     const auto cube_id =
-        luminol_engine.get_renderer().get_renderable_manager().create_renderable(
+        luminol_engine.get_renderer().create_renderable(
             cube_vertices,
             cube_indices,
             Graphics::TexturePaths{

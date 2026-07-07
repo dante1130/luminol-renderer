@@ -1,8 +1,12 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
+#include <vector>
 
 #include <LuminolRenderEngine/Graphics/GraphicsFactory.hpp>
+#include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMesh.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
 
@@ -25,17 +29,24 @@ public:
         gsl::span<const float> vertices,
         gsl::span<const uint32_t> indices,
         const TexturePaths& texture_paths
-    ) const -> std::unique_ptr<Mesh> override;
+    ) -> RenderableId override;
 
-    [[nodiscard]] auto create_model(const std::filesystem::path& model_path
-    ) const -> std::unique_ptr<Model> override;
+    [[nodiscard]] auto create_model(const std::filesystem::path& model_path)
+        -> RenderableId override;
+
+    auto remove_renderable(RenderableId renderable_id) -> void override;
 
     [[nodiscard]] auto get_graphics_api() const -> GraphicsApi override;
 
     [[nodiscard]] auto get_gpu_device() const -> std::shared_ptr<GPUDevice>;
 
+    [[nodiscard]] auto get_meshes(RenderableId renderable_id) const
+        -> gsl::span<const SDL_GPUMesh>;
+
 private:
     std::shared_ptr<GPUDevice> gpu_device;
+    RenderableManager renderable_manager;
+    std::unordered_map<RenderableId, std::vector<SDL_GPUMesh>> meshes_by_id;
 };
 
 }  // namespace Luminol::Graphics::SDL_GPU

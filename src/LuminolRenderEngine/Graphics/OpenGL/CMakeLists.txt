@@ -11,7 +11,6 @@ add_library(Luminol.Graphics.OpenGL
     OpenGLTextureFormat.cpp
     OpenGLSkybox.cpp
     OpenGLMesh.cpp
-    OpenGLModel.cpp
     OpenGLError.cpp
     OpenGLFrameBuffer.cpp
     OpenGLGBufferRenderPass.cpp

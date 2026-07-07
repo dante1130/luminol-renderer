@@ -16,10 +16,12 @@
 
 namespace Luminol::Graphics {
 
+class OpenGLFactory;
+
 class OpenGLRenderer : public Renderer {
 public:
     OpenGLRenderer(
-        Window& window, std::shared_ptr<GraphicsFactory> graphics_factory
+        Window& window, std::shared_ptr<OpenGLFactory> graphics_factory
     );
 
     auto set_view_matrix(const Maths::Matrix4x4f& view_matrix) -> void override;
@@ -61,6 +63,8 @@ private:
     auto get_framebuffer_resize_callback() -> Window::FramebufferSizeCallback;
 
     int32_t opengl_version;
+
+    std::shared_ptr<OpenGLFactory> opengl_factory;
 
     std::function<int32_t()> get_window_width;
     std::function<int32_t()> get_window_height;

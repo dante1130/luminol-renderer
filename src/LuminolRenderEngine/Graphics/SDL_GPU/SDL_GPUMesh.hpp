@@ -1,10 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
+#include <vector>
 
 #include <gsl/gsl>
 
-#include <LuminolRenderEngine/Graphics/Mesh.hpp>
 #include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
@@ -15,7 +16,7 @@ namespace Luminol::Graphics::SDL_GPU {
 class GPUDevice;
 class RenderPass;
 
-class SDL_GPUMesh : public Mesh {
+class SDL_GPUMesh {
 public:
     SDL_GPUMesh(
         GPUDevice& device,
@@ -31,12 +32,9 @@ public:
         const std::optional<Utilities::ImageLoader::Image>& diffuse_texture_image
     );
 
-    auto draw() const -> void override;
-    auto draw_instanced(int32_t instance_count) const -> void override;
-
-    auto draw(RenderPass& sdl_gpu_pass) const -> void override;
+    auto draw(RenderPass& sdl_gpu_pass) const -> void;
     auto draw_instanced(int32_t instance_count, RenderPass& sdl_gpu_pass) const
-        -> void override;
+        -> void;
 
 private:
     Buffer vertex_buffer;
@@ -46,5 +44,9 @@ private:
     Texture texture;
     Sampler sampler;
 };
+
+[[nodiscard]] auto load_meshes_from_model(
+    GPUDevice& device, const std::filesystem::path& model_path
+) -> std::vector<SDL_GPUMesh>;
 
 }  // namespace Luminol::Graphics::SDL_GPU

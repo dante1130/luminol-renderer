@@ -21,7 +21,7 @@ auto main() -> int {
     constexpr auto quad_indices = std::array<uint32_t, 6>{0, 2, 1, 0, 3, 2};
 
     const auto quad_id =
-        luminol_engine.get_renderer().get_renderable_manager().create_renderable(
+        luminol_engine.get_renderer().create_renderable(
             quad_vertices,
             quad_indices,
             Graphics::TexturePaths{

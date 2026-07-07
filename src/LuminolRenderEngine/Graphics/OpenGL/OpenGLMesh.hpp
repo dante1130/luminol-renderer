@@ -1,7 +1,9 @@
 #pragma once
 
+#include <filesystem>
+#include <vector>
+
 #include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
-#include <LuminolRenderEngine/Graphics/Mesh.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLVertexArrayObject.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLTexture.hpp>
 #include <LuminolRenderEngine/Utilities/ImageLoader.hpp>
@@ -17,7 +19,7 @@ struct TextureImages {
     std::optional<Utilities::ImageLoader::Image> ambient_occlusion_texture;
 };
 
-class OpenGLMesh : public Mesh {
+class OpenGLMesh {
 public:
     using TextureRefOptional =
         std::optional<std::reference_wrapper<const OpenGLTexture>>;
@@ -38,8 +40,8 @@ public:
         const TextureImages& texture_images
     );
 
-    auto draw() const -> void override;
-    auto draw_instanced(int32_t instance_count) const -> void override;
+    auto draw() const -> void;
+    auto draw_instanced(int32_t instance_count) const -> void;
 
 private:
     auto bind_textures() const -> void;
@@ -56,5 +58,9 @@ private:
 };
 
 auto create_quad_mesh() -> OpenGLMesh;
+
+[[nodiscard]] auto load_meshes_from_model(
+    const std::filesystem::path& model_path
+) -> std::vector<OpenGLMesh>;
 
 }  // namespace Luminol::Graphics

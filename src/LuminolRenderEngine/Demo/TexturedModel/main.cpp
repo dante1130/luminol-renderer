@@ -55,9 +55,9 @@ auto main() -> int {
     auto timer = Utilities::Timer{};
 
     const auto model_id =
-        luminol_engine.get_renderer()
-            .get_renderable_manager()
-            .create_renderable("res/models/cut_fish/scene.gltf");
+        luminol_engine.get_renderer().create_renderable(
+            "res/models/cut_fish/scene.gltf"
+        );
 
     auto last_frame_time_seconds = 0.0;
 

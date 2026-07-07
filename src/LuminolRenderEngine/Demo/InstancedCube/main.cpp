@@ -92,9 +92,9 @@ auto main() -> int {
     auto timer = Utilities::Timer{};
 
     const auto model_id =
-        luminol_engine.get_renderer()
-            .get_renderable_manager()
-            .create_renderable("res/models/cube/cube.obj");
+        luminol_engine.get_renderer().create_renderable(
+            "res/models/cube/cube.obj"
+        );
 
     const auto model_matrices = make_grid_model_matrices();
 

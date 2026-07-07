@@ -5,6 +5,7 @@
 #include <gsl/gsl>
 #include <glad/gl.h>
 
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLFactory.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLError.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLBufferBit.hpp>
@@ -75,12 +76,13 @@ auto create_light_uniform_buffer() -> OpenGLUniformBuffer {
 namespace Luminol::Graphics {
 
 OpenGLRenderer::OpenGLRenderer(
-    Window& window, std::shared_ptr<GraphicsFactory> graphics_factory
+    Window& window, std::shared_ptr<OpenGLFactory> graphics_factory
 )
-    : Renderer{std::move(graphics_factory)},
+    : Renderer{graphics_factory},
       opengl_version{
           initialize_opengl(window, this->get_framebuffer_resize_callback())
       },
+      opengl_factory{std::move(graphics_factory)},
       get_window_width{[&window]() { return window.get_width(); }},
       get_window_height{[&window]() { return window.get_height(); }},
       hdr_frame_buffer{create_hdr_frame_buffer(
@@ -224,7 +226,7 @@ auto OpenGLRenderer::draw() -> void {
     this->gbuffer_render_pass.get_gbuffer_frame_buffer().unbind();
 
     this->gbuffer_render_pass.draw(
-        this->get_renderable_manager(),
+        *this->opengl_factory,
         this->instanced_draw_queue,
         this->instancing_model_matrix_buffer
     );
@@ -240,7 +242,7 @@ auto OpenGLRenderer::draw() -> void {
     );
 
     this->color_render_pass.draw(
-        this->get_renderable_manager(),
+        *this->opengl_factory,
         this->hdr_frame_buffer,
         this->instanced_color_draw_queue,
         this->instancing_model_matrix_buffer,

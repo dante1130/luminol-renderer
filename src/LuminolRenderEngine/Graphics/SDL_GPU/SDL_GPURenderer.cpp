@@ -8,6 +8,7 @@
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCopyPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
 
 namespace {
 
@@ -41,11 +42,12 @@ namespace Luminol::Graphics::SDL_GPU {
 
 SDL_GPURenderer::SDL_GPURenderer(
     Window& window,
-    std::shared_ptr<GraphicsFactory> graphics_factory,
+    std::shared_ptr<SDL_GPUFactory> graphics_factory,
     std::shared_ptr<GPUDevice> gpu_device
 )
-    : Renderer(std::move(graphics_factory)),
+    : Renderer(graphics_factory),
       sdl_window{static_cast<SDL_Window*>(window.get_window_handle())},
+      sdl_gpu_factory{std::move(graphics_factory)},
       gpu_device{std::move(gpu_device)},
       mesh_render_pass{*this->gpu_device, sdl_window},
       depth_texture{make_depth_texture(*this->gpu_device, sdl_window)} {}
@@ -150,7 +152,7 @@ auto SDL_GPURenderer::draw() -> void {
         );
 
         mesh_render_pass.draw(
-            this->get_renderable_manager(),
+            *this->sdl_gpu_factory,
             command_buffer,
             render_pass,
             instance_batches,

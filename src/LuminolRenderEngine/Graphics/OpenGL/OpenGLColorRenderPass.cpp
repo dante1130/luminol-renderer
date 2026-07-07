@@ -1,5 +1,7 @@
 #include "OpenGLColorRenderPass.hpp"
 
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLFactory.hpp>
+
 namespace {
 
 using namespace Luminol::Graphics;
@@ -43,7 +45,7 @@ OpenGLColorRenderPass::OpenGLColorRenderPass()
     : color_shader{create_color_shader()} {}
 
 auto OpenGLColorRenderPass::draw(
-    const RenderableManager& renderable_manager,
+    const OpenGLFactory& graphics_factory,
     const OpenGLFrameBuffer& hdr_frame_buffer,
     gsl::span<ColorInstancedDrawCall> draw_calls,
     OpenGLShaderStorageBuffer& instancing_model_matrix_buffer,
@@ -70,12 +72,12 @@ auto OpenGLColorRenderPass::draw(
             draw_call.colors.data()
         );
 
-        const auto& renderable =
-            renderable_manager.get_renderable(draw_call.renderable_id);
-
-        renderable.draw_instanced(
-            gsl::narrow<int32_t>(draw_call.model_matrices.size())
-        );
+        for (const auto& mesh :
+             graphics_factory.get_meshes(draw_call.renderable_id)) {
+            mesh.draw_instanced(
+                gsl::narrow<int32_t>(draw_call.model_matrices.size())
+            );
+        }
     }
 
     this->color_shader.unbind();

@@ -1,5 +1,6 @@
 #include "OpenGLGBufferRenderPass.hpp"
 
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLFactory.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniforms.hpp>
 
 namespace {
@@ -95,7 +96,7 @@ auto OpenGLGBufferRenderPass::get_gbuffer_frame_buffer() -> OpenGLFrameBuffer& {
 }
 
 auto OpenGLGBufferRenderPass::draw(
-    const RenderableManager& renderable_manager,
+    const OpenGLFactory& graphics_factory,
     gsl::span<InstancedDrawCall> draw_calls,
     OpenGLShaderStorageBuffer& instancing_model_matrix_buffer
 ) const -> void {
@@ -110,12 +111,12 @@ auto OpenGLGBufferRenderPass::draw(
             draw_call.model_matrices.data()
         );
 
-        const auto& renderable =
-            renderable_manager.get_renderable(draw_call.renderable_id);
-
-        renderable.draw_instanced(
-            gsl::narrow<int32_t>(draw_call.model_matrices.size())
-        );
+        for (const auto& mesh :
+             graphics_factory.get_meshes(draw_call.renderable_id)) {
+            mesh.draw_instanced(
+                gsl::narrow<int32_t>(draw_call.model_matrices.size())
+            );
+        }
     }
     this->gbuffer_frame_buffer.unbind();
     this->gbuffer_shader.unbind();

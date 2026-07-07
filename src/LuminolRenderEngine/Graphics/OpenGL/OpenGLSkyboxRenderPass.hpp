@@ -2,9 +2,11 @@
 
 #include <LuminolMaths/Matrix.hpp>
 
+#include <vector>
+
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLSkybox.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
-#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLModel.hpp>
+#include <LuminolRenderEngine/Graphics/OpenGL/OpenGLMesh.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLFrameBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLUniformBuffer.hpp>
 
@@ -23,7 +25,7 @@ public:
 private:
     OpenGLSkybox skybox;
     OpenGLShader skybox_shader;
-    OpenGLModel cube;
+    std::vector<OpenGLMesh> cube;
 };
 
 }  // namespace Luminol::Graphics

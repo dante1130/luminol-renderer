@@ -5,7 +5,7 @@
 #include <gsl/gsl>
 #include <LuminolMaths/Matrix.hpp>
 
-#include <LuminolRenderEngine/Graphics/Renderable.hpp>
+#include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTransferBuffer.hpp>
 

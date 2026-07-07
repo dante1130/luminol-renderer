@@ -2,7 +2,6 @@
 
 #include <gsl/gsl>
 
-#include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLDrawCall.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShader.hpp>
 #include <LuminolRenderEngine/Graphics/OpenGL/OpenGLShaderStorageBuffer.hpp>
@@ -10,12 +9,14 @@
 
 namespace Luminol::Graphics {
 
+class OpenGLFactory;
+
 class OpenGLColorRenderPass {
 public:
     OpenGLColorRenderPass();
 
     auto draw(
-        const RenderableManager& renderable_manager,
+        const OpenGLFactory& graphics_factory,
         const OpenGLFrameBuffer& hdr_frame_buffer,
         gsl::span<ColorInstancedDrawCall> draw_calls,
         OpenGLShaderStorageBuffer& instancing_model_matrix_buffer,

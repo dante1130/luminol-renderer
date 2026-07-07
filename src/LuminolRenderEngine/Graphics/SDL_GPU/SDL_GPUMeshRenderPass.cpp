@@ -6,6 +6,7 @@
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
 
 namespace {
@@ -112,7 +113,7 @@ auto SDL_GPUMeshRenderPass::upload_instances(
 }
 
 auto SDL_GPUMeshRenderPass::draw(
-    const RenderableManager& renderable_manager,
+    const SDL_GPUFactory& graphics_factory,
     CommandBuffer& command_buffer,
     RenderPass& render_pass,
     gsl::span<const InstanceBatch> instance_batches,
@@ -128,17 +129,17 @@ auto SDL_GPUMeshRenderPass::draw(
     );
 
     for (const auto& batch : instance_batches) {
-        const auto& renderable =
-            renderable_manager.get_renderable(batch.renderable_id);
-
         const auto& instance_buffer =
             instance_buffer_cache.get(batch.renderable_id);
         const auto storage_buffer_bindings = std::array{&instance_buffer};
         render_pass.bind_vertex_storage_buffers(0, storage_buffer_bindings);
 
-        renderable.draw_instanced(
-            static_cast<int32_t>(batch.instance_count), render_pass
-        );
+        for (const auto& mesh :
+             graphics_factory.get_meshes(batch.renderable_id)) {
+            mesh.draw_instanced(
+                static_cast<int32_t>(batch.instance_count), render_pass
+            );
+        }
     }
 }
 
