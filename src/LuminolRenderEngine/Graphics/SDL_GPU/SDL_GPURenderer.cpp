@@ -13,8 +13,20 @@
 namespace {
 
 using namespace Luminol::Graphics::SDL_GPU;
+using namespace Luminol::Maths;
 
 constexpr auto depth_texture_format = TextureFormat::D24_Unorm;
+
+auto get_view_position(const Matrix4x4f& view_matrix) -> Vector4f {
+    const auto inverse_view_matrix = view_matrix.inverse();
+
+    return Vector4f{
+        inverse_view_matrix[3][0],
+        inverse_view_matrix[3][1],
+        inverse_view_matrix[3][2],
+        0.0F,
+    };
+}
 
 auto make_depth_texture(GPUDevice& device, uint32_t width, uint32_t height)
     -> Texture {
@@ -151,12 +163,22 @@ auto SDL_GPURenderer::draw() -> void {
             color_targets, &depth_stencil_target
         );
 
+        const auto& directional_light =
+            get_light_manager().get_light_data().directional_light;
+
+        const auto light_data = DirectionalLightData{
+            .direction = directional_light.direction,
+            .color = directional_light.color,
+            .view_position = get_view_position(view_matrix),
+        };
+
         mesh_render_pass.draw(
             *this->sdl_gpu_factory,
             command_buffer,
             render_pass,
             instance_batches,
-            view_matrix * projection_matrix
+            view_matrix * projection_matrix,
+            light_data
         );
     }
 

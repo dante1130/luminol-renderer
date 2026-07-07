@@ -30,6 +30,31 @@ auto load_first_texture_or_nothing(
     return textures_map.at(texture_paths[0]);
 }
 
+auto to_texture_images(
+    const Luminol::Utilities::ModelLoader::MeshData& mesh_data,
+    const std::unordered_map<
+        std::filesystem::path,
+        Luminol::Utilities::ImageLoader::Image>& textures_map
+) -> TextureImages {
+    return TextureImages{
+        .diffuse_texture = load_first_texture_or_nothing(
+            mesh_data.diffuse_texture_paths, textures_map
+        ),
+        .normal_texture = load_first_texture_or_nothing(
+            mesh_data.normal_texture_paths, textures_map
+        ),
+        .metallic_texture = load_first_texture_or_nothing(
+            mesh_data.metallic_texture_paths, textures_map
+        ),
+        .roughness_texture = load_first_texture_or_nothing(
+            mesh_data.roughness_texture_paths, textures_map
+        ),
+        .ambient_occlusion_texture = load_first_texture_or_nothing(
+            mesh_data.ambient_occlusion_texture_paths, textures_map
+        ),
+    };
+}
+
 auto create_uploaded_buffer(
     GPUDevice& device,
     const void* source_data,
@@ -101,15 +126,23 @@ auto create_white_pixel_texture(GPUDevice& device) -> Texture {
     return create_uploaded_texture(device, 1, 1, white_pixel.data());
 }
 
-auto create_diffuse_texture(
-    GPUDevice& device, const Luminol::Graphics::TexturePaths& texture_paths
+auto create_flat_normal_texture(GPUDevice& device) -> Texture {
+    constexpr auto flat_normal_pixel =
+        std::array<uint8_t, 4>{0x80, 0x80, 0xFF, 0xFF};
+    return create_uploaded_texture(device, 1, 1, flat_normal_pixel.data());
+}
+
+auto create_texture_from_path(
+    GPUDevice& device,
+    const std::optional<std::filesystem::path>& texture_path,
+    Texture (*default_texture)(GPUDevice&)
 ) -> Texture {
-    if (!texture_paths.diffuse_texture_path.has_value()) {
-        return create_white_pixel_texture(device);
+    if (!texture_path.has_value()) {
+        return default_texture(device);
     }
 
     const auto image = Luminol::Utilities::ImageLoader::load_image(
-        texture_paths.diffuse_texture_path.value(), desired_rgba_channels
+        texture_path.value(), desired_rgba_channels
     );
 
     const auto width = static_cast<uint32_t>(image.width);
@@ -118,16 +151,16 @@ auto create_diffuse_texture(
     return create_uploaded_texture(device, width, height, image.data.data());
 }
 
-auto create_diffuse_texture(
+auto create_texture_from_image(
     GPUDevice& device,
-    const std::optional<Luminol::Utilities::ImageLoader::Image>&
-        diffuse_texture_image
+    const std::optional<Luminol::Utilities::ImageLoader::Image>& texture_image,
+    Texture (*default_texture)(GPUDevice&)
 ) -> Texture {
-    if (!diffuse_texture_image.has_value()) {
-        return create_white_pixel_texture(device);
+    if (!texture_image.has_value()) {
+        return default_texture(device);
     }
 
-    const auto& image = diffuse_texture_image.value();
+    const auto& image = texture_image.value();
 
     const auto width = static_cast<uint32_t>(image.width);
     const auto height = static_cast<uint32_t>(image.height);
@@ -158,15 +191,30 @@ SDL_GPUMesh::SDL_GPUMesh(
           BufferUsage::Index
       )},
       index_count{static_cast<uint32_t>(indices.size())},
-      texture{create_diffuse_texture(device, texture_paths)},
+      diffuse_texture{create_texture_from_path(
+          device, texture_paths.diffuse_texture_path, create_white_pixel_texture
+      )},
+      normal_texture{create_texture_from_path(
+          device, texture_paths.normal_texture_path, create_flat_normal_texture
+      )},
+      metallic_texture{create_texture_from_path(
+          device, texture_paths.metallic_texture_path, create_white_pixel_texture
+      )},
+      roughness_texture{create_texture_from_path(
+          device, texture_paths.roughness_texture_path, create_white_pixel_texture
+      )},
+      ambient_occlusion_texture{create_texture_from_path(
+          device,
+          texture_paths.ambient_occlusion_texture_path,
+          create_white_pixel_texture
+      )},
       sampler{device.create_sampler(SamplerInfo{})} {}
 
 SDL_GPUMesh::SDL_GPUMesh(
     GPUDevice& device,
     gsl::span<const float> vertices,
     gsl::span<const uint32_t> indices,
-    const std::optional<Luminol::Utilities::ImageLoader::Image>&
-        diffuse_texture_image
+    const TextureImages& texture_images
 )
     : vertex_buffer{create_uploaded_buffer(
           device,
@@ -181,7 +229,23 @@ SDL_GPUMesh::SDL_GPUMesh(
           BufferUsage::Index
       )},
       index_count{static_cast<uint32_t>(indices.size())},
-      texture{create_diffuse_texture(device, diffuse_texture_image)},
+      diffuse_texture{create_texture_from_image(
+          device, texture_images.diffuse_texture, create_white_pixel_texture
+      )},
+      normal_texture{create_texture_from_image(
+          device, texture_images.normal_texture, create_flat_normal_texture
+      )},
+      metallic_texture{create_texture_from_image(
+          device, texture_images.metallic_texture, create_white_pixel_texture
+      )},
+      roughness_texture{create_texture_from_image(
+          device, texture_images.roughness_texture, create_white_pixel_texture
+      )},
+      ambient_occlusion_texture{create_texture_from_image(
+          device,
+          texture_images.ambient_occlusion_texture,
+          create_white_pixel_texture
+      )},
       sampler{device.create_sampler(SamplerInfo{})} {}
 
 auto SDL_GPUMesh::draw(RenderPass& sdl_gpu_pass) const -> void {
@@ -199,7 +263,13 @@ auto SDL_GPUMesh::draw_instanced(
     sdl_gpu_pass.bind_index_buffer(index_buffer, IndexElementSize::Bits32, 0);
 
     const auto sampler_bindings = std::array{
-        TextureSamplerBinding{.texture = &texture, .sampler = &sampler}
+        TextureSamplerBinding{.texture = &diffuse_texture, .sampler = &sampler},
+        TextureSamplerBinding{.texture = &normal_texture, .sampler = &sampler},
+        TextureSamplerBinding{.texture = &metallic_texture, .sampler = &sampler},
+        TextureSamplerBinding{.texture = &roughness_texture, .sampler = &sampler},
+        TextureSamplerBinding{
+            .texture = &ambient_occlusion_texture, .sampler = &sampler
+        },
     };
     sdl_gpu_pass.bind_fragment_samplers(0, sampler_bindings);
 
@@ -245,12 +315,11 @@ auto load_meshes_from_model(
             mesh_vertices.push_back(mesh_data.tangents[i].z());
         }
 
-        const auto diffuse_texture_image = load_first_texture_or_nothing(
-            mesh_data.diffuse_texture_paths, model_data.textures_map
-        );
+        const auto texture_images =
+            to_texture_images(mesh_data, model_data.textures_map);
 
         meshes.emplace_back(
-            device, mesh_vertices, mesh_data.indices, diffuse_texture_image
+            device, mesh_vertices, mesh_data.indices, texture_images
         );
     }
 

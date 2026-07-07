@@ -167,6 +167,18 @@ auto CommandBuffer::push_vertex_uniform_data(
     );
 }
 
+auto CommandBuffer::push_fragment_uniform_data(
+    uint32_t slot, gsl::span<const std::byte> data
+) -> void {
+    Expects(command_buffer != nullptr);
+    SDL_PushGPUFragmentUniformData(
+        command_buffer,
+        slot,
+        data.data(),
+        static_cast<uint32_t>(data.size())
+    );
+}
+
 auto CommandBuffer::begin_copy_pass() -> CopyPass {
     Expects(command_buffer != nullptr);
     return CopyPass{SDL_BeginGPUCopyPass(command_buffer)};

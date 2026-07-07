@@ -37,9 +37,23 @@ constexpr auto mesh_vertex_attributes = std::array{
         .format = VertexElementFormat::Float2,
         .offset = sizeof(float) * 3,
     },
+    VertexAttribute{
+        .location = 2,
+        .buffer_slot = 0,
+        .format = VertexElementFormat::Float3,
+        .offset = sizeof(float) * 5,
+    },
+    VertexAttribute{
+        .location = 3,
+        .buffer_slot = 0,
+        .format = VertexElementFormat::Float3,
+        .offset = sizeof(float) * 8,
+    },
 };
 
 constexpr auto depth_texture_format = TextureFormat::D24_Unorm;
+
+constexpr auto fragment_sampler_count = 5U;
 
 auto make_mesh_shader(
     GPUDevice& device, const std::filesystem::path& path, ShaderStage stage
@@ -48,8 +62,9 @@ auto make_mesh_shader(
         .path = path,
         .stage = stage,
         .source_language = ShaderSourceLanguage::Hlsl,
-        .sampler_count = (stage == ShaderStage::Fragment) ? 1U : 0U,
-        .uniform_buffer_count = (stage == ShaderStage::Vertex) ? 1U : 0U,
+        .sampler_count =
+            (stage == ShaderStage::Fragment) ? fragment_sampler_count : 0U,
+        .uniform_buffer_count = 1U,
         .storage_buffer_count = (stage == ShaderStage::Vertex) ? 1U : 0U,
     });
 }
@@ -80,10 +95,10 @@ namespace Luminol::Graphics::SDL_GPU {
 
 SDL_GPUMeshRenderPass::SDL_GPUMeshRenderPass(GPUDevice& device, SDL_Window* window)
     : mesh_vertex_shader{make_mesh_shader(
-          device, "res/shaders/sdl_gpu/mesh_vert.hlsl", ShaderStage::Vertex
+          device, "res/shaders/sdl_gpu/pbr_vert.hlsl", ShaderStage::Vertex
       )},
       mesh_fragment_shader{make_mesh_shader(
-          device, "res/shaders/sdl_gpu/mesh_frag.hlsl", ShaderStage::Fragment
+          device, "res/shaders/sdl_gpu/pbr_frag.hlsl", ShaderStage::Fragment
       )},
       mesh_pipeline{make_mesh_pipeline(
           device, window, mesh_vertex_shader, mesh_fragment_shader
@@ -117,7 +132,8 @@ auto SDL_GPUMeshRenderPass::draw(
     CommandBuffer& command_buffer,
     RenderPass& render_pass,
     gsl::span<const InstanceBatch> instance_batches,
-    const Maths::Matrix4x4f& view_proj
+    const Maths::Matrix4x4f& view_proj,
+    const DirectionalLightData& light_data
 ) -> void {
     render_pass.bind_graphics_pipeline(mesh_pipeline);
 
@@ -125,6 +141,13 @@ auto SDL_GPUMeshRenderPass::draw(
         0,
         gsl::span{
             reinterpret_cast<const std::byte*>(&view_proj), sizeof(view_proj)
+        }
+    );
+
+    command_buffer.push_fragment_uniform_data(
+        0,
+        gsl::span{
+            reinterpret_cast<const std::byte*>(&light_data), sizeof(light_data)
         }
     );
 

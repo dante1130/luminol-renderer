@@ -16,6 +16,14 @@ namespace Luminol::Graphics::SDL_GPU {
 class GPUDevice;
 class RenderPass;
 
+struct TextureImages {
+    std::optional<Utilities::ImageLoader::Image> diffuse_texture;
+    std::optional<Utilities::ImageLoader::Image> normal_texture;
+    std::optional<Utilities::ImageLoader::Image> metallic_texture;
+    std::optional<Utilities::ImageLoader::Image> roughness_texture;
+    std::optional<Utilities::ImageLoader::Image> ambient_occlusion_texture;
+};
+
 class SDL_GPUMesh {
 public:
     SDL_GPUMesh(
@@ -29,7 +37,7 @@ public:
         GPUDevice& device,
         gsl::span<const float> vertices,
         gsl::span<const uint32_t> indices,
-        const std::optional<Utilities::ImageLoader::Image>& diffuse_texture_image
+        const TextureImages& texture_images
     );
 
     auto draw(RenderPass& sdl_gpu_pass) const -> void;
@@ -41,7 +49,11 @@ private:
     Buffer index_buffer;
     uint32_t index_count;
 
-    Texture texture;
+    Texture diffuse_texture;
+    Texture normal_texture;
+    Texture metallic_texture;
+    Texture roughness_texture;
+    Texture ambient_occlusion_texture;
     Sampler sampler;
 };
 

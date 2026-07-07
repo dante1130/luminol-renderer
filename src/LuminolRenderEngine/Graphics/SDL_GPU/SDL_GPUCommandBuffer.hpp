@@ -66,6 +66,10 @@ public:
         uint32_t slot, gsl::span<const std::byte> data
     ) -> void;
 
+    auto push_fragment_uniform_data(
+        uint32_t slot, gsl::span<const std::byte> data
+    ) -> void;
+
     auto submit() -> void;
     auto cancel() -> void;
 

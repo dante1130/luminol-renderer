@@ -5,6 +5,7 @@
 
 #include <gsl/gsl>
 #include <LuminolMaths/Matrix.hpp>
+#include <LuminolMaths/Vector.hpp>
 
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
@@ -24,6 +25,14 @@ class SDL_GPUFactory;
 struct InstanceBatch {
     RenderableId renderable_id;
     uint32_t instance_count;
+};
+
+// Layout matches the LightBuffer cbuffer in pbr_frag.hlsl (register b0,
+// space3): three float4s, so no manual padding is needed.
+struct DirectionalLightData {
+    Maths::Vector4f direction;
+    Maths::Vector4f color;
+    Maths::Vector4f view_position;
 };
 
 // Owns the mesh pipeline (position/uv vertex layout, view_proj uniform,
@@ -48,7 +57,8 @@ public:
         CommandBuffer& command_buffer,
         RenderPass& render_pass,
         gsl::span<const InstanceBatch> instance_batches,
-        const Maths::Matrix4x4f& view_proj
+        const Maths::Matrix4x4f& view_proj,
+        const DirectionalLightData& light_data
     ) -> void;
 
 private:
