@@ -116,10 +116,8 @@ auto Window::is_key_event(uint32_t key, KeyEvent event) const -> bool {
 auto Window::get_mouse_delta() const -> MouseDelta { return this->mouse_delta; }
 
 auto Window::poll_events() -> void {
-    if (!SDL_HasEvent(SDL_EVENT_MOUSE_MOTION)) {
-        this->mouse_delta.delta_x = 0.0;
-        this->mouse_delta.delta_y = 0.0;
-    }
+	this->mouse_delta.delta_x = 0.0;
+	this->mouse_delta.delta_y = 0.0;
 
     auto sdl_event = SDL_Event{};
 
@@ -144,8 +142,8 @@ auto Window::poll_events() -> void {
             }
 
             case SDL_EVENT_MOUSE_MOTION: {
-                this->mouse_delta.delta_x = sdl_event.motion.xrel;
-                this->mouse_delta.delta_y = -sdl_event.motion.yrel;
+                this->mouse_delta.delta_x += sdl_event.motion.xrel;
+                this->mouse_delta.delta_y += -sdl_event.motion.yrel;
                 break;
             }
 
