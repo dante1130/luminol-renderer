@@ -37,6 +37,11 @@ public:
         RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
     ) -> void override;
 
+    auto queue_draw_instanced(
+        RenderableId renderable_id,
+        gsl::span<const Maths::Matrix4x4f> model_matrices
+    ) -> void override;
+
     auto queue_draw_with_color(
         RenderableId renderable_id,
         const Maths::Matrix4x4f& model_matrix,

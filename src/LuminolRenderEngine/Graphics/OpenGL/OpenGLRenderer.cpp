@@ -146,6 +146,29 @@ auto OpenGLRenderer::queue_draw(
     );
 }
 
+auto OpenGLRenderer::queue_draw_instanced(
+    RenderableId renderable_id, gsl::span<const Maths::Matrix4x4f> model_matrices
+) -> void {
+    if (this->instanced_draw_call_map.contains(renderable_id)) {
+        auto& draw_call = this->instanced_draw_call_map.at(renderable_id);
+        draw_call.model_matrices.insert(
+            draw_call.model_matrices.end(),
+            model_matrices.begin(),
+            model_matrices.end()
+        );
+        return;
+    }
+
+    this->instanced_draw_queue.emplace_back(InstancedDrawCall{
+        .renderable_id = renderable_id,
+        .model_matrices = {model_matrices.begin(), model_matrices.end()},
+    });
+
+    this->instanced_draw_call_map.emplace(
+        renderable_id, this->instanced_draw_queue.back()
+    );
+}
+
 auto OpenGLRenderer::queue_draw_with_color(
     RenderableId renderable_id,
     const Maths::Matrix4x4f& model_matrix,

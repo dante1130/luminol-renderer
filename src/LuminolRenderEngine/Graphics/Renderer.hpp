@@ -5,6 +5,8 @@
 
 #include <memory>
 
+#include <gsl/gsl>
+
 #include <LuminolRenderEngine/Window/Window.hpp>
 #include <LuminolRenderEngine/Graphics/Renderable.hpp>
 #include <LuminolRenderEngine/Graphics/BufferBit.hpp>
@@ -47,6 +49,11 @@ public:
 
     virtual auto queue_draw(
         RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
+    ) -> void = 0;
+
+    virtual auto queue_draw_instanced(
+        RenderableId renderable_id,
+        gsl::span<const Maths::Matrix4x4f> model_matrices
     ) -> void = 0;
 
     virtual auto queue_draw_with_color(

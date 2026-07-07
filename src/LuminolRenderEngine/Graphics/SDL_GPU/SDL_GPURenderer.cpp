@@ -2,12 +2,17 @@
 
 #include <array>
 #include <cstddef>
+#include <cstring>
 #include <utility>
 
 #include <gsl/gsl>
 #include <SDL3/SDL_video.h>
 
+#include <LuminolMaths/Matrix.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCopyPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTransferBuffer.hpp>
 
 namespace {
 
@@ -17,11 +22,22 @@ constexpr auto vertex_stride_in_floats = 11U;
 constexpr auto vertex_stride_in_bytes =
     sizeof(float) * vertex_stride_in_floats;
 
-constexpr auto mesh_vertex_buffer_descriptions =
-    std::array{VertexBufferDescription{
+constexpr auto instance_buffer_slot = 1U;
+constexpr auto instance_stride_in_bytes =
+    static_cast<uint32_t>(sizeof(Luminol::Maths::Matrix4x4f));
+constexpr auto instance_row_size_in_bytes = sizeof(float) * 4U;
+
+constexpr auto mesh_vertex_buffer_descriptions = std::array{
+    VertexBufferDescription{
         .slot = 0,
         .pitch = vertex_stride_in_bytes,
-    }};
+    },
+    VertexBufferDescription{
+        .slot = instance_buffer_slot,
+        .pitch = instance_stride_in_bytes,
+        .input_rate = VertexInputRate::Instance,
+    },
+};
 
 constexpr auto mesh_vertex_attributes = std::array{
     VertexAttribute{
@@ -35,6 +51,30 @@ constexpr auto mesh_vertex_attributes = std::array{
         .buffer_slot = 0,
         .format = VertexElementFormat::Float2,
         .offset = sizeof(float) * 3,
+    },
+    VertexAttribute{
+        .location = 2,
+        .buffer_slot = instance_buffer_slot,
+        .format = VertexElementFormat::Float4,
+        .offset = instance_row_size_in_bytes * 0,
+    },
+    VertexAttribute{
+        .location = 3,
+        .buffer_slot = instance_buffer_slot,
+        .format = VertexElementFormat::Float4,
+        .offset = instance_row_size_in_bytes * 1,
+    },
+    VertexAttribute{
+        .location = 4,
+        .buffer_slot = instance_buffer_slot,
+        .format = VertexElementFormat::Float4,
+        .offset = instance_row_size_in_bytes * 2,
+    },
+    VertexAttribute{
+        .location = 5,
+        .buffer_slot = instance_buffer_slot,
+        .format = VertexElementFormat::Float4,
+        .offset = instance_row_size_in_bytes * 3,
     },
 };
 
@@ -155,9 +195,14 @@ auto SDL_GPURenderer::clear(BufferBit /*buffer_bit*/) const -> void {}
 auto SDL_GPURenderer::queue_draw(
     RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
 ) -> void {
-    queued_draws.push_back(QueuedDraw{
-        .renderable_id = renderable_id, .model_matrix = model_matrix
-    });
+    queued_draws[renderable_id].push_back(model_matrix);
+}
+
+auto SDL_GPURenderer::queue_draw_instanced(
+    RenderableId renderable_id, gsl::span<const Maths::Matrix4x4f> model_matrices
+) -> void {
+    auto& batch = queued_draws[renderable_id];
+    batch.insert(batch.end(), model_matrices.begin(), model_matrices.end());
 }
 
 auto SDL_GPURenderer::queue_draw_with_color(
@@ -204,28 +249,107 @@ auto SDL_GPURenderer::draw() -> void {
         .store_op = StoreOp::DontCare,
     };
 
+    struct InstanceBatch {
+        RenderableId renderable_id;
+        uint32_t instance_count;
+    };
+
+    auto instance_batches = std::vector<InstanceBatch>{};
+    instance_batches.reserve(queued_draws.size());
+
+    {
+        auto copy_pass = command_buffer.begin_copy_pass();
+
+        for (const auto& [renderable_id, model_matrices] : queued_draws) {
+            const auto required_size = static_cast<uint32_t>(
+                model_matrices.size() * sizeof(Maths::Matrix4x4f)
+            );
+
+            auto transfer_buffer_it =
+                instance_transfer_buffers.find(renderable_id);
+            if (transfer_buffer_it == instance_transfer_buffers.end() ||
+                transfer_buffer_it->second.get_size() < required_size) {
+                transfer_buffer_it =
+                    instance_transfer_buffers
+                        .insert_or_assign(
+                            renderable_id,
+                            gpu_device->create_transfer_buffer(
+                                TransferBufferInfo{
+                                    .usage = TransferBufferUsage::Upload,
+                                    .size = required_size,
+                                }
+                            )
+                        )
+                        .first;
+            }
+
+            auto instance_buffer_it = instance_buffers.find(renderable_id);
+            if (instance_buffer_it == instance_buffers.end() ||
+                instance_buffer_it->second.get_size() < required_size) {
+                instance_buffer_it =
+                    instance_buffers
+                        .insert_or_assign(
+                            renderable_id,
+                            gpu_device->create_buffer(BufferInfo{
+                                .usage = BufferUsage::Vertex,
+                                .size = required_size,
+                            })
+                        )
+                        .first;
+            }
+
+            auto& transfer_buffer = transfer_buffer_it->second;
+            auto& instance_buffer = instance_buffer_it->second;
+
+            const auto mapped = transfer_buffer.map(true);
+            std::memcpy(mapped.data(), model_matrices.data(), required_size);
+            transfer_buffer.unmap();
+
+            copy_pass.upload_to_buffer(
+                transfer_buffer, 0, instance_buffer, 0, required_size, true
+            );
+
+            instance_batches.push_back(InstanceBatch{
+                .renderable_id = renderable_id,
+                .instance_count = static_cast<uint32_t>(model_matrices.size()),
+            });
+        }
+    }
+
     {
         auto render_pass = command_buffer.begin_render_pass(
             color_targets, &depth_stencil_target
         );
         render_pass.bind_graphics_pipeline(mesh_pipeline);
 
-        for (const auto& queued : queued_draws) {
+        const auto view_proj = view_matrix * projection_matrix;
+        command_buffer.push_vertex_uniform_data(
+            0,
+            gsl::span{
+                reinterpret_cast<const std::byte*>(&view_proj),
+                sizeof(view_proj)
+            }
+        );
+
+        for (const auto& batch : instance_batches) {
             const auto& renderable =
                 this->get_renderable_manager().get_renderable(
-                    queued.renderable_id
+                    batch.renderable_id
                 );
 
-            const auto mvp = queued.model_matrix * view_matrix *
-                              projection_matrix;
-            command_buffer.push_vertex_uniform_data(
-                0,
-                gsl::span{
-                    reinterpret_cast<const std::byte*>(&mvp), sizeof(mvp)
-                }
+            const auto& instance_buffer =
+                instance_buffers.at(batch.renderable_id);
+            const auto instance_bindings = std::array{VertexBufferBinding{
+                .buffer = &instance_buffer,
+                .offset = 0,
+            }};
+            render_pass.bind_vertex_buffers(
+                instance_buffer_slot, instance_bindings
             );
 
-            renderable.draw(render_pass);
+            renderable.draw_instanced(
+                static_cast<int32_t>(batch.instance_count), render_pass
+            );
         }
     }
 

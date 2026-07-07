@@ -1,22 +1,20 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include <LuminolMaths/Vector.hpp>
 
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTransferBuffer.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
-
-struct QueuedDraw {
-    RenderableId renderable_id;
-    Maths::Matrix4x4f model_matrix;
-};
 
 class SDL_GPURenderer : public Renderer {
 public:
@@ -40,6 +38,11 @@ public:
 
     auto queue_draw(
         RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
+    ) -> void override;
+
+    auto queue_draw_instanced(
+        RenderableId renderable_id,
+        gsl::span<const Maths::Matrix4x4f> model_matrices
     ) -> void override;
 
     auto queue_draw_with_color(
@@ -67,7 +70,11 @@ private:
 
     Texture depth_texture;
 
-    std::vector<QueuedDraw> queued_draws;
+    std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>
+        queued_draws;
+
+    std::unordered_map<RenderableId, Buffer> instance_buffers;
+    std::unordered_map<RenderableId, TransferBuffer> instance_transfer_buffers;
 
     Maths::Matrix4x4f view_matrix = Maths::Matrix4x4f::identity();
     Maths::Matrix4x4f projection_matrix = Maths::Matrix4x4f::identity();
