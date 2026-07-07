@@ -1,116 +1,19 @@
 #include "SDL_GPURenderer.hpp"
 
 #include <array>
-#include <cstddef>
-#include <cstring>
 #include <utility>
 
 #include <gsl/gsl>
 #include <SDL3/SDL_video.h>
 
-#include <LuminolMaths/Matrix.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCopyPass.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTransferBuffer.hpp>
 
 namespace {
 
 using namespace Luminol::Graphics::SDL_GPU;
 
-constexpr auto vertex_stride_in_floats = 11U;
-constexpr auto vertex_stride_in_bytes =
-    sizeof(float) * vertex_stride_in_floats;
-
-constexpr auto instance_buffer_slot = 1U;
-constexpr auto instance_stride_in_bytes =
-    static_cast<uint32_t>(sizeof(Luminol::Maths::Matrix4x4f));
-constexpr auto instance_row_size_in_bytes = sizeof(float) * 4U;
-
-constexpr auto mesh_vertex_buffer_descriptions = std::array{
-    VertexBufferDescription{
-        .slot = 0,
-        .pitch = vertex_stride_in_bytes,
-    },
-    VertexBufferDescription{
-        .slot = instance_buffer_slot,
-        .pitch = instance_stride_in_bytes,
-        .input_rate = VertexInputRate::Instance,
-    },
-};
-
-constexpr auto mesh_vertex_attributes = std::array{
-    VertexAttribute{
-        .location = 0,
-        .buffer_slot = 0,
-        .format = VertexElementFormat::Float3,
-        .offset = 0,
-    },
-    VertexAttribute{
-        .location = 1,
-        .buffer_slot = 0,
-        .format = VertexElementFormat::Float2,
-        .offset = sizeof(float) * 3,
-    },
-    VertexAttribute{
-        .location = 2,
-        .buffer_slot = instance_buffer_slot,
-        .format = VertexElementFormat::Float4,
-        .offset = instance_row_size_in_bytes * 0,
-    },
-    VertexAttribute{
-        .location = 3,
-        .buffer_slot = instance_buffer_slot,
-        .format = VertexElementFormat::Float4,
-        .offset = instance_row_size_in_bytes * 1,
-    },
-    VertexAttribute{
-        .location = 4,
-        .buffer_slot = instance_buffer_slot,
-        .format = VertexElementFormat::Float4,
-        .offset = instance_row_size_in_bytes * 2,
-    },
-    VertexAttribute{
-        .location = 5,
-        .buffer_slot = instance_buffer_slot,
-        .format = VertexElementFormat::Float4,
-        .offset = instance_row_size_in_bytes * 3,
-    },
-};
-
 constexpr auto depth_texture_format = TextureFormat::D24_Unorm;
-
-auto make_mesh_shader(
-    GPUDevice& device, const std::filesystem::path& path, ShaderStage stage
-) -> Shader {
-    return device.create_shader(ShaderInfo{
-        .path = path,
-        .stage = stage,
-        .source_language = ShaderSourceLanguage::Hlsl,
-        .sampler_count = (stage == ShaderStage::Fragment) ? 1U : 0U,
-        .uniform_buffer_count = (stage == ShaderStage::Vertex) ? 1U : 0U,
-    });
-}
-
-auto make_mesh_pipeline(
-    GPUDevice& device,
-    SDL_Window* window,
-    const Shader& vertex_shader,
-    const Shader& fragment_shader
-) -> GraphicsPipeline {
-    return device.create_graphics_pipeline(GraphicsPipelineInfo{
-        .vertex_shader = vertex_shader,
-        .fragment_shader = fragment_shader,
-        .color_target_format = device.get_swapchain_texture_format(window),
-        .primitive_type = PrimitiveType::TriangleList,
-        .vertex_buffer_descriptions = mesh_vertex_buffer_descriptions,
-        .vertex_attributes = mesh_vertex_attributes,
-        .enable_depth_test = true,
-        .depth_stencil_format = depth_texture_format,
-        .cull_mode = CullMode::Back,
-        .front_face = FrontFace::Clockwise,
-    });
-}
 
 auto make_depth_texture(GPUDevice& device, uint32_t width, uint32_t height)
     -> Texture {
@@ -144,22 +47,7 @@ SDL_GPURenderer::SDL_GPURenderer(
     : Renderer(std::move(graphics_factory)),
       sdl_window{static_cast<SDL_Window*>(window.get_window_handle())},
       gpu_device{std::move(gpu_device)},
-      mesh_vertex_shader{make_mesh_shader(
-          *this->gpu_device,
-          "res/shaders/sdl_gpu/mesh_vert.hlsl",
-          ShaderStage::Vertex
-      )},
-      mesh_fragment_shader{make_mesh_shader(
-          *this->gpu_device,
-          "res/shaders/sdl_gpu/mesh_frag.hlsl",
-          ShaderStage::Fragment
-      )},
-      mesh_pipeline{make_mesh_pipeline(
-          *this->gpu_device,
-          sdl_window,
-          mesh_vertex_shader,
-          mesh_fragment_shader
-      )},
+      mesh_render_pass{*this->gpu_device, sdl_window},
       depth_texture{make_depth_texture(*this->gpu_device, sdl_window)} {}
 
 auto SDL_GPURenderer::set_view_matrix(const Maths::Matrix4x4f& view_matrix)
@@ -249,108 +137,25 @@ auto SDL_GPURenderer::draw() -> void {
         .store_op = StoreOp::DontCare,
     };
 
-    struct InstanceBatch {
-        RenderableId renderable_id;
-        uint32_t instance_count;
-    };
-
     auto instance_batches = std::vector<InstanceBatch>{};
-    instance_batches.reserve(queued_draws.size());
-
     {
         auto copy_pass = command_buffer.begin_copy_pass();
-
-        for (const auto& [renderable_id, model_matrices] : queued_draws) {
-            const auto required_size = static_cast<uint32_t>(
-                model_matrices.size() * sizeof(Maths::Matrix4x4f)
-            );
-
-            auto transfer_buffer_it =
-                instance_transfer_buffers.find(renderable_id);
-            if (transfer_buffer_it == instance_transfer_buffers.end() ||
-                transfer_buffer_it->second.get_size() < required_size) {
-                transfer_buffer_it =
-                    instance_transfer_buffers
-                        .insert_or_assign(
-                            renderable_id,
-                            gpu_device->create_transfer_buffer(
-                                TransferBufferInfo{
-                                    .usage = TransferBufferUsage::Upload,
-                                    .size = required_size,
-                                }
-                            )
-                        )
-                        .first;
-            }
-
-            auto instance_buffer_it = instance_buffers.find(renderable_id);
-            if (instance_buffer_it == instance_buffers.end() ||
-                instance_buffer_it->second.get_size() < required_size) {
-                instance_buffer_it =
-                    instance_buffers
-                        .insert_or_assign(
-                            renderable_id,
-                            gpu_device->create_buffer(BufferInfo{
-                                .usage = BufferUsage::Vertex,
-                                .size = required_size,
-                            })
-                        )
-                        .first;
-            }
-
-            auto& transfer_buffer = transfer_buffer_it->second;
-            auto& instance_buffer = instance_buffer_it->second;
-
-            const auto mapped = transfer_buffer.map(true);
-            std::memcpy(mapped.data(), model_matrices.data(), required_size);
-            transfer_buffer.unmap();
-
-            copy_pass.upload_to_buffer(
-                transfer_buffer, 0, instance_buffer, 0, required_size, true
-            );
-
-            instance_batches.push_back(InstanceBatch{
-                .renderable_id = renderable_id,
-                .instance_count = static_cast<uint32_t>(model_matrices.size()),
-            });
-        }
+        instance_batches =
+            mesh_render_pass.upload_instances(*gpu_device, copy_pass, queued_draws);
     }
 
     {
         auto render_pass = command_buffer.begin_render_pass(
             color_targets, &depth_stencil_target
         );
-        render_pass.bind_graphics_pipeline(mesh_pipeline);
 
-        const auto view_proj = view_matrix * projection_matrix;
-        command_buffer.push_vertex_uniform_data(
-            0,
-            gsl::span{
-                reinterpret_cast<const std::byte*>(&view_proj),
-                sizeof(view_proj)
-            }
+        mesh_render_pass.draw(
+            this->get_renderable_manager(),
+            command_buffer,
+            render_pass,
+            instance_batches,
+            view_matrix * projection_matrix
         );
-
-        for (const auto& batch : instance_batches) {
-            const auto& renderable =
-                this->get_renderable_manager().get_renderable(
-                    batch.renderable_id
-                );
-
-            const auto& instance_buffer =
-                instance_buffers.at(batch.renderable_id);
-            const auto instance_bindings = std::array{VertexBufferBinding{
-                .buffer = &instance_buffer,
-                .offset = 0,
-            }};
-            render_pass.bind_vertex_buffers(
-                instance_buffer_slot, instance_bindings
-            );
-
-            renderable.draw_instanced(
-                static_cast<int32_t>(batch.instance_count), render_pass
-            );
-        }
     }
 
     command_buffer.submit();

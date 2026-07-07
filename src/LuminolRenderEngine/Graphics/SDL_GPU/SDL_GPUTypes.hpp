@@ -105,6 +105,7 @@ enum class ShaderSourceLanguage : uint8_t {
 enum class BufferUsage : uint8_t {
     Vertex,
     Index,
+    StorageRead,
 };
 
 enum class TransferBufferUsage : uint8_t {

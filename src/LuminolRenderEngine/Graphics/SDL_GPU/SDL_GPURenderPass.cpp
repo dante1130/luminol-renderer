@@ -78,6 +78,25 @@ auto RenderPass::bind_vertex_buffers(
     );
 }
 
+auto RenderPass::bind_vertex_storage_buffers(
+    uint32_t first_slot, gsl::span<const Buffer* const> buffers
+) -> void {
+    Expects(render_pass != nullptr);
+
+    auto sdl_buffers = std::vector<SDL_GPUBuffer*>(buffers.size());
+    for (auto i = size_t{0}; i < buffers.size(); ++i) {
+        Expects(buffers[i] != nullptr);
+        sdl_buffers[i] = buffers[i]->native_handle();
+    }
+
+    SDL_BindGPUVertexStorageBuffers(
+        render_pass,
+        first_slot,
+        sdl_buffers.data(),
+        static_cast<uint32_t>(sdl_buffers.size())
+    );
+}
+
 auto RenderPass::bind_fragment_samplers(
     uint32_t first_slot, gsl::span<const TextureSamplerBinding> bindings
 ) -> void {

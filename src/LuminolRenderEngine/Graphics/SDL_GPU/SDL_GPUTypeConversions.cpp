@@ -138,6 +138,8 @@ auto to_sdl_buffer_usage(BufferUsage usage)
             return SDL_GPU_BUFFERUSAGE_VERTEX;
         case BufferUsage::Index:
             return SDL_GPU_BUFFERUSAGE_INDEX;
+        case BufferUsage::StorageRead:
+            return SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ;
     }
     throw std::runtime_error{"Invalid buffer usage"};
 }

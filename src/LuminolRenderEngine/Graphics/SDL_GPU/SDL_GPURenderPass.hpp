@@ -29,6 +29,10 @@ public:
         uint32_t first_slot, gsl::span<const VertexBufferBinding> bindings
     ) -> void;
 
+    auto bind_vertex_storage_buffers(
+        uint32_t first_slot, gsl::span<const Buffer* const> buffers
+    ) -> void;
+
     auto bind_fragment_samplers(
         uint32_t first_slot, gsl::span<const TextureSamplerBinding> bindings
     ) -> void;

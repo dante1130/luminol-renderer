@@ -7,12 +7,9 @@
 #include <LuminolMaths/Vector.hpp>
 
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTransferBuffer.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
 
@@ -64,17 +61,12 @@ private:
 
     std::shared_ptr<GPUDevice> gpu_device;
 
-    Shader mesh_vertex_shader;
-    Shader mesh_fragment_shader;
-    GraphicsPipeline mesh_pipeline;
+    SDL_GPUMeshRenderPass mesh_render_pass;
 
     Texture depth_texture;
 
     std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>
         queued_draws;
-
-    std::unordered_map<RenderableId, Buffer> instance_buffers;
-    std::unordered_map<RenderableId, TransferBuffer> instance_transfer_buffers;
 
     Maths::Matrix4x4f view_matrix = Maths::Matrix4x4f::identity();
     Maths::Matrix4x4f projection_matrix = Maths::Matrix4x4f::identity();
