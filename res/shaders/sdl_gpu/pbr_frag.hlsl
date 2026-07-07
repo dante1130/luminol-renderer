@@ -38,30 +38,35 @@ float distribution_ggx(float3 normal, float3 half_direction, float roughness) {
     return numerator / denominator;
 }
 
-float geometry_schlick_ggx(float n_dot_v, float roughness) {
-    const float r = roughness + 1.0f;
-    const float k = (r * r) / 8.0f;
-
-    const float numerator = n_dot_v;
-    const float denominator = n_dot_v * (1.0f - k) + k;
-
-    return numerator / denominator;
-}
-
-float geometry_smith(
-    float3 normal, float3 view_direction, float3 light_direction, float roughness
+float visibility_smith_ggx_correlated(
+    float n_dot_v, float n_dot_l, float roughness
 ) {
-    const float n_dot_v = max(dot(normal, view_direction), 0.0f);
-    const float n_dot_l = max(dot(normal, light_direction), 0.0f);
+    const float a2 = roughness * roughness;
+    const float ggx_v = n_dot_l * sqrt(n_dot_v * n_dot_v * (1.0f - a2) + a2);
+    const float ggx_l = n_dot_v * sqrt(n_dot_l * n_dot_l * (1.0f - a2) + a2);
 
-    const float ggx1 = geometry_schlick_ggx(n_dot_v, roughness);
-    const float ggx2 = geometry_schlick_ggx(n_dot_l, roughness);
-
-    return ggx1 * ggx2;
+    return 0.5f / max(ggx_v + ggx_l, 0.0001f);
 }
 
 float3 fresnel_schlick(float cos_theta, float3 f0) {
     return f0 + (1.0f - f0) * pow(clamp(1.0f - cos_theta, 0.0f, 1.0f), 5.0f);
+}
+
+float2 env_brdf_approx(float n_dot_v, float roughness) {
+    const float4 c0 = float4(-1.0f, -0.0275f, -0.572f, 0.022f);
+    const float4 c1 = float4(1.0f, 0.0425f, 1.04f, -0.04f);
+    const float4 r = roughness * c0 + c1;
+
+    const float a004 = min(r.x * r.x, exp2(-9.28f * n_dot_v)) * r.x + r.y;
+
+    return float2(-1.04f, 1.04f) * a004 + r.zw;
+}
+
+float3 energy_compensation(float3 f0, float n_dot_v, float roughness) {
+    const float2 ab = env_brdf_approx(n_dot_v, roughness);
+    const float ess = max(ab.x + ab.y, 0.001f);
+
+    return 1.0f + f0 * (1.0f / ess - 1.0f);
 }
 
 float3 calculate_specular_brdf(
@@ -70,16 +75,18 @@ float3 calculate_specular_brdf(
     float3 half_direction,
     float3 normal,
     float3 view_direction,
+    float3 f0,
     float roughness
 ) {
+    const float n_dot_v = max(dot(normal, view_direction), 0.0f);
+    const float n_dot_l = max(dot(normal, light_direction), 0.0f);
+
     const float normal_distribution = distribution_ggx(normal, half_direction, roughness);
-    const float geometry = geometry_smith(normal, view_direction, light_direction, roughness);
+    const float visibility = visibility_smith_ggx_correlated(n_dot_v, n_dot_l, roughness);
 
-    const float3 numerator = normal_distribution * geometry * fresnel;
-    const float denominator = 4.0f * max(dot(normal, view_direction), 0.0f) *
-        max(dot(normal, light_direction), 0.0f) + 0.0001f;
+    const float3 specular = normal_distribution * visibility * fresnel;
 
-    return numerator / denominator;
+    return specular * energy_compensation(f0, n_dot_v, roughness);
 }
 
 float3 calculate_directional_light(
@@ -99,7 +106,7 @@ float3 calculate_directional_light(
         fresnel_schlick(max(dot(half_direction, view_direction), 0.0f), f0);
 
     const float3 specular = calculate_specular_brdf(
-        fresnel, light_dir, half_direction, normal, view_direction, roughness
+        fresnel, light_dir, half_direction, normal, view_direction, f0, roughness
     );
 
     const float3 k_s = fresnel;
