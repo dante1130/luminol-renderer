@@ -278,6 +278,21 @@ auto SDL_GPUMesh::draw_instanced(
     );
 }
 
+auto SDL_GPUMesh::draw_instanced_geometry_only(
+    int32_t instance_count, RenderPass& sdl_gpu_pass
+) const -> void {
+    const auto vertex_bindings = std::array{VertexBufferBinding{
+        .buffer = &vertex_buffer,
+        .offset = 0,
+    }};
+    sdl_gpu_pass.bind_vertex_buffers(0, vertex_bindings);
+    sdl_gpu_pass.bind_index_buffer(index_buffer, IndexElementSize::Bits32, 0);
+
+    sdl_gpu_pass.draw_indexed_primitives(
+        index_count, static_cast<uint32_t>(instance_count)
+    );
+}
+
 auto load_meshes_from_model(
     GPUDevice& device, const std::filesystem::path& model_path
 ) -> std::vector<SDL_GPUMesh> {

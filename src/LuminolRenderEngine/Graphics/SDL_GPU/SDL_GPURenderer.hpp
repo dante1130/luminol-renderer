@@ -7,6 +7,7 @@
 #include <LuminolMaths/Vector.hpp>
 
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUAmbientOcclusionPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
@@ -65,6 +66,7 @@ private:
     std::shared_ptr<GPUDevice> gpu_device;
 
     SDL_GPUMeshRenderPass mesh_render_pass;
+    SDL_GPUAmbientOcclusionPass ao_pass;
 
     Texture depth_texture;
 

@@ -3,17 +3,20 @@ Texture2D normal_texture : register(t1, space2);
 Texture2D metallic_texture : register(t2, space2);
 Texture2D roughness_texture : register(t3, space2);
 Texture2D ao_texture : register(t4, space2);
+Texture2D ssao_texture : register(t5, space2);
 
 SamplerState albedo_sampler : register(s0, space2);
 SamplerState normal_sampler : register(s1, space2);
 SamplerState metallic_sampler : register(s2, space2);
 SamplerState roughness_sampler : register(s3, space2);
 SamplerState ao_sampler : register(s4, space2);
+SamplerState ssao_sampler : register(s5, space2);
 
 cbuffer LightBuffer : register(b0, space3) {
     float4 light_direction;
     float4 light_color;
     float4 view_position;
+    float4 screen_size;
 };
 
 struct PSInput {
@@ -21,6 +24,7 @@ struct PSInput {
     float3 world_position : TEXCOORD1;
     float3 world_normal : TEXCOORD2;
     float3 world_tangent : TEXCOORD3;
+    float4 screen_position : SV_Position;
 };
 
 static const float PI = 3.14159265359f;
@@ -136,6 +140,9 @@ float4 main(PSInput input) : SV_Target {
     const float roughness = roughness_texture.Sample(roughness_sampler, input.uv).g;
     const float ao = ao_texture.Sample(ao_sampler, input.uv).r;
 
+    const float2 screen_uv = input.screen_position.xy / screen_size.xy;
+    const float ssao = ssao_texture.Sample(ssao_sampler, screen_uv).r;
+
     const float3 view_direction = normalize(view_position.xyz - input.world_position);
 
     float3 f0 = float3(0.04f, 0.04f, 0.04f);
@@ -145,7 +152,7 @@ float4 main(PSInput input) : SV_Target {
         normal, view_direction, albedo, f0, metallic, roughness
     );
 
-    const float3 ambient = 0.03f * albedo * ao;
+    const float3 ambient = 0.03f * albedo * ao * ssao;
     const float3 color = ambient + Lo;
 
     return float4(color, albedo_alpha.a);

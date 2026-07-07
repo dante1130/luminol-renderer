@@ -34,7 +34,7 @@ auto make_depth_texture(GPUDevice& device, uint32_t width, uint32_t height)
         .width = width,
         .height = height,
         .format = depth_texture_format,
-        .usage = TextureUsage::DepthStencilTarget,
+        .usage = TextureUsage::DepthStencilTarget | TextureUsage::Sampler,
     });
 }
 
@@ -62,6 +62,7 @@ SDL_GPURenderer::SDL_GPURenderer(
       sdl_gpu_factory{std::move(graphics_factory)},
       gpu_device{std::move(gpu_device)},
       mesh_render_pass{*this->gpu_device, sdl_window},
+      ao_pass{*this->gpu_device, sdl_window},
       depth_texture{make_depth_texture(*this->gpu_device, sdl_window)} {}
 
 auto SDL_GPURenderer::set_view_matrix(const Maths::Matrix4x4f& view_matrix)
@@ -141,15 +142,10 @@ auto SDL_GPURenderer::draw() -> void {
         depth_texture = make_depth_texture(
             *gpu_device, swapchain->width, swapchain->height
         );
+        ao_pass.resize(*gpu_device, swapchain->width, swapchain->height);
     }
 
     const auto depth_texture_view = TextureView{depth_texture.native_handle()};
-    const auto depth_stencil_target = DepthStencilTargetInfo{
-        .texture = &depth_texture_view,
-        .clear_depth = 1.0F,
-        .load_op = LoadOp::Clear,
-        .store_op = StoreOp::DontCare,
-    };
 
     auto instance_batches = std::vector<InstanceBatch>{};
     {
@@ -157,6 +153,23 @@ auto SDL_GPURenderer::draw() -> void {
         instance_batches =
             mesh_render_pass.upload_instances(*gpu_device, copy_pass, queued_draws);
     }
+
+    ao_pass.draw(
+        *this->sdl_gpu_factory,
+        command_buffer,
+        mesh_render_pass.get_instance_buffer_cache(),
+        instance_batches,
+        view_matrix,
+        projection_matrix,
+        depth_texture
+    );
+
+    const auto depth_stencil_target = DepthStencilTargetInfo{
+        .texture = &depth_texture_view,
+        .clear_depth = 1.0F,
+        .load_op = LoadOp::Load,
+        .store_op = StoreOp::DontCare,
+    };
 
     {
         auto render_pass = command_buffer.begin_render_pass(
@@ -170,6 +183,12 @@ auto SDL_GPURenderer::draw() -> void {
             .direction = directional_light.direction,
             .color = directional_light.color,
             .view_position = get_view_position(view_matrix),
+            .screen_size = Maths::Vector4f{
+                static_cast<float>(swapchain->width),
+                static_cast<float>(swapchain->height),
+                0.0F,
+                0.0F,
+            },
         };
 
         mesh_render_pass.draw(
@@ -178,7 +197,9 @@ auto SDL_GPURenderer::draw() -> void {
             render_pass,
             instance_batches,
             view_matrix * projection_matrix,
-            light_data
+            light_data,
+            ao_pass.get_ao_texture(),
+            ao_pass.get_sampler()
         );
     }
 

@@ -44,6 +44,14 @@ public:
     auto draw_instanced(int32_t instance_count, RenderPass& sdl_gpu_pass) const
         -> void;
 
+    // Binds only vertex/index buffers and issues the draw call, without
+    // binding material samplers. Used by passes whose fragment shader
+    // doesn't sample any of this mesh's material textures (e.g. the SSAO
+    // normal prepass).
+    auto draw_instanced_geometry_only(
+        int32_t instance_count, RenderPass& sdl_gpu_pass
+    ) const -> void;
+
 private:
     Buffer vertex_buffer;
     Buffer index_buffer;

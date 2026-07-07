@@ -11,6 +11,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBufferCache.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 
 struct SDL_Window;
 
@@ -28,11 +29,12 @@ struct InstanceBatch {
 };
 
 // Layout matches the LightBuffer cbuffer in pbr_frag.hlsl (register b0,
-// space3): three float4s, so no manual padding is needed.
+// space3): four float4s, so no manual padding is needed.
 struct DirectionalLightData {
     Maths::Vector4f direction;
     Maths::Vector4f color;
     Maths::Vector4f view_position;
+    Maths::Vector4f screen_size;
 };
 
 // Owns the mesh pipeline (position/uv vertex layout, view_proj uniform,
@@ -58,8 +60,13 @@ public:
         RenderPass& render_pass,
         gsl::span<const InstanceBatch> instance_batches,
         const Maths::Matrix4x4f& view_proj,
-        const DirectionalLightData& light_data
+        const DirectionalLightData& light_data,
+        const Texture& ssao_texture,
+        const Sampler& ssao_sampler
     ) -> void;
+
+    [[nodiscard]] auto get_instance_buffer_cache() const
+        -> const SDL_GPUInstanceBufferCache&;
 
 private:
     Shader mesh_vertex_shader;

@@ -62,9 +62,22 @@ enum class TextureFormat : uint8_t {
 };
 
 enum class TextureUsage : uint8_t {
-    Sampler,
-    DepthStencilTarget,
+    Sampler = 1U << 0U,
+    ColorTarget = 1U << 1U,
+    DepthStencilTarget = 1U << 2U,
 };
+
+constexpr auto operator|(TextureUsage lhs, TextureUsage rhs) -> TextureUsage {
+    return static_cast<TextureUsage>(
+        static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs)
+    );
+}
+
+constexpr auto operator&(TextureUsage lhs, TextureUsage rhs) -> TextureUsage {
+    return static_cast<TextureUsage>(
+        static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs)
+    );
+}
 
 enum class VertexElementFormat : uint8_t {
     Float,

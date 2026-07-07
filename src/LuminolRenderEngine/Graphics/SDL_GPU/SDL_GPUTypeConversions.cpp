@@ -96,13 +96,20 @@ auto to_sdl_texture_format(TextureFormat format)
 }
 
 auto to_sdl_texture_usage(TextureUsage usage) -> SDL_GPUTextureUsageFlags {
-    switch (usage) {
-        case TextureUsage::Sampler:
-            return SDL_GPU_TEXTUREUSAGE_SAMPLER;
-        case TextureUsage::DepthStencilTarget:
-            return SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
+    auto flags = SDL_GPUTextureUsageFlags{0};
+
+    if ((usage & TextureUsage::Sampler) == TextureUsage::Sampler) {
+        flags |= SDL_GPU_TEXTUREUSAGE_SAMPLER;
     }
-    throw std::runtime_error{"Invalid texture usage"};
+    if ((usage & TextureUsage::ColorTarget) == TextureUsage::ColorTarget) {
+        flags |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+    }
+    if ((usage & TextureUsage::DepthStencilTarget) ==
+        TextureUsage::DepthStencilTarget) {
+        flags |= SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
+    }
+
+    return flags;
 }
 
 auto to_sdl_vertex_element_format(VertexElementFormat format)

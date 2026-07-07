@@ -53,7 +53,8 @@ constexpr auto mesh_vertex_attributes = std::array{
 
 constexpr auto depth_texture_format = TextureFormat::D24_Unorm;
 
-constexpr auto fragment_sampler_count = 5U;
+constexpr auto fragment_sampler_count = 6U;
+constexpr auto ssao_sampler_slot = 5U;
 
 auto make_mesh_shader(
     GPUDevice& device, const std::filesystem::path& path, ShaderStage stage
@@ -104,6 +105,11 @@ SDL_GPUMeshRenderPass::SDL_GPUMeshRenderPass(GPUDevice& device, SDL_Window* wind
           device, window, mesh_vertex_shader, mesh_fragment_shader
       )} {}
 
+auto SDL_GPUMeshRenderPass::get_instance_buffer_cache() const
+    -> const SDL_GPUInstanceBufferCache& {
+    return instance_buffer_cache;
+}
+
 auto SDL_GPUMeshRenderPass::upload_instances(
     GPUDevice& device,
     CopyPass& copy_pass,
@@ -133,7 +139,9 @@ auto SDL_GPUMeshRenderPass::draw(
     RenderPass& render_pass,
     gsl::span<const InstanceBatch> instance_batches,
     const Maths::Matrix4x4f& view_proj,
-    const DirectionalLightData& light_data
+    const DirectionalLightData& light_data,
+    const Texture& ssao_texture,
+    const Sampler& ssao_sampler
 ) -> void {
     render_pass.bind_graphics_pipeline(mesh_pipeline);
 
@@ -150,6 +158,11 @@ auto SDL_GPUMeshRenderPass::draw(
             reinterpret_cast<const std::byte*>(&light_data), sizeof(light_data)
         }
     );
+
+    const auto ssao_sampler_bindings = std::array{TextureSamplerBinding{
+        .texture = &ssao_texture, .sampler = &ssao_sampler
+    }};
+    render_pass.bind_fragment_samplers(ssao_sampler_slot, ssao_sampler_bindings);
 
     for (const auto& batch : instance_batches) {
         const auto& instance_buffer =
