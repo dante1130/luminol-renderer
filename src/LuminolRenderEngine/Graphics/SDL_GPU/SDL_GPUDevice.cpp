@@ -22,6 +22,8 @@ namespace {
 using namespace Luminol::Graphics::SDL_GPU;
 
 auto create_sdl_gpu_device(SDL_Window* window) -> SDL_GPUDevice* {
+    SDL_SetLogPriority(SDL_LOG_CATEGORY_GPU, SDL_LOG_PRIORITY_VERBOSE);
+
     auto* gpu_device =
         SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, nullptr);
 
