@@ -11,6 +11,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTonemapPass.hpp>
 #include <LuminolRenderEngine/Utilities/PerformanceLogger.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
@@ -68,8 +69,10 @@ private:
 
     SDL_GPUMeshRenderPass mesh_render_pass;
     SDL_GPUAmbientOcclusionPass ao_pass;
+    SDL_GPUTonemapPass tonemap_pass;
 
     Texture depth_texture;
+    Texture hdr_color_texture;
 
     Utilities::PerformanceLogger performance_logger;
 
@@ -81,6 +84,7 @@ private:
 
     mutable Maths::Vector4f clear_color_value = {0.0F, 0.0F, 0.0F, 1.0F};
     bool luminance_heatmap_enabled = false;
+    float exposure = 1.0F;
 };
 
 }  // namespace Luminol::Graphics::SDL_GPU

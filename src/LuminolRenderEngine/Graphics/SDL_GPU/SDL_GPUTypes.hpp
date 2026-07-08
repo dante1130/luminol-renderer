@@ -58,7 +58,9 @@ enum class TextureFormat : uint8_t {
     Invalid,
     B8G8R8A8_Unorm,
     R8G8B8A8_Unorm,
+    R8G8B8A8_Unorm_Srgb,
     D24_Unorm,
+    R16G16B16A16_Float,
 };
 
 enum class TextureUsage : uint8_t {

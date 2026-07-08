@@ -2,8 +2,6 @@
 
 #include <array>
 
-#include <SDL3/SDL_video.h>
-
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
@@ -52,6 +50,7 @@ constexpr auto mesh_vertex_attributes = std::array{
 };
 
 constexpr auto depth_texture_format = TextureFormat::D24_Unorm;
+constexpr auto hdr_color_texture_format = TextureFormat::R16G16B16A16_Float;
 
 constexpr auto fragment_sampler_count = 6U;
 constexpr auto ssao_sampler_slot = 5U;
@@ -72,14 +71,13 @@ auto make_mesh_shader(
 
 auto make_mesh_pipeline(
     GPUDevice& device,
-    SDL_Window* window,
     const Shader& vertex_shader,
     const Shader& fragment_shader
 ) -> GraphicsPipeline {
     return device.create_graphics_pipeline(GraphicsPipelineInfo{
         .vertex_shader = vertex_shader,
         .fragment_shader = fragment_shader,
-        .color_target_format = device.get_swapchain_texture_format(window),
+        .color_target_format = hdr_color_texture_format,
         .primitive_type = PrimitiveType::TriangleList,
         .vertex_buffer_descriptions = mesh_vertex_buffer_descriptions,
         .vertex_attributes = mesh_vertex_attributes,
@@ -94,7 +92,7 @@ auto make_mesh_pipeline(
 
 namespace Luminol::Graphics::SDL_GPU {
 
-SDL_GPUMeshRenderPass::SDL_GPUMeshRenderPass(GPUDevice& device, SDL_Window* window)
+SDL_GPUMeshRenderPass::SDL_GPUMeshRenderPass(GPUDevice& device)
     : mesh_vertex_shader{make_mesh_shader(
           device, "res/shaders/sdl_gpu/pbr_vert.hlsl", ShaderStage::Vertex
       )},
@@ -102,7 +100,7 @@ SDL_GPUMeshRenderPass::SDL_GPUMeshRenderPass(GPUDevice& device, SDL_Window* wind
           device, "res/shaders/sdl_gpu/pbr_frag.hlsl", ShaderStage::Fragment
       )},
       mesh_pipeline{make_mesh_pipeline(
-          device, window, mesh_vertex_shader, mesh_fragment_shader
+          device, mesh_vertex_shader, mesh_fragment_shader
       )} {}
 
 auto SDL_GPUMeshRenderPass::get_instance_buffer_cache() const

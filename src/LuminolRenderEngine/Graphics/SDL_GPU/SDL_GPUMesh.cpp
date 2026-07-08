@@ -88,13 +88,15 @@ auto create_uploaded_texture(
     CopyPass& copy_pass,
     uint32_t width,
     uint32_t height,
-    const uint8_t* rgba_pixels
+    const uint8_t* rgba_pixels,
+    TextureFormat format = TextureFormat::R8G8B8A8_Unorm
 ) -> Texture {
     const auto size_bytes = width * height * 4U;
 
     auto texture = device.create_texture(TextureInfo{
         .width = width,
         .height = height,
+        .format = format,
     });
 
     auto transfer_buffer = device.create_transfer_buffer(TransferBufferInfo{
@@ -135,7 +137,8 @@ auto create_texture_from_path(
     GPUDevice& device,
     CopyPass& copy_pass,
     const std::optional<std::filesystem::path>& texture_path,
-    Texture (*default_texture)(GPUDevice&, CopyPass&)
+    Texture (*default_texture)(GPUDevice&, CopyPass&),
+    TextureFormat format = TextureFormat::R8G8B8A8_Unorm
 ) -> Texture {
     if (!texture_path.has_value()) {
         return default_texture(device, copy_pass);
@@ -149,7 +152,7 @@ auto create_texture_from_path(
     const auto height = static_cast<uint32_t>(image.height);
 
     return create_uploaded_texture(
-        device, copy_pass, width, height, image.data.data()
+        device, copy_pass, width, height, image.data.data(), format
     );
 }
 
@@ -157,7 +160,8 @@ auto create_texture_from_image(
     GPUDevice& device,
     CopyPass& copy_pass,
     const std::optional<Luminol::Utilities::ImageLoader::Image>& texture_image,
-    Texture (*default_texture)(GPUDevice&, CopyPass&)
+    Texture (*default_texture)(GPUDevice&, CopyPass&),
+    TextureFormat format = TextureFormat::R8G8B8A8_Unorm
 ) -> Texture {
     if (!texture_image.has_value()) {
         return default_texture(device, copy_pass);
@@ -169,7 +173,7 @@ auto create_texture_from_image(
     const auto height = static_cast<uint32_t>(image.height);
 
     return create_uploaded_texture(
-        device, copy_pass, width, height, image.data.data()
+        device, copy_pass, width, height, image.data.data(), format
     );
 }
 
@@ -203,7 +207,8 @@ SDL_GPUMesh::SDL_GPUMesh(
           device,
           copy_pass,
           texture_paths.diffuse_texture_path,
-          create_white_pixel_texture
+          create_white_pixel_texture,
+          TextureFormat::R8G8B8A8_Unorm_Srgb
       )},
       normal_texture{create_texture_from_path(
           device,
@@ -257,7 +262,8 @@ SDL_GPUMesh::SDL_GPUMesh(
           device,
           copy_pass,
           texture_images.diffuse_texture,
-          create_white_pixel_texture
+          create_white_pixel_texture,
+          TextureFormat::R8G8B8A8_Unorm_Srgb
       )},
       normal_texture{create_texture_from_image(
           device,

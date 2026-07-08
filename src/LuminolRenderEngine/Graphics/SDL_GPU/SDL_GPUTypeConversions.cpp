@@ -34,8 +34,12 @@ auto from_sdl_texture_format(SDL_GPUTextureFormat format)
             return TextureFormat::B8G8R8A8_Unorm;
         case SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM:
             return TextureFormat::R8G8B8A8_Unorm;
+        case SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM_SRGB:
+            return TextureFormat::R8G8B8A8_Unorm_Srgb;
         case SDL_GPU_TEXTUREFORMAT_D24_UNORM:
             return TextureFormat::D24_Unorm;
+        case SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT:
+            return TextureFormat::R16G16B16A16_Float;
         default:
             return TextureFormat::Invalid;
     }
@@ -89,8 +93,12 @@ auto to_sdl_texture_format(TextureFormat format)
             return SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
         case TextureFormat::R8G8B8A8_Unorm:
             return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+        case TextureFormat::R8G8B8A8_Unorm_Srgb:
+            return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM_SRGB;
         case TextureFormat::D24_Unorm:
             return SDL_GPU_TEXTUREFORMAT_D24_UNORM;
+        case TextureFormat::R16G16B16A16_Float:
+            return SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT;
     }
     throw std::runtime_error{"Invalid texture format"};
 }

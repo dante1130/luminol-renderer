@@ -13,8 +13,6 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 
-struct SDL_Window;
-
 namespace Luminol::Graphics::SDL_GPU {
 
 class GPUDevice;
@@ -45,7 +43,7 @@ struct DirectionalLightData {
 // upload/draw steps, while SDL_GPURenderer just coordinates passes.
 class SDL_GPUMeshRenderPass {
 public:
-    SDL_GPUMeshRenderPass(GPUDevice& device, SDL_Window* window);
+    explicit SDL_GPUMeshRenderPass(GPUDevice& device);
 
     [[nodiscard]] auto upload_instances(
         GPUDevice& device,

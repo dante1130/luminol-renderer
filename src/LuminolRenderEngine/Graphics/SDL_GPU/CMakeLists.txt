@@ -15,6 +15,7 @@ add_library(Luminol.Graphics.SDL_GPU
     SDL_GPUInstanceBufferCache.cpp
     SDL_GPUMeshRenderPass.cpp
     SDL_GPUAmbientOcclusionPass.cpp
+    SDL_GPUTonemapPass.cpp
 )
 
 target_compile_features(Luminol.Graphics.SDL_GPU PRIVATE cxx_std_20)

@@ -17,6 +17,7 @@ using namespace Luminol::Graphics::SDL_GPU;
 using namespace Luminol::Maths;
 
 constexpr auto depth_texture_format = TextureFormat::D24_Unorm;
+constexpr auto hdr_color_texture_format = TextureFormat::R16G16B16A16_Float;
 
 auto get_view_position(const Matrix4x4f& view_matrix) -> Vector4f {
     const auto inverse_view_matrix = view_matrix.inverse();
@@ -49,6 +50,26 @@ auto make_depth_texture(GPUDevice& device, SDL_Window* window) -> Texture {
     );
 }
 
+auto make_hdr_color_texture(GPUDevice& device, uint32_t width, uint32_t height)
+    -> Texture {
+    return device.create_texture(TextureInfo{
+        .width = width,
+        .height = height,
+        .format = hdr_color_texture_format,
+        .usage = TextureUsage::ColorTarget | TextureUsage::Sampler,
+    });
+}
+
+auto make_hdr_color_texture(GPUDevice& device, SDL_Window* window) -> Texture {
+    auto width = int{0};
+    auto height = int{0};
+    SDL_GetWindowSizeInPixels(window, &width, &height);
+
+    return make_hdr_color_texture(
+        device, static_cast<uint32_t>(width), static_cast<uint32_t>(height)
+    );
+}
+
 }  // namespace
 
 namespace Luminol::Graphics::SDL_GPU {
@@ -62,9 +83,11 @@ SDL_GPURenderer::SDL_GPURenderer(
       sdl_window{static_cast<SDL_Window*>(window.get_window_handle())},
       sdl_gpu_factory{std::move(graphics_factory)},
       gpu_device{std::move(gpu_device)},
-      mesh_render_pass{*this->gpu_device, sdl_window},
+      mesh_render_pass{*this->gpu_device},
       ao_pass{*this->gpu_device, sdl_window},
-      depth_texture{make_depth_texture(*this->gpu_device, sdl_window)} {}
+      tonemap_pass{*this->gpu_device, sdl_window},
+      depth_texture{make_depth_texture(*this->gpu_device, sdl_window)},
+      hdr_color_texture{make_hdr_color_texture(*this->gpu_device, sdl_window)} {}
 
 auto SDL_GPURenderer::set_view_matrix(const Maths::Matrix4x4f& view_matrix)
     -> void {
@@ -77,7 +100,9 @@ auto SDL_GPURenderer::set_projection_matrix(
     this->projection_matrix = projection_matrix;
 }
 
-auto SDL_GPURenderer::set_exposure(float /*exposure*/) -> void {}
+auto SDL_GPURenderer::set_exposure(float exposure) -> void {
+    this->exposure = exposure;
+}
 
 auto SDL_GPURenderer::set_luminance_heatmap_enabled(bool enabled) -> void {
     luminance_heatmap_enabled = enabled;
@@ -138,22 +163,27 @@ auto SDL_GPURenderer::draw() -> void {
         return;
     }
 
-    const auto color_targets = std::array{ColorTargetInfo{
-        .texture = &swapchain->texture,
-        .clear_color = clear_color_value,
-        .load_op = LoadOp::Clear,
-        .store_op = StoreOp::Store,
-    }};
-
     if (depth_texture.get_width() != swapchain->width ||
         depth_texture.get_height() != swapchain->height) {
         depth_texture = make_depth_texture(
+            *gpu_device, swapchain->width, swapchain->height
+        );
+        hdr_color_texture = make_hdr_color_texture(
             *gpu_device, swapchain->width, swapchain->height
         );
         ao_pass.resize(*gpu_device, swapchain->width, swapchain->height);
     }
 
     const auto depth_texture_view = TextureView{depth_texture.native_handle()};
+    const auto hdr_color_texture_view =
+        TextureView{hdr_color_texture.native_handle()};
+
+    const auto color_targets = std::array{ColorTargetInfo{
+        .texture = &hdr_color_texture_view,
+        .clear_color = clear_color_value,
+        .load_op = LoadOp::Clear,
+        .store_op = StoreOp::Store,
+    }};
 
     auto instance_batches = std::vector<InstanceBatch>{};
     {
@@ -221,6 +251,27 @@ auto SDL_GPURenderer::draw() -> void {
 
         performance_logger.record(
             "main_pass", Units::Seconds{pass_timer.elapsed_seconds()}
+        );
+    }
+
+    {
+        const auto pass_timer = Utilities::Timer{};
+
+        const auto tonemap_color_targets = std::array{ColorTargetInfo{
+            .texture = &swapchain->texture,
+            .load_op = LoadOp::DontCare,
+            .store_op = StoreOp::Store,
+        }};
+
+        auto tonemap_render_pass =
+            command_buffer.begin_render_pass(tonemap_color_targets);
+
+        tonemap_pass.draw(
+            command_buffer, tonemap_render_pass, hdr_color_texture, exposure
+        );
+
+        performance_logger.record(
+            "tonemap", Units::Seconds{pass_timer.elapsed_seconds()}
         );
     }
 
