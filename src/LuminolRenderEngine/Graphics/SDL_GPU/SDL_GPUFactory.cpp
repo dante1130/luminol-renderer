@@ -3,6 +3,7 @@
 #include <gsl/gsl>
 #include <SDL3/SDL_video.h>
 
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderer.hpp>
 
@@ -36,7 +37,16 @@ auto SDL_GPUFactory::create_mesh(
     const auto renderable_id = this->renderable_manager.allocate_id();
 
     auto meshes = std::vector<SDL_GPUMesh>{};
-    meshes.emplace_back(*gpu_device, vertices, indices, texture_paths);
+
+    auto command_buffer = gpu_device->create_command_buffer();
+    {
+        auto copy_pass = command_buffer.begin_copy_pass();
+        meshes.emplace_back(
+            *gpu_device, copy_pass, vertices, indices, texture_paths
+        );
+    }
+    command_buffer.submit();
+
     this->meshes_by_id.emplace(renderable_id, std::move(meshes));
 
     return renderable_id;

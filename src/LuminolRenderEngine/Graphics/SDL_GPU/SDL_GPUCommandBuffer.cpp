@@ -123,7 +123,7 @@ auto CommandBuffer::begin_render_pass(
             .resolve_texture = nullptr,
             .resolve_mip_level = 0,
             .resolve_layer = 0,
-            .cycle = false,
+            .cycle = target.cycle,
             .cycle_resolve_texture = false,
             .padding1 = 0,
             .padding2 = 0,
@@ -140,7 +140,7 @@ auto CommandBuffer::begin_render_pass(
             .store_op = to_sdl_store_op(depth_stencil_target->store_op),
             .stencil_load_op = SDL_GPU_LOADOP_DONT_CARE,
             .stencil_store_op = SDL_GPU_STOREOP_DONT_CARE,
-            .cycle = false,
+            .cycle = depth_stencil_target->cycle,
             .clear_stencil = 0,
         };
     }

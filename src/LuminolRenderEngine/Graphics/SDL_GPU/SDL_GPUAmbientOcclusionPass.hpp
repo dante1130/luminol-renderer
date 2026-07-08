@@ -10,6 +10,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
+#include <LuminolRenderEngine/Utilities/PerformanceLogger.hpp>
 
 struct SDL_Window;
 
@@ -37,7 +38,8 @@ public:
         gsl::span<const InstanceBatch> instance_batches,
         const Maths::Matrix4x4f& view_matrix,
         const Maths::Matrix4x4f& projection_matrix,
-        const Texture& depth_texture
+        const Texture& depth_texture,
+        Utilities::PerformanceLogger& performance_logger
     ) -> void;
 
     [[nodiscard]] auto get_ao_texture() const -> const Texture&;

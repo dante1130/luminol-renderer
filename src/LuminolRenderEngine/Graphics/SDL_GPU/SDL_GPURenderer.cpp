@@ -9,6 +9,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCopyPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
+#include <LuminolRenderEngine/Utilities/Timer.hpp>
 
 namespace {
 
@@ -121,9 +122,16 @@ auto SDL_GPURenderer::queue_draw_line(
 ) -> void {}
 
 auto SDL_GPURenderer::draw() -> void {
+    const auto frame_timer = Utilities::Timer{};
+
     auto command_buffer = gpu_device->create_command_buffer();
 
+    const auto acquire_timer = Utilities::Timer{};
     const auto swapchain = command_buffer.acquire_swapchain_texture(sdl_window);
+    performance_logger.record(
+        "acquire_swapchain", Units::Seconds{acquire_timer.elapsed_seconds()}
+    );
+
     if (!swapchain.has_value()) {
         command_buffer.submit();
         queued_draws.clear();
@@ -149,9 +157,15 @@ auto SDL_GPURenderer::draw() -> void {
 
     auto instance_batches = std::vector<InstanceBatch>{};
     {
+        const auto pass_timer = Utilities::Timer{};
+
         auto copy_pass = command_buffer.begin_copy_pass();
         instance_batches =
             mesh_render_pass.upload_instances(*gpu_device, copy_pass, queued_draws);
+
+        performance_logger.record(
+            "instance_upload", Units::Seconds{pass_timer.elapsed_seconds()}
+        );
     }
 
     ao_pass.draw(
@@ -161,7 +175,8 @@ auto SDL_GPURenderer::draw() -> void {
         instance_batches,
         view_matrix,
         projection_matrix,
-        depth_texture
+        depth_texture,
+        performance_logger
     );
 
     const auto depth_stencil_target = DepthStencilTargetInfo{
@@ -172,6 +187,8 @@ auto SDL_GPURenderer::draw() -> void {
     };
 
     {
+        const auto pass_timer = Utilities::Timer{};
+
         auto render_pass = command_buffer.begin_render_pass(
             color_targets, &depth_stencil_target
         );
@@ -201,10 +218,19 @@ auto SDL_GPURenderer::draw() -> void {
             ao_pass.get_ao_texture(),
             ao_pass.get_sampler()
         );
+
+        performance_logger.record(
+            "main_pass", Units::Seconds{pass_timer.elapsed_seconds()}
+        );
     }
 
     command_buffer.submit();
     queued_draws.clear();
+
+    performance_logger.record(
+        "frame", Units::Seconds{frame_timer.elapsed_seconds()}
+    );
+    performance_logger.end_frame();
 }
 
 }  // namespace Luminol::Graphics::SDL_GPU

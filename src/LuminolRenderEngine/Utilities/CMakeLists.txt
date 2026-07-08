@@ -1,6 +1,7 @@
 add_library(Luminol.Utilities
     ImageLoader.cpp
     ModelLoader.cpp
+    PerformanceLogger.cpp
     Timer.cpp
 )
 
@@ -21,6 +22,7 @@ target_link_libraries(Luminol.Utilities PRIVATE
     stb
     GSL
     assimp
+    SDL3::SDL3-static
 )
 
 target_include_directories(Luminol.Utilities PUBLIC

@@ -11,6 +11,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
+#include <LuminolRenderEngine/Utilities/Timer.hpp>
 
 namespace {
 
@@ -222,7 +223,8 @@ auto SDL_GPUAmbientOcclusionPass::draw(
     gsl::span<const InstanceBatch> instance_batches,
     const Maths::Matrix4x4f& view_matrix,
     const Maths::Matrix4x4f& projection_matrix,
-    const Texture& depth_texture
+    const Texture& depth_texture,
+    Utilities::PerformanceLogger& performance_logger
 ) -> void {
     const auto depth_texture_view = TextureView{depth_texture.native_handle()};
     const auto normal_texture_view =
@@ -233,17 +235,21 @@ auto SDL_GPUAmbientOcclusionPass::draw(
 
     // Normal + depth prepass.
     {
+        const auto pass_timer = Utilities::Timer{};
+
         const auto color_targets = std::array{ColorTargetInfo{
             .texture = &normal_texture_view,
             .clear_color = {0.5F, 0.5F, 1.0F, 1.0F},
             .load_op = LoadOp::Clear,
             .store_op = StoreOp::Store,
+            .cycle = true,
         }};
         const auto depth_stencil_target = DepthStencilTargetInfo{
             .texture = &depth_texture_view,
             .clear_depth = 1.0F,
             .load_op = LoadOp::Clear,
             .store_op = StoreOp::Store,
+            .cycle = true,
         };
 
         auto render_pass = command_buffer.begin_render_pass(
@@ -282,15 +288,22 @@ auto SDL_GPUAmbientOcclusionPass::draw(
                 );
             }
         }
+
+        performance_logger.record(
+            "ao_normal_prepass", Units::Seconds{pass_timer.elapsed_seconds()}
+        );
     }
 
     // SSAO pass.
     {
+        const auto pass_timer = Utilities::Timer{};
+
         const auto color_targets = std::array{ColorTargetInfo{
             .texture = &ssao_raw_texture_view,
             .clear_color = {1.0F, 1.0F, 1.0F, 1.0F},
             .load_op = LoadOp::Clear,
             .store_op = StoreOp::Store,
+            .cycle = true,
         }};
 
         auto render_pass = command_buffer.begin_render_pass(color_targets);
@@ -326,15 +339,22 @@ auto SDL_GPUAmbientOcclusionPass::draw(
         render_pass.bind_fragment_samplers(0, sampler_bindings);
 
         render_pass.draw_primitives(3, 1, 0, 0);
+
+        performance_logger.record(
+            "ao_ssao", Units::Seconds{pass_timer.elapsed_seconds()}
+        );
     }
 
     // Blur pass.
     {
+        const auto pass_timer = Utilities::Timer{};
+
         const auto color_targets = std::array{ColorTargetInfo{
             .texture = &ssao_texture_view,
             .clear_color = {1.0F, 1.0F, 1.0F, 1.0F},
             .load_op = LoadOp::Clear,
             .store_op = StoreOp::Store,
+            .cycle = true,
         }};
 
         auto render_pass = command_buffer.begin_render_pass(color_targets);
@@ -362,6 +382,10 @@ auto SDL_GPUAmbientOcclusionPass::draw(
         render_pass.bind_fragment_samplers(0, sampler_bindings);
 
         render_pass.draw_primitives(3, 1, 0, 0);
+
+        performance_logger.record(
+            "ao_blur", Units::Seconds{pass_timer.elapsed_seconds()}
+        );
     }
 }
 

@@ -11,6 +11,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
+#include <LuminolRenderEngine/Utilities/PerformanceLogger.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
 
@@ -69,6 +70,8 @@ private:
     SDL_GPUAmbientOcclusionPass ao_pass;
 
     Texture depth_texture;
+
+    Utilities::PerformanceLogger performance_logger;
 
     std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>
         queued_draws;

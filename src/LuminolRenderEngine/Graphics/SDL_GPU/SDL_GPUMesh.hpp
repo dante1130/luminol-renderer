@@ -15,6 +15,7 @@ namespace Luminol::Graphics::SDL_GPU {
 
 class GPUDevice;
 class RenderPass;
+class CopyPass;
 
 struct TextureImages {
     std::optional<Utilities::ImageLoader::Image> diffuse_texture;
@@ -28,6 +29,7 @@ class SDL_GPUMesh {
 public:
     SDL_GPUMesh(
         GPUDevice& device,
+        CopyPass& copy_pass,
         gsl::span<const float> vertices,
         gsl::span<const uint32_t> indices,
         const TexturePaths& texture_paths
@@ -35,6 +37,7 @@ public:
 
     SDL_GPUMesh(
         GPUDevice& device,
+        CopyPass& copy_pass,
         gsl::span<const float> vertices,
         gsl::span<const uint32_t> indices,
         const TextureImages& texture_images

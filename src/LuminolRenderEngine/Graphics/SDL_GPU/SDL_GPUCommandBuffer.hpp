@@ -30,6 +30,7 @@ struct ColorTargetInfo {
     Maths::Vector4f clear_color = {0.0F, 0.0F, 0.0F, 1.0F};
     LoadOp load_op = LoadOp::Clear;
     StoreOp store_op = StoreOp::Store;
+    bool cycle = false;
 };
 
 struct DepthStencilTargetInfo {
@@ -37,6 +38,7 @@ struct DepthStencilTargetInfo {
     float clear_depth = 1.0F;
     LoadOp load_op = LoadOp::Clear;
     StoreOp store_op = StoreOp::Store;
+    bool cycle = false;
 };
 
 class CommandBuffer {
