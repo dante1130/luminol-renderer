@@ -27,12 +27,15 @@ struct InstanceBatch {
 };
 
 // Layout matches the LightBuffer cbuffer in pbr_frag.hlsl (register b0,
-// space3): four float4s, so no manual padding is needed.
+// space3): four float4s, a row_major float4x4, then a trailing float4, so no
+// manual padding is needed.
 struct DirectionalLightData {
     Maths::Vector4f direction;
     Maths::Vector4f color;
     Maths::Vector4f view_position;
     Maths::Vector4f screen_size;
+    Maths::Matrix4x4f light_space_matrix;
+    Maths::Vector4f shadow_params;  // x: shadow map resolution, y: bias
 };
 
 // Owns the mesh pipeline (position/uv vertex layout, view_proj uniform,
@@ -60,7 +63,9 @@ public:
         const Maths::Matrix4x4f& view_proj,
         const DirectionalLightData& light_data,
         const Texture& ssao_texture,
-        const Sampler& ssao_sampler
+        const Sampler& ssao_sampler,
+        const Texture& shadow_map_texture,
+        const Sampler& shadow_map_sampler
     ) -> void;
 
     [[nodiscard]] auto get_instance_buffer_cache() const

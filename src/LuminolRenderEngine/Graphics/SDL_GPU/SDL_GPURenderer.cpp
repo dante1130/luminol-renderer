@@ -18,6 +18,7 @@ using namespace Luminol::Maths;
 
 constexpr auto depth_texture_format = TextureFormat::D24_Unorm;
 constexpr auto hdr_color_texture_format = TextureFormat::R16G16B16A16_Float;
+constexpr auto shadow_normal_offset_bias = 0.05F;
 
 auto get_view_position(const Matrix4x4f& view_matrix) -> Vector4f {
     const auto inverse_view_matrix = view_matrix.inverse();
@@ -85,6 +86,7 @@ SDL_GPURenderer::SDL_GPURenderer(
       gpu_device{std::move(gpu_device)},
       mesh_render_pass{*this->gpu_device},
       ao_pass{*this->gpu_device, sdl_window},
+      shadow_pass{*this->gpu_device},
       tonemap_pass{*this->gpu_device, sdl_window},
       depth_texture{make_depth_texture(*this->gpu_device, sdl_window)},
       hdr_color_texture{make_hdr_color_texture(*this->gpu_device, sdl_window)} {}
@@ -209,6 +211,26 @@ auto SDL_GPURenderer::draw() -> void {
         performance_logger
     );
 
+    const auto& directional_light =
+        get_light_manager().get_light_data().directional_light;
+    const auto camera_position = get_view_position(view_matrix);
+
+    shadow_pass.draw(
+        *this->sdl_gpu_factory,
+        command_buffer,
+        mesh_render_pass.get_instance_buffer_cache(),
+        instance_batches,
+        Maths::Vector3f{
+            directional_light.direction.x(),
+            directional_light.direction.y(),
+            directional_light.direction.z()
+        },
+        Maths::Vector3f{
+            camera_position.x(), camera_position.y(), camera_position.z()
+        },
+        performance_logger
+    );
+
     const auto depth_stencil_target = DepthStencilTargetInfo{
         .texture = &depth_texture_view,
         .clear_depth = 1.0F,
@@ -223,16 +245,22 @@ auto SDL_GPURenderer::draw() -> void {
             color_targets, &depth_stencil_target
         );
 
-        const auto& directional_light =
-            get_light_manager().get_light_data().directional_light;
-
         const auto light_data = DirectionalLightData{
             .direction = directional_light.direction,
             .color = directional_light.color,
-            .view_position = get_view_position(view_matrix),
+            .view_position = camera_position,
             .screen_size = Maths::Vector4f{
                 static_cast<float>(swapchain->width),
                 static_cast<float>(swapchain->height),
+                0.0F,
+                0.0F,
+            },
+            .light_space_matrix = shadow_pass.get_light_space_matrix(),
+            .shadow_params = Maths::Vector4f{
+                static_cast<float>(
+                    shadow_pass.get_shadow_map_texture().get_width()
+                ),
+                shadow_normal_offset_bias,
                 0.0F,
                 0.0F,
             },
@@ -246,7 +274,9 @@ auto SDL_GPURenderer::draw() -> void {
             view_matrix * projection_matrix,
             light_data,
             ao_pass.get_ao_texture(),
-            ao_pass.get_sampler()
+            ao_pass.get_sampler(),
+            shadow_pass.get_shadow_map_texture(),
+            shadow_pass.get_sampler()
         );
 
         performance_logger.record(

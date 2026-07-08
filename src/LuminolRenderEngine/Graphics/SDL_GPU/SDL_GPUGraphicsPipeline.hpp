@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 
 #include <gsl/gsl>
 
@@ -15,7 +16,9 @@ namespace Luminol::Graphics::SDL_GPU {
 struct GraphicsPipelineInfo {
     const Shader& vertex_shader;
     const Shader& fragment_shader;
-    TextureFormat color_target_format;
+    // std::nullopt for a depth-only pipeline (no color attachment), e.g. a
+    // shadow map depth pass.
+    std::optional<TextureFormat> color_target_format;
     PrimitiveType primitive_type = PrimitiveType::TriangleList;
     gsl::span<const VertexBufferDescription> vertex_buffer_descriptions;
     gsl::span<const VertexAttribute> vertex_attributes;

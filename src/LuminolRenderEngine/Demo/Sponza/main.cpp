@@ -62,7 +62,7 @@ auto main() -> int {
     constexpr auto camera_initial_forward = Maths::Vector3f{-1.0f, 0.0f, 0.0f};
     constexpr auto camera_rotation_speed = 0.1f;
 
-    auto luminol_engine = Luminol::RenderEngine(Luminol::Properties{});
+    auto luminol_engine = Luminol::RenderEngine(Luminol::Properties{.graphics_api = GraphicsApi::SDL_GPU});
     auto camera = Graphics::Camera{CameraProperties{
         .position = camera_initial_position,
         .forward = camera_initial_forward,

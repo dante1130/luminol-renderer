@@ -52,8 +52,9 @@ constexpr auto mesh_vertex_attributes = std::array{
 constexpr auto depth_texture_format = TextureFormat::D24_Unorm;
 constexpr auto hdr_color_texture_format = TextureFormat::R16G16B16A16_Float;
 
-constexpr auto fragment_sampler_count = 6U;
+constexpr auto fragment_sampler_count = 7U;
 constexpr auto ssao_sampler_slot = 5U;
+constexpr auto shadow_map_sampler_slot = 6U;
 
 auto make_mesh_shader(
     GPUDevice& device, const std::filesystem::path& path, ShaderStage stage
@@ -139,7 +140,9 @@ auto SDL_GPUMeshRenderPass::draw(
     const Maths::Matrix4x4f& view_proj,
     const DirectionalLightData& light_data,
     const Texture& ssao_texture,
-    const Sampler& ssao_sampler
+    const Sampler& ssao_sampler,
+    const Texture& shadow_map_texture,
+    const Sampler& shadow_map_sampler
 ) -> void {
     render_pass.bind_graphics_pipeline(mesh_pipeline);
 
@@ -161,6 +164,13 @@ auto SDL_GPUMeshRenderPass::draw(
         .texture = &ssao_texture, .sampler = &ssao_sampler
     }};
     render_pass.bind_fragment_samplers(ssao_sampler_slot, ssao_sampler_bindings);
+
+    const auto shadow_map_sampler_bindings = std::array{TextureSamplerBinding{
+        .texture = &shadow_map_texture, .sampler = &shadow_map_sampler
+    }};
+    render_pass.bind_fragment_samplers(
+        shadow_map_sampler_slot, shadow_map_sampler_bindings
+    );
 
     for (const auto& batch : instance_batches) {
         const auto& instance_buffer =

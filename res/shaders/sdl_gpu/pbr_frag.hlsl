@@ -4,6 +4,7 @@ Texture2D metallic_texture : register(t2, space2);
 Texture2D roughness_texture : register(t3, space2);
 Texture2D ao_texture : register(t4, space2);
 Texture2D ssao_texture : register(t5, space2);
+Texture2D shadow_map_texture : register(t6, space2);
 
 SamplerState albedo_sampler : register(s0, space2);
 SamplerState normal_sampler : register(s1, space2);
@@ -11,12 +12,15 @@ SamplerState metallic_sampler : register(s2, space2);
 SamplerState roughness_sampler : register(s3, space2);
 SamplerState ao_sampler : register(s4, space2);
 SamplerState ssao_sampler : register(s5, space2);
+SamplerState shadow_map_sampler : register(s6, space2);
 
 cbuffer LightBuffer : register(b0, space3) {
     float4 light_direction;
     float4 light_color;
     float4 view_position;
     float4 screen_size;
+    row_major float4x4 light_space_matrix;
+    float4 shadow_params; // x: shadow map resolution, y: normal-offset bias
 };
 
 struct PSInput {
@@ -122,6 +126,39 @@ float3 calculate_directional_light(
     return (k_d * albedo / PI + specular) * radiance * n_dot_l;
 }
 
+float calculate_shadow(float3 world_position, float3 normal) {
+    const float normal_offset_bias = shadow_params.y;
+    const float3 offset_position = world_position + normal * normal_offset_bias;
+
+    const float4 light_space_position =
+        mul(float4(offset_position, 1.0f), light_space_matrix);
+
+    float2 shadow_uv = light_space_position.xy * 0.5f + 0.5f;
+    shadow_uv.y = 1.0f - shadow_uv.y;
+    const float fragment_depth = light_space_position.z;
+
+    if (fragment_depth < 0.0f || fragment_depth > 1.0f ||
+        any(shadow_uv < 0.0f) || any(shadow_uv > 1.0f)) {
+        return 1.0f;
+    }
+
+    const float texel_size = 1.0f / max(shadow_params.x, 1.0f);
+
+    float visibility = 0.0f;
+    [unroll]
+    for (int x = -1; x <= 1; ++x) {
+        [unroll]
+        for (int y = -1; y <= 1; ++y) {
+            const float2 offset = float2(x, y) * texel_size;
+            const float shadow_map_depth =
+                shadow_map_texture.Sample(shadow_map_sampler, shadow_uv + offset).r;
+            visibility += (fragment_depth <= shadow_map_depth) ? 1.0f : 0.0f;
+        }
+    }
+
+    return visibility / 9.0f;
+}
+
 float4 main(PSInput input) : SV_Target {
     const float4 albedo_alpha = albedo_texture.Sample(albedo_sampler, input.uv);
     const float3 albedo = albedo_alpha.rgb;
@@ -151,9 +188,10 @@ float4 main(PSInput input) : SV_Target {
     const float3 Lo = calculate_directional_light(
         normal, view_direction, albedo, f0, metallic, roughness
     );
+    const float shadow = calculate_shadow(input.world_position, normal);
 
     const float3 ambient = 0.03f * albedo * ao * ssao;
-    const float3 color = ambient + Lo;
+    const float3 color = ambient + Lo * shadow;
 
     return float4(color, albedo_alpha.a);
 }

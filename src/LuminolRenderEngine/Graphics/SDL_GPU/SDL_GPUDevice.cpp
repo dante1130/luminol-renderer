@@ -235,7 +235,9 @@ auto GPUDevice::create_graphics_pipeline(const GraphicsPipelineInfo& info)
     }
 
     const auto color_target_description = SDL_GPUColorTargetDescription{
-        .format = to_sdl_texture_format(info.color_target_format),
+        .format = to_sdl_texture_format(
+            info.color_target_format.value_or(TextureFormat::Invalid)
+        ),
         .blend_state = {},
     };
 
@@ -286,8 +288,11 @@ auto GPUDevice::create_graphics_pipeline(const GraphicsPipelineInfo& info)
             },
         .target_info =
             SDL_GPUGraphicsPipelineTargetInfo{
-                .color_target_descriptions = &color_target_description,
-                .num_color_targets = 1,
+                .color_target_descriptions = info.color_target_format.has_value()
+                    ? &color_target_description
+                    : nullptr,
+                .num_color_targets =
+                    info.color_target_format.has_value() ? 1U : 0U,
                 .depth_stencil_format =
                     to_sdl_texture_format(info.depth_stencil_format),
                 .has_depth_stencil_target = info.enable_depth_test,
