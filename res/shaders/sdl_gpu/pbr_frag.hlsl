@@ -12,7 +12,7 @@ SamplerState metallic_sampler : register(s2, space2);
 SamplerState roughness_sampler : register(s3, space2);
 SamplerState ao_sampler : register(s4, space2);
 SamplerState ssao_sampler : register(s5, space2);
-SamplerState shadow_map_sampler : register(s6, space2);
+SamplerComparisonState shadow_map_sampler : register(s6, space2);
 
 cbuffer LightBuffer : register(b0, space3) {
     float4 light_direction;
@@ -143,6 +143,7 @@ float calculate_shadow(float3 world_position, float3 normal) {
     }
 
     const float texel_size = 1.0f / max(shadow_params.x, 1.0f);
+    const float constant_bias = 0.0015f;
 
     float visibility = 0.0f;
     [unroll]
@@ -150,9 +151,9 @@ float calculate_shadow(float3 world_position, float3 normal) {
         [unroll]
         for (int y = -1; y <= 1; ++y) {
             const float2 offset = float2(x, y) * texel_size;
-            const float shadow_map_depth =
-                shadow_map_texture.Sample(shadow_map_sampler, shadow_uv + offset).r;
-            visibility += (fragment_depth <= shadow_map_depth) ? 1.0f : 0.0f;
+            visibility += shadow_map_texture.SampleCmpLevelZero(
+                shadow_map_sampler, shadow_uv + offset, fragment_depth - constant_bias
+            );
         }
     }
 
@@ -188,7 +189,7 @@ float4 main(PSInput input) : SV_Target {
     const float3 Lo = calculate_directional_light(
         normal, view_direction, albedo, f0, metallic, roughness
     );
-    const float shadow = calculate_shadow(input.world_position, normal);
+    const float shadow = calculate_shadow(input.world_position, N);
 
     const float3 ambient = 0.03f * albedo * ao * ssao;
     const float3 color = ambient + Lo * shadow;

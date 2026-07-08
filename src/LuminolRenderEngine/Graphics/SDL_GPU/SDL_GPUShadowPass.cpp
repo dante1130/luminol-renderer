@@ -180,6 +180,7 @@ SDL_GPUShadowPass::SDL_GPUShadowPass(GPUDevice& device)
       shadow_map_sampler{device.create_sampler(SamplerInfo{
           .filter = SamplerFilter::Linear,
           .address_mode = SamplerAddressMode::ClampToEdge,
+          .enable_compare = true,
       })} {}
 
 auto SDL_GPUShadowPass::draw(

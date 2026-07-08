@@ -439,11 +439,13 @@ auto GPUDevice::create_sampler(const SamplerInfo& info) -> Sampler {
         .address_mode_w = to_sdl_sampler_address_mode(info.address_mode),
         .mip_lod_bias = 0.0F,
         .max_anisotropy = 1.0F,
-        .compare_op = SDL_GPU_COMPAREOP_INVALID,
+        .compare_op = info.enable_compare
+            ? SDL_GPU_COMPAREOP_LESS_OR_EQUAL
+            : SDL_GPU_COMPAREOP_INVALID,
         .min_lod = 0.0F,
         .max_lod = 0.0F,
         .enable_anisotropy = false,
-        .enable_compare = false,
+        .enable_compare = info.enable_compare,
         .padding1 = 0,
         .padding2 = 0,
         .props = 0,
