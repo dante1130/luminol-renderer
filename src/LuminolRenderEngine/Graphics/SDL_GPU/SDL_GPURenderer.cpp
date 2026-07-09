@@ -385,9 +385,13 @@ auto SDL_GPURenderer::draw() -> void {
                 0.0F,
             },
             .point_light_count = light_manager_data.point_light_count,
+            .spot_light_count = light_manager_data.spot_light_count,
         };
         std::ranges::copy(
             light_manager_data.point_lights, light_data.point_lights.begin()
+        );
+        std::ranges::copy(
+            light_manager_data.spot_lights, light_data.spot_lights.begin()
         );
 
         mesh_render_pass.draw(

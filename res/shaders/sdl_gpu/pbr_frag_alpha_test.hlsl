@@ -27,6 +27,15 @@ struct PointLight {
     float4 color;
 };
 
+struct SpotLight {
+    float4 position;
+    float4 direction;
+    float3 color;
+    float cut_off;
+    float outer_cut_off;
+    float3 spot_light_element_padding;
+};
+
 cbuffer LightBuffer : register(b0, space3) {
     float4 light_direction;
     float4 light_color;
@@ -39,6 +48,9 @@ cbuffer LightBuffer : register(b0, space3) {
     uint point_light_count;
     float3 point_light_padding;
     PointLight point_lights[64];
+    uint spot_light_count;
+    float3 spot_light_padding;
+    SpotLight spot_lights[64];
 };
 
 struct PSInput {
@@ -199,6 +211,45 @@ float3 calculate_point_light(
     return (k_d * albedo / PI + specular) * radiance * n_dot_l;
 }
 
+float3 calculate_spot_light(
+    SpotLight light,
+    float3 normal,
+    float3 view_direction,
+    float3 world_position,
+    float3 albedo,
+    float3 f0,
+    float metallic,
+    float roughness
+) {
+    const float3 light_dir = normalize(light.position.xyz - world_position);
+
+    const float theta = dot(light_dir, normalize(-light.direction.xyz));
+    const float epsilon = light.cut_off - light.outer_cut_off;
+    const float intensity = saturate((theta - light.outer_cut_off) / epsilon);
+
+    const float distance = length(light.position.xyz - world_position);
+    const float attenuation = 1.0f / (distance * distance);
+
+    const float3 radiance = light.color * attenuation;
+
+    const float3 half_direction = normalize(light_dir + view_direction);
+
+    const float3 fresnel =
+        fresnel_schlick(max(dot(half_direction, view_direction), 0.0f), f0);
+
+    const float3 specular = calculate_specular_brdf(
+        fresnel, light_dir, half_direction, normal, view_direction, f0, roughness
+    );
+
+    const float3 k_s = fresnel;
+    float3 k_d = 1.0f - k_s;
+    k_d *= 1.0f - metallic;
+
+    const float n_dot_l = max(dot(normal, light_dir), 0.0f);
+
+    return (k_d * albedo / PI + specular) * radiance * n_dot_l * intensity;
+}
+
 float calculate_shadow(float3 world_position, float3 normal) {
     const float normal_offset_bias = shadow_params.y;
     const float3 offset_position = world_position + normal * normal_offset_bias;
@@ -279,6 +330,15 @@ float4 main(PSInput input) : SV_Target {
         );
     }
 
+    float3 spot_lo = float3(0.0f, 0.0f, 0.0f);
+    [loop]
+    for (uint i = 0; i < spot_light_count; ++i) {
+        spot_lo += calculate_spot_light(
+            spot_lights[i], normal, view_direction, input.world_position,
+            albedo, f0, metallic, roughness
+        );
+    }
+
     const float shadow = calculate_shadow(input.world_position, N);
 
     const float3 R = reflect(-view_direction, normal);
@@ -298,7 +358,7 @@ float4 main(PSInput input) : SV_Target {
     const float3 specular_ibl = prefiltered_color * (k_s * env_brdf.x + env_brdf.y);
 
     const float3 ambient = (diffuse_ibl + specular_ibl) * ao * ssao;
-    const float3 color = ambient + directional_lo * shadow + point_lo;
+    const float3 color = ambient + directional_lo * shadow + point_lo + spot_lo;
 
     return float4(color, albedo_alpha.a);
 }

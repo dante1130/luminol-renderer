@@ -30,8 +30,9 @@ struct InstanceBatch {
 
 // Layout matches the LightBuffer cbuffer in pbr_frag.hlsl (register b0,
 // space3): four float4s, a row_major float4x4, a trailing float4, then a
-// point light count padded to 16 bytes followed by the fixed-size point
-// light array, so no manual padding is needed beyond what's declared below.
+// point light count and a spot light count, each padded to 16 bytes and
+// followed by their fixed-size light array, so no manual padding is needed
+// beyond what's declared below.
 struct LightData {
     Maths::Vector4f direction;
     Maths::Vector4f color;
@@ -44,6 +45,9 @@ struct LightData {
     uint32_t point_light_count = 0;
     Maths::Vector3f point_light_padding = {};
     std::array<AlignedPointLight, max_point_lights> point_lights = {};
+    uint32_t spot_light_count = 0;
+    Maths::Vector3f spot_light_padding = {};
+    std::array<AlignedSpotLight, max_spot_lights> spot_lights = {};
 };
 
 // Bundles the precomputed split-sum IBL textures/samplers produced by
