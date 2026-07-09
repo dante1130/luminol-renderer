@@ -29,6 +29,7 @@ struct GraphicsPipelineInfo {
     // Standard straight-alpha blending (src * srcAlpha + dst * (1 - srcAlpha))
     // when true; opaque (no blending) when false.
     bool enable_blend = false;
+    SampleCount sample_count = SampleCount::x1;
 };
 
 class GraphicsPipeline {

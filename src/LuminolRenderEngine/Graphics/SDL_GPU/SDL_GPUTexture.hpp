@@ -28,6 +28,7 @@ struct TextureInfo {
     uint32_t height;
     TextureFormat format = TextureFormat::R8G8B8A8_Unorm;
     TextureUsage usage = TextureUsage::Sampler;
+    SampleCount sample_count = SampleCount::x1;
 };
 
 class Texture {

@@ -27,7 +27,8 @@ public:
     SDL_GPURenderer(
         Window& window,
         std::shared_ptr<SDL_GPUFactory> graphics_factory,
-        std::shared_ptr<GPUDevice> gpu_device
+        std::shared_ptr<GPUDevice> gpu_device,
+        SampleCount requested_msaa_sample_count = SampleCount::x4
     );
 
     auto set_view_matrix(const Maths::Matrix4x4f& view_matrix) -> void override;
@@ -86,6 +87,14 @@ private:
 
     Texture depth_texture;
     Texture hdr_color_texture;
+
+    // Dedicated multisampled targets for the main forward pass only,
+    // resolved into hdr_color_texture at the end of the pass. Decoupled from
+    // the AO prepass's single-sample depth_texture, since SDL_GPU requires
+    // every attachment in a render pass to share one sample count.
+    SampleCount msaa_sample_count;
+    Texture msaa_color_texture;
+    Texture msaa_depth_texture;
 
     Utilities::PerformanceLogger performance_logger;
 

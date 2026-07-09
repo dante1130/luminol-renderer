@@ -20,6 +20,10 @@ struct Properties {
     int32_t height = {default_height};
     std::string title = {"Luminol Engine"};
     Graphics::GraphicsApi graphics_api = {Graphics::GraphicsApi::OpenGL};
+    // MSAA sample count for backends that support it (currently SDL_GPU
+    // only); rounded down to the nearest supported power of two, clamped
+    // further by device capability. Ignored by the OpenGL backend.
+    uint32_t msaa_sample_count = 4;
 };
 
 class RenderEngine {

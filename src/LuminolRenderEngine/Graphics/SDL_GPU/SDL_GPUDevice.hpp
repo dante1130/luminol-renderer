@@ -43,6 +43,10 @@ public:
     [[nodiscard]] auto get_swapchain_texture_format(SDL_Window* window) const
         -> TextureFormat;
 
+    [[nodiscard]] auto supports_sample_count(
+        TextureFormat format, SampleCount sample_count
+    ) const -> bool;
+
 private:
     using SDL_GPUDeviceDeleter = std::function<void(SDL_GPUDevice*)>;
 

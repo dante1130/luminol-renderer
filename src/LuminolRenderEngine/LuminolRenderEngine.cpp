@@ -11,7 +11,9 @@ RenderEngine::RenderEngine(const Properties& properties)
           properties.title,
           properties.graphics_api
       ),
-      renderer(Graphics::GraphicsFactory::create(properties.graphics_api)
+      renderer(Graphics::GraphicsFactory::create(
+                   properties.graphics_api, properties.msaa_sample_count
+               )
                    ->create_renderer(this->window)) {}
 
 auto RenderEngine::get_window() const -> const Window& { return this->window; }

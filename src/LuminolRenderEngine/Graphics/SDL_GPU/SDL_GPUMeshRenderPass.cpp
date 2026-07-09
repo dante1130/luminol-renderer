@@ -73,7 +73,8 @@ auto make_mesh_shader(
 auto make_mesh_pipeline(
     GPUDevice& device,
     const Shader& vertex_shader,
-    const Shader& fragment_shader
+    const Shader& fragment_shader,
+    SampleCount sample_count
 ) -> GraphicsPipeline {
     return device.create_graphics_pipeline(GraphicsPipelineInfo{
         .vertex_shader = vertex_shader,
@@ -86,6 +87,7 @@ auto make_mesh_pipeline(
         .depth_stencil_format = depth_texture_format,
         .cull_mode = CullMode::Back,
         .front_face = FrontFace::Clockwise,
+        .sample_count = sample_count,
     });
 }
 
@@ -93,7 +95,9 @@ auto make_mesh_pipeline(
 
 namespace Luminol::Graphics::SDL_GPU {
 
-SDL_GPUMeshRenderPass::SDL_GPUMeshRenderPass(GPUDevice& device)
+SDL_GPUMeshRenderPass::SDL_GPUMeshRenderPass(
+    GPUDevice& device, SampleCount sample_count
+)
     : mesh_vertex_shader{make_mesh_shader(
           device, "res/shaders/sdl_gpu/pbr_vert.hlsl", ShaderStage::Vertex
       )},
@@ -101,7 +105,7 @@ SDL_GPUMeshRenderPass::SDL_GPUMeshRenderPass(GPUDevice& device)
           device, "res/shaders/sdl_gpu/pbr_frag.hlsl", ShaderStage::Fragment
       )},
       mesh_pipeline{make_mesh_pipeline(
-          device, mesh_vertex_shader, mesh_fragment_shader
+          device, mesh_vertex_shader, mesh_fragment_shader, sample_count
       )} {}
 
 auto SDL_GPUMeshRenderPass::get_instance_buffer_cache() const

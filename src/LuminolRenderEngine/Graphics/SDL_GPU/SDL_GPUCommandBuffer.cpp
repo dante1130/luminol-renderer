@@ -107,6 +107,9 @@ auto CommandBuffer::begin_render_pass(
     for (auto i = size_t{0}; i < color_targets.size(); ++i) {
         const auto& target = color_targets[i];
         Expects(target.texture != nullptr);
+        const auto uses_resolve = target.store_op == StoreOp::Resolve ||
+            target.store_op == StoreOp::ResolveAndStore;
+        Expects(!uses_resolve || target.resolve_texture != nullptr);
         sdl_color_targets[i] = SDL_GPUColorTargetInfo{
             .texture = target.texture->native_handle(),
             .mip_level = 0,
@@ -120,11 +123,13 @@ auto CommandBuffer::begin_render_pass(
                 },
             .load_op = to_sdl_load_op(target.load_op),
             .store_op = to_sdl_store_op(target.store_op),
-            .resolve_texture = nullptr,
+            .resolve_texture = uses_resolve
+                ? target.resolve_texture->native_handle()
+                : nullptr,
             .resolve_mip_level = 0,
             .resolve_layer = 0,
             .cycle = target.cycle,
-            .cycle_resolve_texture = false,
+            .cycle_resolve_texture = uses_resolve && target.cycle_resolve_texture,
             .padding1 = 0,
             .padding2 = 0,
         };

@@ -46,7 +46,7 @@ struct DirectionalLightData {
 // upload/draw steps, while SDL_GPURenderer just coordinates passes.
 class SDL_GPUMeshRenderPass {
 public:
-    explicit SDL_GPUMeshRenderPass(GPUDevice& device);
+    SDL_GPUMeshRenderPass(GPUDevice& device, SampleCount sample_count);
 
     [[nodiscard]] auto upload_instances(
         GPUDevice& device,

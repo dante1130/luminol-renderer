@@ -31,6 +31,11 @@ struct ColorTargetInfo {
     LoadOp load_op = LoadOp::Clear;
     StoreOp store_op = StoreOp::Store;
     bool cycle = false;
+    // Required when store_op is Resolve/ResolveAndStore; asserted non-null in
+    // begin_render_pass for those store ops. Pointer (not reference) so
+    // callers can use designated-initializer syntax, matching `texture`.
+    const TextureView* resolve_texture = nullptr;
+    bool cycle_resolve_texture = false;
 };
 
 struct DepthStencilTargetInfo {

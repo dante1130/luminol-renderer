@@ -8,9 +8,32 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderer.hpp>
 
+namespace {
+
+using namespace Luminol::Graphics::SDL_GPU;
+
+// Rounds down to the nearest sample count SDL_GPU supports.
+auto to_sample_count(uint32_t msaa_sample_count) -> SampleCount {
+    if (msaa_sample_count >= 8) {
+        return SampleCount::x8;
+    }
+    if (msaa_sample_count >= 4) {
+        return SampleCount::x4;
+    }
+    if (msaa_sample_count >= 2) {
+        return SampleCount::x2;
+    }
+    return SampleCount::x1;
+}
+
+}  // namespace
+
 namespace Luminol::Graphics::SDL_GPU {
 
-SDL_GPUFactory::SDL_GPUFactory() { Expects(TTF_Init()); }
+SDL_GPUFactory::SDL_GPUFactory(uint32_t msaa_sample_count)
+    : requested_msaa_sample_count{to_sample_count(msaa_sample_count)} {
+    Expects(TTF_Init());
+}
 
 SDL_GPUFactory::~SDL_GPUFactory() {
     fonts_by_id.clear();
@@ -24,7 +47,8 @@ auto SDL_GPUFactory::create_renderer(Window& window)
     return std::make_unique<SDL_GPURenderer>(
         window,
         std::static_pointer_cast<SDL_GPUFactory>(shared_from_this()),
-        gpu_device
+        gpu_device,
+        requested_msaa_sample_count
     );
 }
 

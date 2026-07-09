@@ -81,6 +81,13 @@ constexpr auto operator&(TextureUsage lhs, TextureUsage rhs) -> TextureUsage {
     );
 }
 
+enum class SampleCount : uint8_t {
+    x1,
+    x2,
+    x4,
+    x8,
+};
+
 enum class VertexElementFormat : uint8_t {
     Float,
     Float2,

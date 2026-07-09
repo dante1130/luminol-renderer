@@ -71,6 +71,88 @@ auto make_hdr_color_texture(GPUDevice& device, SDL_Window* window) -> Texture {
     );
 }
 
+auto make_msaa_color_texture(
+    GPUDevice& device, uint32_t width, uint32_t height, SampleCount sample_count
+) -> Texture {
+    return device.create_texture(TextureInfo{
+        .width = width,
+        .height = height,
+        .format = hdr_color_texture_format,
+        .usage = TextureUsage::ColorTarget,
+        .sample_count = sample_count,
+    });
+}
+
+auto make_msaa_color_texture(
+    GPUDevice& device, SDL_Window* window, SampleCount sample_count
+) -> Texture {
+    auto width = int{0};
+    auto height = int{0};
+    SDL_GetWindowSizeInPixels(window, &width, &height);
+
+    return make_msaa_color_texture(
+        device, static_cast<uint32_t>(width), static_cast<uint32_t>(height),
+        sample_count
+    );
+}
+
+auto make_msaa_depth_texture(
+    GPUDevice& device, uint32_t width, uint32_t height, SampleCount sample_count
+) -> Texture {
+    return device.create_texture(TextureInfo{
+        .width = width,
+        .height = height,
+        .format = depth_texture_format,
+        .usage = TextureUsage::DepthStencilTarget,
+        .sample_count = sample_count,
+    });
+}
+
+auto make_msaa_depth_texture(
+    GPUDevice& device, SDL_Window* window, SampleCount sample_count
+) -> Texture {
+    auto width = int{0};
+    auto height = int{0};
+    SDL_GetWindowSizeInPixels(window, &width, &height);
+
+    return make_msaa_depth_texture(
+        device, static_cast<uint32_t>(width), static_cast<uint32_t>(height),
+        sample_count
+    );
+}
+
+// Steps down from the requested sample count until one is supported by the
+// device for both the HDR color format and the depth format used by the main
+// pass's MSAA targets, falling back to x1 (MSAA disabled) if none match.
+auto clamp_supported_sample_count(const GPUDevice& device, SampleCount requested)
+    -> SampleCount {
+    const auto supported = [&device](SampleCount candidate) {
+        return device.supports_sample_count(hdr_color_texture_format, candidate) &&
+            device.supports_sample_count(depth_texture_format, candidate);
+    };
+
+    switch (requested) {
+        case SampleCount::x8:
+            if (supported(SampleCount::x8)) {
+                return SampleCount::x8;
+            }
+            [[fallthrough]];
+        case SampleCount::x4:
+            if (supported(SampleCount::x4)) {
+                return SampleCount::x4;
+            }
+            [[fallthrough]];
+        case SampleCount::x2:
+            if (supported(SampleCount::x2)) {
+                return SampleCount::x2;
+            }
+            [[fallthrough]];
+        case SampleCount::x1:
+            return SampleCount::x1;
+    }
+    return SampleCount::x1;
+}
+
 }  // namespace
 
 namespace Luminol::Graphics::SDL_GPU {
@@ -78,19 +160,34 @@ namespace Luminol::Graphics::SDL_GPU {
 SDL_GPURenderer::SDL_GPURenderer(
     Window& window,
     std::shared_ptr<SDL_GPUFactory> graphics_factory,
-    std::shared_ptr<GPUDevice> gpu_device
+    std::shared_ptr<GPUDevice> gpu_device,
+    SampleCount requested_msaa_sample_count
 )
     : Renderer(graphics_factory),
       sdl_window{static_cast<SDL_Window*>(window.get_window_handle())},
       sdl_gpu_factory{std::move(graphics_factory)},
       gpu_device{std::move(gpu_device)},
-      mesh_render_pass{*this->gpu_device},
+      mesh_render_pass{
+          *this->gpu_device,
+          clamp_supported_sample_count(
+              *this->gpu_device, requested_msaa_sample_count
+          )
+      },
       ao_pass{*this->gpu_device, sdl_window},
       shadow_pass{*this->gpu_device},
       tonemap_pass{*this->gpu_device, sdl_window},
       text_render_pass{*this->gpu_device, sdl_window},
       depth_texture{make_depth_texture(*this->gpu_device, sdl_window)},
-      hdr_color_texture{make_hdr_color_texture(*this->gpu_device, sdl_window)} {}
+      hdr_color_texture{make_hdr_color_texture(*this->gpu_device, sdl_window)},
+      msaa_sample_count{clamp_supported_sample_count(
+          *this->gpu_device, requested_msaa_sample_count
+      )},
+      msaa_color_texture{make_msaa_color_texture(
+          *this->gpu_device, sdl_window, msaa_sample_count
+      )},
+      msaa_depth_texture{make_msaa_depth_texture(
+          *this->gpu_device, sdl_window, msaa_sample_count
+      )} {}
 
 auto SDL_GPURenderer::set_view_matrix(const Maths::Matrix4x4f& view_matrix)
     -> void {
@@ -174,18 +271,28 @@ auto SDL_GPURenderer::draw() -> void {
         hdr_color_texture = make_hdr_color_texture(
             *gpu_device, swapchain->width, swapchain->height
         );
+        msaa_color_texture = make_msaa_color_texture(
+            *gpu_device, swapchain->width, swapchain->height, msaa_sample_count
+        );
+        msaa_depth_texture = make_msaa_depth_texture(
+            *gpu_device, swapchain->width, swapchain->height, msaa_sample_count
+        );
         ao_pass.resize(*gpu_device, swapchain->width, swapchain->height);
     }
 
-    const auto depth_texture_view = TextureView{depth_texture.native_handle()};
     const auto hdr_color_texture_view =
         TextureView{hdr_color_texture.native_handle()};
+    const auto msaa_color_texture_view =
+        TextureView{msaa_color_texture.native_handle()};
+    const auto msaa_depth_texture_view =
+        TextureView{msaa_depth_texture.native_handle()};
 
     const auto color_targets = std::array{ColorTargetInfo{
-        .texture = &hdr_color_texture_view,
+        .texture = &msaa_color_texture_view,
         .clear_color = clear_color_value,
         .load_op = LoadOp::Clear,
-        .store_op = StoreOp::Store,
+        .store_op = StoreOp::Resolve,
+        .resolve_texture = &hdr_color_texture_view,
     }};
 
     auto instance_batches = std::vector<InstanceBatch>{};
@@ -233,9 +340,9 @@ auto SDL_GPURenderer::draw() -> void {
     );
 
     const auto depth_stencil_target = DepthStencilTargetInfo{
-        .texture = &depth_texture_view,
+        .texture = &msaa_depth_texture_view,
         .clear_depth = 1.0F,
-        .load_op = LoadOp::Load,
+        .load_op = LoadOp::Clear,
         .store_op = StoreOp::DontCare,
     };
 

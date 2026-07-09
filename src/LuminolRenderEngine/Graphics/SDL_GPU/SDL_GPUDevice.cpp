@@ -281,7 +281,15 @@ auto GPUDevice::create_graphics_pipeline(const GraphicsPipelineInfo& info)
                 .padding1 = 0,
                 .padding2 = 0,
             },
-        .multisample_state = {},
+        .multisample_state =
+            SDL_GPUMultisampleState{
+                .sample_count = to_sdl_sample_count(info.sample_count),
+                .sample_mask = 0,
+                .enable_mask = false,
+                .enable_alpha_to_coverage = false,
+                .padding2 = 0,
+                .padding3 = 0,
+            },
         .depth_stencil_state =
             SDL_GPUDepthStencilState{
                 .compare_op = info.enable_depth_test
@@ -416,7 +424,7 @@ auto GPUDevice::create_texture(const TextureInfo& info) -> Texture {
         .height = info.height,
         .layer_count_or_depth = 1,
         .num_levels = 1,
-        .sample_count = SDL_GPU_SAMPLECOUNT_1,
+        .sample_count = to_sdl_sample_count(info.sample_count),
         .props = 0,
     };
 
@@ -498,6 +506,16 @@ auto GPUDevice::get_swapchain_texture_format(SDL_Window* window) const
         Ensures(false);
     }
     return format;
+}
+
+auto GPUDevice::supports_sample_count(
+    TextureFormat format, SampleCount sample_count
+) const -> bool {
+    return SDL_GPUTextureSupportsSampleCount(
+        this->device.get(),
+        to_sdl_texture_format(format),
+        to_sdl_sample_count(sample_count)
+    );
 }
 
 }  // namespace Luminol::Graphics::SDL_GPU

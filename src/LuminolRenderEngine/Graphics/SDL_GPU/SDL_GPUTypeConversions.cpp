@@ -120,6 +120,20 @@ auto to_sdl_texture_usage(TextureUsage usage) -> SDL_GPUTextureUsageFlags {
     return flags;
 }
 
+auto to_sdl_sample_count(SampleCount sample_count) -> SDL_GPUSampleCount {
+    switch (sample_count) {
+        case SampleCount::x1:
+            return SDL_GPU_SAMPLECOUNT_1;
+        case SampleCount::x2:
+            return SDL_GPU_SAMPLECOUNT_2;
+        case SampleCount::x4:
+            return SDL_GPU_SAMPLECOUNT_4;
+        case SampleCount::x8:
+            return SDL_GPU_SAMPLECOUNT_8;
+    }
+    throw std::runtime_error{"Invalid sample count"};
+}
+
 auto to_sdl_vertex_element_format(VertexElementFormat format)
     -> SDL_GPUVertexElementFormat {
     switch (format) {

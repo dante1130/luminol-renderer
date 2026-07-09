@@ -8,6 +8,7 @@
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFont.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMesh.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
 
@@ -15,7 +16,7 @@ class GPUDevice;
 
 class SDL_GPUFactory : public GraphicsFactory {
 public:
-    SDL_GPUFactory();
+    explicit SDL_GPUFactory(uint32_t msaa_sample_count = 4);
     ~SDL_GPUFactory() override;
 
     SDL_GPUFactory(const SDL_GPUFactory&) = delete;
@@ -51,6 +52,8 @@ public:
     [[nodiscard]] auto get_font(FontId font_id) const -> const SDL_GPUFont&;
 
 private:
+    SampleCount requested_msaa_sample_count;
+
     std::shared_ptr<GPUDevice> gpu_device;
     RenderableManager renderable_manager;
     std::unordered_map<RenderableId, std::vector<SDL_GPUMesh>> meshes_by_id;
