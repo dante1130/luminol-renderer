@@ -60,6 +60,20 @@ float3 fresnel_schlick(float cos_theta, float3 f0) {
     return f0 + (1.0f - f0) * pow(clamp(1.0f - cos_theta, 0.0f, 1.0f), 5.0f);
 }
 
+float specular_antialiasing(float3 normal, float roughness) {
+    const float SPECULAR_AA_VARIANCE = 0.25f;
+    const float SPECULAR_AA_THRESHOLD = 0.18f;
+
+    const float3 dndu = ddx(normal);
+    const float3 dndv = ddy(normal);
+    const float variance = SPECULAR_AA_VARIANCE * (dot(dndu, dndu) + dot(dndv, dndv));
+
+    const float kernel_roughness2 = min(2.0f * variance, SPECULAR_AA_THRESHOLD);
+    const float filtered_roughness2 = saturate(roughness * roughness + kernel_roughness2);
+
+    return sqrt(filtered_roughness2);
+}
+
 float2 env_brdf_approx(float n_dot_v, float roughness) {
     const float4 c0 = float4(-1.0f, -0.0275f, -0.572f, 0.022f);
     const float4 c1 = float4(1.0f, 0.0425f, 1.04f, -0.04f);
@@ -175,7 +189,8 @@ float4 main(PSInput input) : SV_Target {
     const float3 normal = normalize(mul(normal_map, tbn));
 
     const float metallic = metallic_texture.Sample(metallic_sampler, input.uv).b;
-    const float roughness = roughness_texture.Sample(roughness_sampler, input.uv).g;
+    const float roughness =
+        specular_antialiasing(normal, roughness_texture.Sample(roughness_sampler, input.uv).g);
     const float ao = ao_texture.Sample(ao_sampler, input.uv).r;
 
     const float2 screen_uv = input.screen_position.xy / screen_size.xy;

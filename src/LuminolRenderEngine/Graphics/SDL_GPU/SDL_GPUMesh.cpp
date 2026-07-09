@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstring>
+#include <stdexcept>
 
 #include <gsl/gsl>
 
@@ -40,19 +41,47 @@ auto to_texture_images(
         .diffuse_texture = load_first_texture_or_nothing(
             mesh_data.diffuse_texture_paths, textures_map
         ),
+        .diffuse_texture_wrap = mesh_data.diffuse_texture_wrap,
         .normal_texture = load_first_texture_or_nothing(
             mesh_data.normal_texture_paths, textures_map
         ),
+        .normal_texture_wrap = mesh_data.normal_texture_wrap,
         .metallic_texture = load_first_texture_or_nothing(
             mesh_data.metallic_texture_paths, textures_map
         ),
+        .metallic_texture_wrap = mesh_data.metallic_texture_wrap,
         .roughness_texture = load_first_texture_or_nothing(
             mesh_data.roughness_texture_paths, textures_map
         ),
+        .roughness_texture_wrap = mesh_data.roughness_texture_wrap,
         .ambient_occlusion_texture = load_first_texture_or_nothing(
             mesh_data.ambient_occlusion_texture_paths, textures_map
         ),
+        .ambient_occlusion_texture_wrap =
+            mesh_data.ambient_occlusion_texture_wrap,
     };
+}
+
+auto to_sdl_gpu_address_mode(Luminol::Utilities::ModelLoader::TextureWrapMode mode)
+    -> SamplerAddressMode {
+    switch (mode) {
+        case Luminol::Utilities::ModelLoader::TextureWrapMode::Repeat:
+            return SamplerAddressMode::Repeat;
+        case Luminol::Utilities::ModelLoader::TextureWrapMode::ClampToEdge:
+            return SamplerAddressMode::ClampToEdge;
+        case Luminol::Utilities::ModelLoader::TextureWrapMode::MirroredRepeat:
+            return SamplerAddressMode::MirroredRepeat;
+    }
+    throw std::runtime_error{"Invalid texture wrap mode"};
+}
+
+auto make_sampler(
+    GPUDevice& device, const Luminol::Utilities::ModelLoader::TextureWrap& wrap
+) -> Sampler {
+    return device.create_sampler(SamplerInfo{
+        .address_mode_u = to_sdl_gpu_address_mode(wrap.u),
+        .address_mode_v = to_sdl_gpu_address_mode(wrap.v),
+    });
 }
 
 auto create_uploaded_buffer(
@@ -234,7 +263,26 @@ SDL_GPUMesh::SDL_GPUMesh(
           texture_paths.ambient_occlusion_texture_path,
           create_white_pixel_texture
       )},
-      sampler{device.create_sampler(SamplerInfo{})} {}
+      diffuse_sampler{device.create_sampler(SamplerInfo{
+          .address_mode_u = SamplerAddressMode::Repeat,
+          .address_mode_v = SamplerAddressMode::Repeat,
+      })},
+      normal_sampler{device.create_sampler(SamplerInfo{
+          .address_mode_u = SamplerAddressMode::Repeat,
+          .address_mode_v = SamplerAddressMode::Repeat,
+      })},
+      metallic_sampler{device.create_sampler(SamplerInfo{
+          .address_mode_u = SamplerAddressMode::Repeat,
+          .address_mode_v = SamplerAddressMode::Repeat,
+      })},
+      roughness_sampler{device.create_sampler(SamplerInfo{
+          .address_mode_u = SamplerAddressMode::Repeat,
+          .address_mode_v = SamplerAddressMode::Repeat,
+      })},
+      ambient_occlusion_sampler{device.create_sampler(SamplerInfo{
+          .address_mode_u = SamplerAddressMode::Repeat,
+          .address_mode_v = SamplerAddressMode::Repeat,
+      })} {}
 
 SDL_GPUMesh::SDL_GPUMesh(
     GPUDevice& device,
@@ -289,7 +337,17 @@ SDL_GPUMesh::SDL_GPUMesh(
           texture_images.ambient_occlusion_texture,
           create_white_pixel_texture
       )},
-      sampler{device.create_sampler(SamplerInfo{})} {}
+      diffuse_sampler{make_sampler(device, texture_images.diffuse_texture_wrap)},
+      normal_sampler{make_sampler(device, texture_images.normal_texture_wrap)},
+      metallic_sampler{
+          make_sampler(device, texture_images.metallic_texture_wrap)
+      },
+      roughness_sampler{
+          make_sampler(device, texture_images.roughness_texture_wrap)
+      },
+      ambient_occlusion_sampler{make_sampler(
+          device, texture_images.ambient_occlusion_texture_wrap
+      )} {}
 
 auto SDL_GPUMesh::draw(RenderPass& sdl_gpu_pass) const -> void {
     draw_instanced(1, sdl_gpu_pass);
@@ -306,12 +364,21 @@ auto SDL_GPUMesh::draw_instanced(
     sdl_gpu_pass.bind_index_buffer(index_buffer, IndexElementSize::Bits32, 0);
 
     const auto sampler_bindings = std::array{
-        TextureSamplerBinding{.texture = &diffuse_texture, .sampler = &sampler},
-        TextureSamplerBinding{.texture = &normal_texture, .sampler = &sampler},
-        TextureSamplerBinding{.texture = &metallic_texture, .sampler = &sampler},
-        TextureSamplerBinding{.texture = &roughness_texture, .sampler = &sampler},
         TextureSamplerBinding{
-            .texture = &ambient_occlusion_texture, .sampler = &sampler
+            .texture = &diffuse_texture, .sampler = &diffuse_sampler
+        },
+        TextureSamplerBinding{
+            .texture = &normal_texture, .sampler = &normal_sampler
+        },
+        TextureSamplerBinding{
+            .texture = &metallic_texture, .sampler = &metallic_sampler
+        },
+        TextureSamplerBinding{
+            .texture = &roughness_texture, .sampler = &roughness_sampler
+        },
+        TextureSamplerBinding{
+            .texture = &ambient_occlusion_texture,
+            .sampler = &ambient_occlusion_sampler
         },
     };
     sdl_gpu_pass.bind_fragment_samplers(0, sampler_bindings);

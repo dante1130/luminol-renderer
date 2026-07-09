@@ -183,7 +183,8 @@ SDL_GPUTextRenderPass::SDL_GPUTextRenderPass(GPUDevice& device, SDL_Window* wind
       )},
       clamp_sampler{device.create_sampler(SamplerInfo{
           .filter = SamplerFilter::Linear,
-          .address_mode = SamplerAddressMode::ClampToEdge,
+          .address_mode_u = SamplerAddressMode::ClampToEdge,
+          .address_mode_v = SamplerAddressMode::ClampToEdge,
       })} {}
 
 auto SDL_GPUTextRenderPass::queue_draw(

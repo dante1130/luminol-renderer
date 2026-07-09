@@ -73,7 +73,8 @@ SDL_GPUTonemapPass::SDL_GPUTonemapPass(GPUDevice& device, SDL_Window* window)
       )},
       clamp_sampler{device.create_sampler(SamplerInfo{
           .filter = SamplerFilter::Linear,
-          .address_mode = SamplerAddressMode::ClampToEdge,
+          .address_mode_u = SamplerAddressMode::ClampToEdge,
+          .address_mode_v = SamplerAddressMode::ClampToEdge,
       })} {}
 
 auto SDL_GPUTonemapPass::draw(

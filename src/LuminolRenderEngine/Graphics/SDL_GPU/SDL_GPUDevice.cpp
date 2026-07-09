@@ -454,9 +454,9 @@ auto GPUDevice::create_sampler(const SamplerInfo& info) -> Sampler {
         .min_filter = to_sdl_filter(info.filter),
         .mag_filter = to_sdl_filter(info.filter),
         .mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
-        .address_mode_u = to_sdl_sampler_address_mode(info.address_mode),
-        .address_mode_v = to_sdl_sampler_address_mode(info.address_mode),
-        .address_mode_w = to_sdl_sampler_address_mode(info.address_mode),
+        .address_mode_u = to_sdl_sampler_address_mode(info.address_mode_u),
+        .address_mode_v = to_sdl_sampler_address_mode(info.address_mode_v),
+        .address_mode_w = to_sdl_sampler_address_mode(info.address_mode_u),
         .mip_lod_bias = 0.0F,
         .max_anisotropy = 1.0F,
         .compare_op = info.enable_compare

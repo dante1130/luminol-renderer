@@ -205,7 +205,8 @@ SDL_GPUAmbientOcclusionPass::SDL_GPUAmbientOcclusionPass(
       ssao_texture{make_ao_texture(device, window)},
       clamp_sampler{device.create_sampler(SamplerInfo{
           .filter = SamplerFilter::Linear,
-          .address_mode = SamplerAddressMode::ClampToEdge,
+          .address_mode_u = SamplerAddressMode::ClampToEdge,
+          .address_mode_v = SamplerAddressMode::ClampToEdge,
       })} {}
 
 auto SDL_GPUAmbientOcclusionPass::resize(

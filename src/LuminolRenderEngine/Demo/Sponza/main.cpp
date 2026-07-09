@@ -79,8 +79,8 @@ auto main() -> int {
         );
 
     constexpr auto directional_light = Graphics::DirectionalLight{
-        .direction = Maths::Vector3f{0.5f, -0.5f, 1.0f},
-        .color = Maths::Vector3f{0.1f, 0.1f, 0.1f},
+        .direction = Maths::Vector3f{0.15f, -0.5f, 0.15f},
+        .color = Maths::Vector3f{1.0f, 1.0f, 1.0f},
     };
 
     luminol_engine.get_renderer().get_light_manager().update_directional_light(

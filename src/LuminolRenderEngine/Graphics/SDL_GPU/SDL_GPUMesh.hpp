@@ -10,6 +10,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 #include <LuminolRenderEngine/Utilities/ImageLoader.hpp>
+#include <LuminolRenderEngine/Utilities/ModelLoader.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
 
@@ -19,10 +20,15 @@ class CopyPass;
 
 struct TextureImages {
     std::optional<Utilities::ImageLoader::Image> diffuse_texture;
+    Utilities::ModelLoader::TextureWrap diffuse_texture_wrap;
     std::optional<Utilities::ImageLoader::Image> normal_texture;
+    Utilities::ModelLoader::TextureWrap normal_texture_wrap;
     std::optional<Utilities::ImageLoader::Image> metallic_texture;
+    Utilities::ModelLoader::TextureWrap metallic_texture_wrap;
     std::optional<Utilities::ImageLoader::Image> roughness_texture;
+    Utilities::ModelLoader::TextureWrap roughness_texture_wrap;
     std::optional<Utilities::ImageLoader::Image> ambient_occlusion_texture;
+    Utilities::ModelLoader::TextureWrap ambient_occlusion_texture_wrap;
 };
 
 class SDL_GPUMesh {
@@ -65,7 +71,12 @@ private:
     Texture metallic_texture;
     Texture roughness_texture;
     Texture ambient_occlusion_texture;
-    Sampler sampler;
+
+    Sampler diffuse_sampler;
+    Sampler normal_sampler;
+    Sampler metallic_sampler;
+    Sampler roughness_sampler;
+    Sampler ambient_occlusion_sampler;
 };
 
 [[nodiscard]] auto load_meshes_from_model(

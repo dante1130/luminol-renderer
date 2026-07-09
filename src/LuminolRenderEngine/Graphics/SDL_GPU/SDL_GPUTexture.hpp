@@ -53,7 +53,8 @@ private:
 
 struct SamplerInfo {
     SamplerFilter filter = SamplerFilter::Linear;
-    SamplerAddressMode address_mode = SamplerAddressMode::ClampToEdge;
+    SamplerAddressMode address_mode_u = SamplerAddressMode::ClampToEdge;
+    SamplerAddressMode address_mode_v = SamplerAddressMode::ClampToEdge;
     // Depth-comparison sampler (hardware PCF via SampleCmpLevelZero); always
     // uses a less-or-equal comparison, the only mode this codebase needs.
     bool enable_compare = false;

@@ -1,5 +1,7 @@
 #include "ModelLoader.hpp"
 
+#include <array>
+
 #include <gsl/gsl>
 
 #include <assimp/Importer.hpp>
@@ -101,15 +103,33 @@ auto load_indices(const aiMesh& mesh) -> std::vector<uint32_t> {
     return indices;
 }
 
+auto to_texture_wrap_mode(aiTextureMapMode mode) -> Luminol::Utilities::ModelLoader::TextureWrapMode {
+    switch (mode) {
+        case aiTextureMapMode_Clamp:
+        case aiTextureMapMode_Decal:
+            return Luminol::Utilities::ModelLoader::TextureWrapMode::ClampToEdge;
+        case aiTextureMapMode_Mirror:
+            return Luminol::Utilities::ModelLoader::TextureWrapMode::MirroredRepeat;
+        case aiTextureMapMode_Wrap:
+        default:
+            return Luminol::Utilities::ModelLoader::TextureWrapMode::Repeat;
+    }
+}
+
+struct LoadedTextures {
+    std::vector<std::filesystem::path> paths;
+    Luminol::Utilities::ModelLoader::TextureWrap wrap;
+};
+
 auto load_textures(
     const aiMesh& mesh,
     gsl::span<aiMaterial*> materials,
     aiTextureType texture_type,
     const std::filesystem::path& directory,
     std::unordered_map<std::filesystem::path, Image>& textures_map
-) -> std::vector<std::filesystem::path> {
+) -> LoadedTextures {
     if (materials.empty()) {
-        return std::vector<std::filesystem::path>{};
+        return LoadedTextures{};
     }
 
     const auto* const material = materials[mesh.mMaterialIndex];
@@ -119,15 +139,30 @@ auto load_textures(
     auto texture_paths = std::vector<std::filesystem::path>{};
     texture_paths.reserve(textures_count);
 
+    auto wrap = Luminol::Utilities::ModelLoader::TextureWrap{};
+
     constexpr auto desired_rgba_channels = int32_t{4};
 
     for (auto i = 0u; i < textures_count; ++i) {
         auto texture_path = aiString{};
-        material->GetTexture(texture_type, i, &texture_path);
+        auto mapmode = std::array<aiTextureMapMode, 3>{
+            aiTextureMapMode_Wrap, aiTextureMapMode_Wrap, aiTextureMapMode_Wrap
+        };
+        material->GetTexture(
+            texture_type, i, &texture_path, nullptr, nullptr, nullptr,
+            nullptr, mapmode.data()
+        );
 
         const auto texture_path_key = directory / texture_path.C_Str();
 
         texture_paths.emplace_back(texture_path_key);
+
+        if (i == 0) {
+            wrap = Luminol::Utilities::ModelLoader::TextureWrap{
+                .u = to_texture_wrap_mode(mapmode[0]),
+                .v = to_texture_wrap_mode(mapmode[1]),
+            };
+        }
 
         if (!textures_map.contains(texture_path_key)) {
             textures_map[texture_path_key] =
@@ -135,7 +170,7 @@ auto load_textures(
         }
     }
 
-    return texture_paths;
+    return LoadedTextures{.paths = texture_paths, .wrap = wrap};
 }
 
 auto load_mesh(
@@ -144,38 +179,45 @@ auto load_mesh(
     const std::filesystem::path& directory,
     std::unordered_map<std::filesystem::path, Image>& textures_map
 ) -> MeshData {
+    auto diffuse = load_textures(
+        mesh, materials, aiTextureType_DIFFUSE, directory, textures_map
+    );
+    auto emissive = load_textures(
+        mesh, materials, aiTextureType_EMISSIVE, directory, textures_map
+    );
+    auto normal = load_textures(
+        mesh, materials, aiTextureType_NORMALS, directory, textures_map
+    );
+    auto metallic = load_textures(
+        mesh, materials, aiTextureType_METALNESS, directory, textures_map
+    );
+    auto roughness = load_textures(
+        mesh, materials, aiTextureType_DIFFUSE_ROUGHNESS, directory,
+        textures_map
+    );
+    auto ambient_occlusion = load_textures(
+        mesh, materials, aiTextureType_AMBIENT_OCCLUSION, directory,
+        textures_map
+    );
+
     return MeshData{
         .vertices = load_vertices(mesh),
         .texture_coordinates = load_texture_coordinates(mesh),
         .normals = load_normals(mesh),
         .tangents = load_tangents(mesh),
         .indices = load_indices(mesh),
-        .diffuse_texture_paths = load_textures(
-            mesh, materials, aiTextureType_DIFFUSE, directory, textures_map
-        ),
-        .emissive_texture_paths = load_textures(
-            mesh, materials, aiTextureType_EMISSIVE, directory, textures_map
-        ),
-        .normal_texture_paths = load_textures(
-            mesh, materials, aiTextureType_NORMALS, directory, textures_map
-        ),
-        .metallic_texture_paths = load_textures(
-            mesh, materials, aiTextureType_METALNESS, directory, textures_map
-        ),
-        .roughness_texture_paths = load_textures(
-            mesh,
-            materials,
-            aiTextureType_DIFFUSE_ROUGHNESS,
-            directory,
-            textures_map
-        ),
-        .ambient_occlusion_texture_paths = load_textures(
-            mesh,
-            materials,
-            aiTextureType_AMBIENT_OCCLUSION,
-            directory,
-            textures_map
-        )
+        .diffuse_texture_paths = std::move(diffuse.paths),
+        .diffuse_texture_wrap = diffuse.wrap,
+        .emissive_texture_paths = std::move(emissive.paths),
+        .emissive_texture_wrap = emissive.wrap,
+        .normal_texture_paths = std::move(normal.paths),
+        .normal_texture_wrap = normal.wrap,
+        .metallic_texture_paths = std::move(metallic.paths),
+        .metallic_texture_wrap = metallic.wrap,
+        .roughness_texture_paths = std::move(roughness.paths),
+        .roughness_texture_wrap = roughness.wrap,
+        .ambient_occlusion_texture_paths = std::move(ambient_occlusion.paths),
+        .ambient_occlusion_texture_wrap = ambient_occlusion.wrap,
     };
 }
 

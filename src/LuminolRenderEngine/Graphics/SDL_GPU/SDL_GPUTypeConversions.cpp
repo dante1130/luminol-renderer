@@ -201,6 +201,8 @@ auto to_sdl_sampler_address_mode(SamplerAddressMode address_mode)
             return SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
         case SamplerAddressMode::ClampToEdge:
             return SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+        case SamplerAddressMode::MirroredRepeat:
+            return SDL_GPU_SAMPLERADDRESSMODE_MIRRORED_REPEAT;
     }
     throw std::runtime_error{"Invalid sampler address mode"};
 }

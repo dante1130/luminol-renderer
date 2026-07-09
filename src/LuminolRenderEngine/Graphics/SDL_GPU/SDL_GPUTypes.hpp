@@ -148,6 +148,7 @@ enum class SamplerFilter : uint8_t {
 enum class SamplerAddressMode : uint8_t {
     Repeat,
     ClampToEdge,
+    MirroredRepeat,
 };
 
 }  // namespace Luminol::Graphics::SDL_GPU

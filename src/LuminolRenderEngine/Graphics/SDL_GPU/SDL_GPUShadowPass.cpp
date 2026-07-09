@@ -57,8 +57,8 @@ constexpr auto mesh_vertex_attributes = std::array{
 constexpr auto shadow_map_format = TextureFormat::D24_Unorm;
 
 constexpr auto shadow_map_resolution = 2048U;
-constexpr auto shadow_distance = 50.0F;
-constexpr auto shadow_ortho_half_extent = 30.0F;
+constexpr auto shadow_distance = 30.0F;
+constexpr auto shadow_ortho_half_extent = 18.0F;
 constexpr auto shadow_near_plane = 0.1F;
 constexpr auto shadow_far_plane = shadow_distance + shadow_ortho_half_extent;
 
@@ -179,7 +179,8 @@ SDL_GPUShadowPass::SDL_GPUShadowPass(GPUDevice& device)
       shadow_map_texture{make_shadow_map_texture(device)},
       shadow_map_sampler{device.create_sampler(SamplerInfo{
           .filter = SamplerFilter::Linear,
-          .address_mode = SamplerAddressMode::ClampToEdge,
+          .address_mode_u = SamplerAddressMode::ClampToEdge,
+          .address_mode_v = SamplerAddressMode::ClampToEdge,
           .enable_compare = true,
       })} {}
 
