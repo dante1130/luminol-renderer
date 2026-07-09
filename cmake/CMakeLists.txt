@@ -29,6 +29,19 @@ CPMAddPackage(
 )
 
 CPMAddPackage(
+    NAME sdl_ttf
+    GITHUB_REPOSITORY libsdl-org/SDL_ttf
+    GIT_TAG release-3.2.2
+    OPTIONS
+        "SDLTTF_VENDORED ON"
+        "BUILD_SHARED_LIBS OFF"
+        "SDLTTF_SAMPLES OFF"
+        "SDLTTF_INSTALL OFF"
+    EXCLUDE_FROM_ALL
+    SYSTEM
+)
+
+CPMAddPackage(
     NAME glad
     GITHUB_REPOSITORY Dav1dde/glad
     GIT_TAG v2.0.8

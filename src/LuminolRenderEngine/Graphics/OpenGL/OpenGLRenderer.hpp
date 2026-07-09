@@ -56,6 +56,13 @@ public:
         const Maths::Vector3f& color
     ) -> void override;
 
+    auto queue_draw_text(
+        FontId font_id,
+        std::string_view text,
+        const Maths::Vector2f& position,
+        const Maths::Vector4f& color
+    ) -> void override;
+
     auto draw() -> void override;
 
 private:

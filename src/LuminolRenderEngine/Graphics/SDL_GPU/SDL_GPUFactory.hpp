@@ -6,6 +6,7 @@
 
 #include <LuminolRenderEngine/Graphics/GraphicsFactory.hpp>
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFont.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMesh.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
@@ -43,10 +44,19 @@ public:
     [[nodiscard]] auto get_meshes(RenderableId renderable_id) const
         -> gsl::span<const SDL_GPUMesh>;
 
+    [[nodiscard]] auto create_font(
+        const std::filesystem::path& font_path, float point_size
+    ) -> FontId override;
+
+    [[nodiscard]] auto get_font(FontId font_id) const -> const SDL_GPUFont&;
+
 private:
     std::shared_ptr<GPUDevice> gpu_device;
     RenderableManager renderable_manager;
     std::unordered_map<RenderableId, std::vector<SDL_GPUMesh>> meshes_by_id;
+
+    RenderableManager font_manager;
+    std::unordered_map<FontId, SDL_GPUFont> fonts_by_id;
 };
 
 }  // namespace Luminol::Graphics::SDL_GPU

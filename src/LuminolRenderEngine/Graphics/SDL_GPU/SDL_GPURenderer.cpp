@@ -88,6 +88,7 @@ SDL_GPURenderer::SDL_GPURenderer(
       ao_pass{*this->gpu_device, sdl_window},
       shadow_pass{*this->gpu_device},
       tonemap_pass{*this->gpu_device, sdl_window},
+      text_render_pass{*this->gpu_device, sdl_window},
       depth_texture{make_depth_texture(*this->gpu_device, sdl_window)},
       hdr_color_texture{make_hdr_color_texture(*this->gpu_device, sdl_window)} {}
 
@@ -300,6 +301,13 @@ auto SDL_GPURenderer::draw() -> void {
             command_buffer, tonemap_render_pass, hdr_color_texture, exposure
         );
 
+        text_render_pass.draw(
+            command_buffer,
+            tonemap_render_pass,
+            swapchain->width,
+            swapchain->height
+        );
+
         performance_logger.record(
             "tonemap", Units::Seconds{pass_timer.elapsed_seconds()}
         );
@@ -312,6 +320,18 @@ auto SDL_GPURenderer::draw() -> void {
         "frame", Units::Seconds{frame_timer.elapsed_seconds()}
     );
     performance_logger.end_frame();
+}
+
+auto SDL_GPURenderer::queue_draw_text(
+    FontId font_id,
+    std::string_view text,
+    const Maths::Vector2f& position,
+    const Maths::Vector4f& color
+) -> void {
+    text_render_pass.queue_draw(
+        *gpu_device, font_id, sdl_gpu_factory->get_font(font_id), text,
+        position, color
+    );
 }
 
 }  // namespace Luminol::Graphics::SDL_GPU

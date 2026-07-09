@@ -25,6 +25,10 @@ public:
 
     auto remove_renderable(RenderableId renderable_id) -> void override;
 
+    [[nodiscard]] auto create_font(
+        const std::filesystem::path& font_path, float point_size
+    ) -> FontId override;
+
     [[nodiscard]] auto get_graphics_api() const -> GraphicsApi override;
 
     [[nodiscard]] auto get_meshes(RenderableId renderable_id) const

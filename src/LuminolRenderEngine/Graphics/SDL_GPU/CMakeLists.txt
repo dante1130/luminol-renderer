@@ -17,6 +17,8 @@ add_library(Luminol.Graphics.SDL_GPU
     SDL_GPUAmbientOcclusionPass.cpp
     SDL_GPUShadowPass.cpp
     SDL_GPUTonemapPass.cpp
+    SDL_GPUFont.cpp
+    SDL_GPUTextRenderPass.cpp
 )
 
 target_compile_features(Luminol.Graphics.SDL_GPU PRIVATE cxx_std_20)
@@ -31,6 +33,7 @@ target_compile_options(Luminol.Graphics.SDL_GPU PRIVATE
 target_link_libraries(Luminol.Graphics.SDL_GPU PRIVATE
     GSL
     Luminol.Utilities
+    SDL3_ttf::SDL3_ttf
 )
 
 target_link_libraries(Luminol.Graphics.SDL_GPU PUBLIC

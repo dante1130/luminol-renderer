@@ -26,6 +26,9 @@ struct GraphicsPipelineInfo {
     TextureFormat depth_stencil_format = TextureFormat::Invalid;
     CullMode cull_mode = CullMode::None;
     FrontFace front_face = FrontFace::CounterClockwise;
+    // Standard straight-alpha blending (src * srcAlpha + dst * (1 - srcAlpha))
+    // when true; opaque (no blending) when false.
+    bool enable_blend = false;
 };
 
 class GraphicsPipeline {

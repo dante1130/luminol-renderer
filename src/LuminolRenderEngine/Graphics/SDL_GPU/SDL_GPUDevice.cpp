@@ -234,11 +234,23 @@ auto GPUDevice::create_graphics_pipeline(const GraphicsPipelineInfo& info)
         });
     }
 
+    const auto blend_state = info.enable_blend
+        ? SDL_GPUColorTargetBlendState{
+              .src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA,
+              .dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+              .color_blend_op = SDL_GPU_BLENDOP_ADD,
+              .src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA,
+              .dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+              .alpha_blend_op = SDL_GPU_BLENDOP_ADD,
+              .enable_blend = true,
+          }
+        : SDL_GPUColorTargetBlendState{};
+
     const auto color_target_description = SDL_GPUColorTargetDescription{
         .format = to_sdl_texture_format(
             info.color_target_format.value_or(TextureFormat::Invalid)
         ),
-        .blend_state = {},
+        .blend_state = blend_state,
     };
 
     const auto create_info = SDL_GPUGraphicsPipelineCreateInfo{

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -9,8 +10,10 @@
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUAmbientOcclusionPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFont.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShadowPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTextRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTonemapPass.hpp>
 #include <LuminolRenderEngine/Utilities/PerformanceLogger.hpp>
@@ -60,6 +63,13 @@ public:
         const Maths::Vector3f& color
     ) -> void override;
 
+    auto queue_draw_text(
+        FontId font_id,
+        std::string_view text,
+        const Maths::Vector2f& position,
+        const Maths::Vector4f& color
+    ) -> void override;
+
     auto draw() -> void override;
 
 private:
@@ -72,6 +82,7 @@ private:
     SDL_GPUAmbientOcclusionPass ao_pass;
     SDL_GPUShadowPass shadow_pass;
     SDL_GPUTonemapPass tonemap_pass;
+    SDL_GPUTextRenderPass text_render_pass;
 
     Texture depth_texture;
     Texture hdr_color_texture;

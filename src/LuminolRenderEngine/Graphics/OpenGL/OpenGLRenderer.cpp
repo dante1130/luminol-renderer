@@ -209,6 +209,13 @@ auto OpenGLRenderer::queue_draw_line(
     );
 }
 
+auto OpenGLRenderer::queue_draw_text(
+    FontId /*font_id*/,
+    std::string_view /*text*/,
+    const Maths::Vector2f& /*position*/,
+    const Maths::Vector4f& /*color*/
+) -> void {}
+
 auto OpenGLRenderer::draw() -> void {
     this->update_lights();
 

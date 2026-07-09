@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <string_view>
 
 #include <gsl/gsl>
 
@@ -38,6 +39,10 @@ public:
     ) -> RenderableId;
 
     auto remove_renderable(RenderableId renderable_id) -> void;
+
+    [[nodiscard]] auto create_font(
+        const std::filesystem::path& font_path, float point_size
+    ) -> FontId;
 
     [[nodiscard]] auto get_light_manager() const -> const LightManager&;
     [[nodiscard]] auto get_light_manager() -> LightManager&;
@@ -75,6 +80,13 @@ public:
         const Maths::Vector3f& start_position,
         const Maths::Vector3f& end_position,
         const Maths::Vector3f& color
+    ) -> void = 0;
+
+    virtual auto queue_draw_text(
+        FontId font_id,
+        std::string_view text,
+        const Maths::Vector2f& position,
+        const Maths::Vector4f& color
     ) -> void = 0;
 
     virtual auto draw() -> void = 0;

@@ -24,6 +24,12 @@ auto Renderer::remove_renderable(RenderableId renderable_id) -> void {
     this->graphics_factory->remove_renderable(renderable_id);
 }
 
+auto Renderer::create_font(
+    const std::filesystem::path& font_path, float point_size
+) -> FontId {
+    return this->graphics_factory->create_font(font_path, point_size);
+}
+
 auto Renderer::get_light_manager() const -> const LightManager& {
     return this->light_manager;
 }

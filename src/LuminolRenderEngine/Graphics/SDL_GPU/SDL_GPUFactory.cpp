@@ -2,6 +2,7 @@
 
 #include <gsl/gsl>
 #include <SDL3/SDL_video.h>
+#include <SDL3_ttf/SDL_ttf.h>
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
@@ -9,8 +10,12 @@
 
 namespace Luminol::Graphics::SDL_GPU {
 
-SDL_GPUFactory::SDL_GPUFactory() = default;
-SDL_GPUFactory::~SDL_GPUFactory() = default;
+SDL_GPUFactory::SDL_GPUFactory() { Expects(TTF_Init()); }
+
+SDL_GPUFactory::~SDL_GPUFactory() {
+    fonts_by_id.clear();
+    TTF_Quit();
+}
 
 auto SDL_GPUFactory::create_renderer(Window& window)
     -> std::unique_ptr<Renderer> {
@@ -81,6 +86,24 @@ auto SDL_GPUFactory::get_graphics_api() const -> GraphicsApi {
 auto SDL_GPUFactory::get_meshes(RenderableId renderable_id) const
     -> gsl::span<const SDL_GPUMesh> {
     return this->meshes_by_id.at(renderable_id);
+}
+
+auto SDL_GPUFactory::create_font(
+    const std::filesystem::path& font_path, float point_size
+) -> FontId {
+    const auto font_id = this->font_manager.allocate_id(font_path);
+
+    if (this->fonts_by_id.contains(font_id)) {
+        return font_id;
+    }
+
+    this->fonts_by_id.emplace(font_id, SDL_GPUFont{font_path, point_size});
+
+    return font_id;
+}
+
+auto SDL_GPUFactory::get_font(FontId font_id) const -> const SDL_GPUFont& {
+    return this->fonts_by_id.at(font_id);
 }
 
 }  // namespace Luminol::Graphics::SDL_GPU

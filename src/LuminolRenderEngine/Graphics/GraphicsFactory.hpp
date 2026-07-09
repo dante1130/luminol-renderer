@@ -40,6 +40,10 @@ public:
 
     virtual auto remove_renderable(RenderableId renderable_id) -> void = 0;
 
+    [[nodiscard]] virtual auto create_font(
+        const std::filesystem::path& font_path, float point_size
+    ) -> FontId = 0;
+
     [[nodiscard]] virtual auto get_graphics_api() const -> GraphicsApi = 0;
 };
 

@@ -8,6 +8,7 @@
 namespace Luminol::Graphics {
 
 using RenderableId = uint32_t;
+using FontId = uint32_t;
 
 class RenderableManager {
 public:

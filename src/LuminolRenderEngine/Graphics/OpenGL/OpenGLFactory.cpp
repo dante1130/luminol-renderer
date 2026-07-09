@@ -46,6 +46,15 @@ auto OpenGLFactory::remove_renderable(RenderableId renderable_id) -> void {
     this->renderable_manager.remove_renderable(renderable_id);
 }
 
+// Text rendering isn't implemented for OpenGL yet; returns a placeholder
+// FontId without loading anything. queue_draw_text is a no-op for every
+// backend that doesn't support text, so the value is never used.
+auto OpenGLFactory::create_font(
+    const std::filesystem::path& /*font_path*/, float /*point_size*/
+) -> FontId {
+    return FontId{0};
+}
+
 auto OpenGLFactory::get_graphics_api() const -> GraphicsApi {
     return GraphicsApi::OpenGL;
 }
