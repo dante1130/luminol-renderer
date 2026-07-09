@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25.1)
 
-project(glfw-opengl-cmake-starter)
+project(luminol-renderer)
 
 option(LUMINOL_RENDER_ENGINE_EXPORT_COMPILE_COMMANDS "Export compile commands" ON)
 option(LUMINOL_RENDER_ENGINE_BUILD_DEMO "Build LuminolRenderEngine demo" ON)

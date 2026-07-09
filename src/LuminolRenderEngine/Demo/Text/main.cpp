@@ -27,8 +27,6 @@ auto main() -> int {
         );
 
         luminol_engine.get_renderer().draw();
-
-        luminol_engine.get_window().swap_buffers();
     }
 
     return 0;

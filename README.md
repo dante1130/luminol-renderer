@@ -1,6 +1,6 @@
 # luminol-renderer
 
-A simple renderer using OpenGL. This project is still a WIP.
+A simple renderer using SDL_GPU. This project is still a WIP.
 
 Features:
 
@@ -27,13 +27,6 @@ You need to install the following:
 
 - [Git](https://git-scm.com/downloads)
 - [CMake](https://cmake.org/download/) (minimum version of 3.25.1)
-- [Python](https://www.python.org/downloads/) (This is used for `glad` to generate the OpenGL loader)
-
-You will also need the `Jinja2` Python package. You can install it using pip by running this command:
-
-```bash
-pip install jinja2
-```
 
 ## Cloning the repository
 

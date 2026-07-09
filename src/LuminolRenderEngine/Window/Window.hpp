@@ -21,14 +21,13 @@ class Window {
 public:
     using WindowHandle = void*;
     using InitStateHandle = void*;
-    using WindowProc = void (*(*)(const char*))();
     using FramebufferSizeCallback = std::function<void(int32_t, int32_t)>;
 
     Window(
         int32_t width,
         int32_t height,
         const std::string& title,
-        Graphics::GraphicsApi graphics_api = Graphics::GraphicsApi::OpenGL
+        Graphics::GraphicsApi graphics_api = Graphics::GraphicsApi::SDL_GPU
     );
 
     Window(const Window&) = delete;
@@ -40,7 +39,6 @@ public:
     [[nodiscard]] auto get_width() const -> int32_t;
     [[nodiscard]] auto get_height() const -> int32_t;
 
-    [[nodiscard]] auto get_proc_address() const -> WindowProc;
     [[nodiscard]] auto get_window_handle() const -> WindowHandle;
 
     [[nodiscard]] auto is_key_event(uint32_t key, KeyEvent event) const -> bool;
@@ -56,8 +54,6 @@ public:
     [[nodiscard]] auto should_close() -> bool;
     auto close() -> void;
 
-    auto swap_buffers() const -> void;
-
 private:
     std::optional<FramebufferSizeCallback> framebuffer_size_callback =
         std::nullopt;
@@ -68,7 +64,7 @@ private:
 
     MouseDelta mouse_delta = {.delta_x = 0.0, .delta_y = 0.0};
 
-    Graphics::GraphicsApi graphics_api = Graphics::GraphicsApi::OpenGL;
+    Graphics::GraphicsApi graphics_api = Graphics::GraphicsApi::SDL_GPU;
 };
 
 }  // namespace Luminol

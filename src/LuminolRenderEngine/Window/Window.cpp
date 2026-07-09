@@ -45,9 +45,7 @@ Window::Window(
         Ensures(false);
     }
 
-    const auto window_flags = SDL_WINDOW_RESIZABLE |
-        (graphics_api == Graphics::GraphicsApi::OpenGL ? SDL_WINDOW_OPENGL
-                                                       : SDL_WindowFlags{0});
+    const auto window_flags = SDL_WINDOW_RESIZABLE;
 
     this->window_handle =
         SDL_CreateWindow(title.c_str(), width, height, window_flags);
@@ -64,10 +62,6 @@ Window::Window(
     SDL_SetWindowRelativeMouseMode(
         window_handle_to_sdl_window(window_handle), true
     );
-
-    if (graphics_api == Graphics::GraphicsApi::OpenGL) {
-        SDL_GL_CreateContext(window_handle_to_sdl_window(this->window_handle));
-    }
 
     SDL_SetInitialized(
         init_state_handle_to_sdl_init_state(*this->init_state_handle), true
@@ -98,12 +92,6 @@ auto Window::get_height() const -> int32_t {
 
     return height;
 }
-
-// NOLINTBEGIN(readability-convert-member-functions-to-static)
-auto Window::get_proc_address() const -> Window::WindowProc {
-    return SDL_GL_GetProcAddress;
-}
-// NOLINTEND(readability-convert-member-functions-to-static)
 
 auto Window::get_window_handle() const -> Window::WindowHandle {
     return this->window_handle;
@@ -187,12 +175,6 @@ auto Window::close() -> void {
     SDL_SetInitialized(
         init_state_handle_to_sdl_init_state(*this->init_state_handle), false
     );
-}
-
-auto Window::swap_buffers() const -> void {
-    if (graphics_api == Graphics::GraphicsApi::OpenGL) {
-        SDL_GL_SwapWindow(window_handle_to_sdl_window(window_handle));
-    }
 }
 
 }  // namespace Luminol

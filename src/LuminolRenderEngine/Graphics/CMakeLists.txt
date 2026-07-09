@@ -22,7 +22,6 @@ target_link_libraries(Luminol.Graphics PUBLIC
 )
 
 target_link_libraries(Luminol.Graphics PRIVATE
-    Luminol.Graphics.OpenGL
     Luminol.Graphics.SDL_GPU
 )
 
@@ -30,5 +29,4 @@ target_include_directories(Luminol.Graphics PUBLIC
     ${LUMINOL_RENDER_ENGINE_SRC_DIR}
 )
 
-add_subdirectory(OpenGL)
 add_subdirectory(SDL_GPU)
