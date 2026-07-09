@@ -89,12 +89,34 @@ auto compute_light_space_matrix(
     const auto light_up_vector =
         std::abs(direction.dot(world_up)) > 0.99F ? up_fallback : world_up;
 
-    const auto light_eye = camera_position - direction * shadow_distance;
+    // Stabilize the shadow map against camera movement: snap the
+    // camera-following target to whole shadow-map texels in the light's
+    // right/up axes so the texel grid only ever shifts by whole texels
+    // frame-to-frame, preventing sub-texel shimmer at shadow edges.
+    const auto right = light_up_vector.cross(direction).normalized();
+    const auto up_axis = direction.cross(right);
+
+    constexpr auto texel_size =
+        (2.0F * shadow_ortho_half_extent) /
+        static_cast<float>(shadow_map_resolution);
+
+    const auto snap = [](float value) {
+        return std::floor(value / texel_size) * texel_size;
+    };
+
+    const auto camera_right_dist = right.dot(camera_position);
+    const auto camera_up_dist = up_axis.dot(camera_position);
+
+    const auto snapped_target = camera_position +
+        right * (snap(camera_right_dist) - camera_right_dist) +
+        up_axis * (snap(camera_up_dist) - camera_up_dist);
+
+    const auto light_eye = snapped_target - direction * shadow_distance;
 
     const auto light_view = Transform::left_handed_look_at_matrix(
         Transform::LookAtParams<float>{
             .eye = light_eye,
-            .target = camera_position,
+            .target = snapped_target,
             .up_vector = light_up_vector
         }
     );
