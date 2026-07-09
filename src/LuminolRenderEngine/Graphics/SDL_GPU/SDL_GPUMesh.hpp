@@ -29,6 +29,8 @@ struct TextureImages {
     Utilities::ModelLoader::TextureWrap roughness_texture_wrap;
     std::optional<Utilities::ImageLoader::Image> ambient_occlusion_texture;
     Utilities::ModelLoader::TextureWrap ambient_occlusion_texture_wrap;
+    Utilities::ModelLoader::AlphaMode alpha_mode =
+        Utilities::ModelLoader::AlphaMode::Opaque;
 };
 
 class SDL_GPUMesh {
@@ -61,6 +63,8 @@ public:
         int32_t instance_count, RenderPass& sdl_gpu_pass
     ) const -> void;
 
+    [[nodiscard]] auto alpha_mode() const -> Utilities::ModelLoader::AlphaMode;
+
 private:
     Buffer vertex_buffer;
     Buffer index_buffer;
@@ -77,6 +81,9 @@ private:
     Sampler metallic_sampler;
     Sampler roughness_sampler;
     Sampler ambient_occlusion_sampler;
+
+    Utilities::ModelLoader::AlphaMode mesh_alpha_mode =
+        Utilities::ModelLoader::AlphaMode::Opaque;
 };
 
 [[nodiscard]] auto load_meshes_from_model(

@@ -23,6 +23,10 @@ struct GraphicsPipelineInfo {
     gsl::span<const VertexBufferDescription> vertex_buffer_descriptions;
     gsl::span<const VertexAttribute> vertex_attributes;
     bool enable_depth_test = false;
+    // Ignored when enable_depth_test is false. Set to false for transparent
+    // geometry so it's still occluded by opaque geometry without occluding
+    // other transparent surfaces behind it.
+    bool enable_depth_write = true;
     TextureFormat depth_stencil_format = TextureFormat::Invalid;
     CullMode cull_mode = CullMode::None;
     FrontFace front_face = FrontFace::CounterClockwise;

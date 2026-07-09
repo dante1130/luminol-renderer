@@ -300,7 +300,7 @@ auto GPUDevice::create_graphics_pipeline(const GraphicsPipelineInfo& info)
                 .compare_mask = 0,
                 .write_mask = 0,
                 .enable_depth_test = info.enable_depth_test,
-                .enable_depth_write = info.enable_depth_test,
+                .enable_depth_write = info.enable_depth_test && info.enable_depth_write,
                 .enable_stencil_test = false,
                 .padding1 = 0,
                 .padding2 = 0,

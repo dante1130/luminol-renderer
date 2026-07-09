@@ -1,9 +1,11 @@
 #include "ModelLoader.hpp"
 
 #include <array>
+#include <string_view>
 
 #include <gsl/gsl>
 
+#include <assimp/GltfMaterial.h>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -173,6 +175,42 @@ auto load_textures(
     return LoadedTextures{.paths = texture_paths, .wrap = wrap};
 }
 
+auto get_material_alpha_mode(
+    gsl::span<aiMaterial*> materials, unsigned int material_index
+) -> Luminol::Utilities::ModelLoader::AlphaMode {
+    using Luminol::Utilities::ModelLoader::AlphaMode;
+
+    if (materials.empty()) {
+        return AlphaMode::Opaque;
+    }
+
+    const auto* const material = materials[material_index];
+
+    auto alpha_mode_string = aiString{};
+    if (material->Get(AI_MATKEY_GLTF_ALPHAMODE, alpha_mode_string) ==
+        AI_SUCCESS) {
+        const auto mode = std::string_view{alpha_mode_string.C_Str()};
+        if (mode == "MASK") {
+            return AlphaMode::Mask;
+        }
+        if (mode == "BLEND") {
+            return AlphaMode::Blend;
+        }
+        return AlphaMode::Opaque;
+    }
+
+    // Non-glTF formats (e.g. OBJ) don't expose an alpha mode; approximate
+    // blend transparency from material opacity instead.
+    constexpr auto opaque_opacity_threshold = 0.999F;
+    auto opacity = 1.0F;
+    if (material->Get(AI_MATKEY_OPACITY, opacity) == AI_SUCCESS &&
+        opacity < opaque_opacity_threshold) {
+        return AlphaMode::Blend;
+    }
+
+    return AlphaMode::Opaque;
+}
+
 auto load_mesh(
     const aiMesh& mesh,
     gsl::span<aiMaterial*> materials,
@@ -218,6 +256,7 @@ auto load_mesh(
         .roughness_texture_wrap = roughness.wrap,
         .ambient_occlusion_texture_paths = std::move(ambient_occlusion.paths),
         .ambient_occlusion_texture_wrap = ambient_occlusion.wrap,
+        .alpha_mode = get_material_alpha_mode(materials, mesh.mMaterialIndex),
     };
 }
 

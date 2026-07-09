@@ -12,6 +12,7 @@ struct TexturePaths {
     std::optional<std::filesystem::path> metallic_texture_path;
     std::optional<std::filesystem::path> roughness_texture_path;
     std::optional<std::filesystem::path> ambient_occlusion_texture_path;
+    bool is_transparent = false;
 };
 
 }  // namespace Luminol::Graphics

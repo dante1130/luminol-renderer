@@ -60,6 +60,8 @@ public:
         CommandBuffer& command_buffer,
         RenderPass& render_pass,
         gsl::span<const InstanceBatch> instance_batches,
+        const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
+            queued_draws,
         const Maths::Matrix4x4f& view_proj,
         const DirectionalLightData& light_data,
         const Texture& ssao_texture,
@@ -74,7 +76,10 @@ public:
 private:
     Shader mesh_vertex_shader;
     Shader mesh_fragment_shader;
+    Shader mesh_alpha_test_fragment_shader;
     GraphicsPipeline mesh_pipeline;
+    GraphicsPipeline mesh_alpha_test_pipeline;
+    GraphicsPipeline mesh_transparent_pipeline;
 
     SDL_GPUInstanceBufferCache instance_buffer_cache;
 };

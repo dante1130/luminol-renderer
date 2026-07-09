@@ -17,6 +17,12 @@ enum class TextureWrapMode {
     MirroredRepeat,
 };
 
+enum class AlphaMode {
+    Opaque,
+    Mask,
+    Blend,
+};
+
 struct TextureWrap {
     TextureWrapMode u = TextureWrapMode::Repeat;
     TextureWrapMode v = TextureWrapMode::Repeat;
@@ -42,6 +48,8 @@ struct MeshData {
     TextureWrap roughness_texture_wrap;
     std::vector<std::filesystem::path> ambient_occlusion_texture_paths;
     TextureWrap ambient_occlusion_texture_wrap;
+
+    AlphaMode alpha_mode = AlphaMode::Opaque;
 };
 
 struct ModelData {

@@ -59,6 +59,7 @@ auto to_texture_images(
         ),
         .ambient_occlusion_texture_wrap =
             mesh_data.ambient_occlusion_texture_wrap,
+        .alpha_mode = mesh_data.alpha_mode,
     };
 }
 
@@ -282,7 +283,12 @@ SDL_GPUMesh::SDL_GPUMesh(
       ambient_occlusion_sampler{device.create_sampler(SamplerInfo{
           .address_mode_u = SamplerAddressMode::Repeat,
           .address_mode_v = SamplerAddressMode::Repeat,
-      })} {}
+      })},
+      mesh_alpha_mode{
+          texture_paths.is_transparent
+              ? Utilities::ModelLoader::AlphaMode::Blend
+              : Utilities::ModelLoader::AlphaMode::Opaque
+      } {}
 
 SDL_GPUMesh::SDL_GPUMesh(
     GPUDevice& device,
@@ -347,7 +353,8 @@ SDL_GPUMesh::SDL_GPUMesh(
       },
       ambient_occlusion_sampler{make_sampler(
           device, texture_images.ambient_occlusion_texture_wrap
-      )} {}
+      )},
+      mesh_alpha_mode{texture_images.alpha_mode} {}
 
 auto SDL_GPUMesh::draw(RenderPass& sdl_gpu_pass) const -> void {
     draw_instanced(1, sdl_gpu_pass);
@@ -401,6 +408,10 @@ auto SDL_GPUMesh::draw_instanced_geometry_only(
     sdl_gpu_pass.draw_indexed_primitives(
         index_count, static_cast<uint32_t>(instance_count)
     );
+}
+
+auto SDL_GPUMesh::alpha_mode() const -> Utilities::ModelLoader::AlphaMode {
+    return mesh_alpha_mode;
 }
 
 auto load_meshes_from_model(

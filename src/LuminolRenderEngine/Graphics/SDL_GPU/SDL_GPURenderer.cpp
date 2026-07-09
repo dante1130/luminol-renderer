@@ -379,6 +379,7 @@ auto SDL_GPURenderer::draw() -> void {
             command_buffer,
             render_pass,
             instance_batches,
+            queued_draws,
             view_matrix * projection_matrix,
             light_data,
             ao_pass.get_ao_texture(),
