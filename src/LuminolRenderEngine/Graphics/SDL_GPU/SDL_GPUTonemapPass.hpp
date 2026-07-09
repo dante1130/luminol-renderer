@@ -13,10 +13,10 @@ class CommandBuffer;
 class RenderPass;
 
 // Resolves the offscreen HDR color target produced by SDL_GPUMeshRenderPass
-// into the swapchain: applies Reinhard tonemapping and gamma correction, the
-// same operator used by OpenGLHDRRenderPass. Mirrors the fullscreen-pass shape
-// used by SDL_GPUAmbientOcclusionPass, but has a single stage and writes
-// straight into an already-active render pass owned by the caller.
+// into the swapchain: applies Reinhard tonemapping and gamma correction.
+// Mirrors the fullscreen-pass shape used by SDL_GPUAmbientOcclusionPass, but
+// has a single stage and writes straight into an already-active render pass
+// owned by the caller.
 class SDL_GPUTonemapPass {
 public:
     SDL_GPUTonemapPass(GPUDevice& device, SDL_Window* window);

@@ -78,9 +78,9 @@ auto make_skybox(GPUDevice& device) -> SDL_GPUSkybox {
     return std::move(*skybox);
 }
 
-// Removes translation from the view matrix, matching
-// OpenGLSkyboxRenderPass's stripping of the last column of the top-left 3x3
-// block so the skybox rotates with the camera but never translates.
+// Removes translation from the view matrix by stripping the last column of
+// the top-left 3x3 block, so the skybox rotates with the camera but never
+// translates.
 auto strip_translation(const Matrix4x4f& view_matrix) -> Matrix4x4f {
     return Matrix4x4f{std::array{
         std::array{

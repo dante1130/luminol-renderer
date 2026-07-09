@@ -45,12 +45,6 @@ auto handle_key_events(
     if (engine.get_window().is_key_event('q', KeyEvent::Press)) {
         engine.get_window().close();
     }
-
-    if (engine.get_window().is_key_event('h', KeyEvent::Press)) {
-        engine.get_renderer().set_luminance_heatmap_enabled(
-            !engine.get_renderer().get_luminance_heatmap_enabled()
-        );
-    }
 }
 
 }  // namespace
@@ -160,6 +154,9 @@ auto main() -> int {
 
     const auto flash_light_id = flash_light_id_opt.value();
 
+    auto light_model_matrices = std::vector<Maths::Matrix4x4f>{};
+    light_model_matrices.reserve(lights.light_data.size());
+
     auto last_frame_time_seconds = 0.0;
 
     while (!luminol_engine.get_window().should_close()) {
@@ -183,7 +180,6 @@ auto main() -> int {
         constexpr auto color = Maths::Vector4f{0.0f, 0.0f, 0.0f, 1.0f};
 
         luminol_engine.get_renderer().clear_color(color);
-        luminol_engine.get_renderer().clear(Graphics::BufferBit::ColorDepth);
 
         camera.set_aspect_ratio(
             static_cast<float>(luminol_engine.get_window().get_width()) /
@@ -201,6 +197,8 @@ auto main() -> int {
         luminol_engine.get_renderer().get_light_manager().update_spot_light(
             flash_light_id, flash_light
         );
+
+        light_model_matrices.clear();
 
         for (auto& light_data : lights.light_data) {
             const auto rotation_degrees = Units::Degrees_f{
@@ -226,10 +224,12 @@ auto main() -> int {
                     PointLight{.position = position, .color = light_data.color}
                 );
 
-            luminol_engine.get_renderer().queue_draw_with_color(
-                lights.renderable_id, light_data.model_matrix, light_data.color
-            );
+            light_model_matrices.push_back(light_data.model_matrix);
         }
+
+        luminol_engine.get_renderer().queue_draw_instanced(
+            lights.renderable_id, light_model_matrices
+        );
 
         luminol_engine.get_renderer().queue_draw(
             model_id, Maths::Matrix4x4f::identity()

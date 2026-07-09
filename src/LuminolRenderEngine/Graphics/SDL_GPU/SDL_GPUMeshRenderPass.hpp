@@ -65,10 +65,9 @@ struct IBLTextures {
 
 // Owns the mesh pipeline (position/uv vertex layout, view_proj uniform,
 // per-instance model matrices via a storage buffer indexed by
-// SV_InstanceID) and the persistent instance buffers backing it. Mirrors the
-// per-pass class shape used by the OpenGL backend (e.g.
-// OpenGLGBufferRenderPass): the pass owns its own GPU resources and exposes
-// upload/draw steps, while SDL_GPURenderer just coordinates passes.
+// SV_InstanceID) and the persistent instance buffers backing it. The pass
+// owns its own GPU resources and exposes upload/draw steps, while
+// SDL_GPURenderer just coordinates passes.
 class SDL_GPUMeshRenderPass {
 public:
     SDL_GPUMeshRenderPass(GPUDevice& device, SampleCount sample_count);

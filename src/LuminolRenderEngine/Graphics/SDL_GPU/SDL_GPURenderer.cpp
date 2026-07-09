@@ -216,22 +216,9 @@ auto SDL_GPURenderer::set_exposure(float exposure) -> void {
     this->exposure = exposure;
 }
 
-auto SDL_GPURenderer::set_luminance_heatmap_enabled(bool enabled) -> void {
-    luminance_heatmap_enabled = enabled;
-}
-
-auto SDL_GPURenderer::get_luminance_heatmap_enabled() const -> bool {
-    return luminance_heatmap_enabled;
-}
-
 auto SDL_GPURenderer::clear_color(const Maths::Vector4f& color) const -> void {
     clear_color_value = color;
 }
-
-// SDL_GPU handles the clear via LOADOP_CLEAR inside begin_render_pass, so
-// there is nothing to do here; the color set in clear_color is applied at that
-// point instead.
-auto SDL_GPURenderer::clear(BufferBit /*buffer_bit*/) const -> void {}
 
 auto SDL_GPURenderer::queue_draw(
     RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
@@ -245,18 +232,6 @@ auto SDL_GPURenderer::queue_draw_instanced(
     auto& batch = queued_draws[renderable_id];
     batch.insert(batch.end(), model_matrices.begin(), model_matrices.end());
 }
-
-auto SDL_GPURenderer::queue_draw_with_color(
-    RenderableId /*renderable_id*/,
-    const Maths::Matrix4x4f& /*model_matrix*/,
-    const Maths::Vector3f& /*color*/
-) -> void {}
-
-auto SDL_GPURenderer::queue_draw_line(
-    const Maths::Vector3f& /*start*/,
-    const Maths::Vector3f& /*end*/,
-    const Maths::Vector3f& /*color*/
-) -> void {}
 
 auto SDL_GPURenderer::draw() -> void {
     const auto frame_timer = Utilities::Timer{};

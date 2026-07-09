@@ -17,8 +17,7 @@ class RenderPass;
 // view ray per pixel from the inverse of the translation-stripped
 // view-projection matrix and forces depth to the far plane, so it only
 // shows through where the depth buffer wasn't already written by opaque
-// geometry (mirrors OpenGLSkyboxRenderPass's gl_Position.xyww / GL_LEQUAL
-// trick, without needing a cube mesh or a front-face culling flip).
+// geometry, without needing a cube mesh or a front-face culling flip.
 class SDL_GPUSkyboxRenderPass {
 public:
     SDL_GPUSkyboxRenderPass(GPUDevice& device, SampleCount sample_count);

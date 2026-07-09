@@ -10,7 +10,6 @@
 #include <gsl/gsl>
 
 #include <LuminolRenderEngine/Window/Window.hpp>
-#include <LuminolRenderEngine/Graphics/BufferBit.hpp>
 #include <LuminolRenderEngine/Graphics/LightManager.hpp>
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 #include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
@@ -54,12 +53,8 @@ public:
     ) -> void = 0;
 
     virtual auto set_exposure(float exposure) -> void = 0;
-    virtual auto set_luminance_heatmap_enabled(bool enabled) -> void = 0;
-    [[nodiscard]] virtual auto get_luminance_heatmap_enabled() const
-        -> bool = 0;
 
     virtual auto clear_color(const Maths::Vector4f& color) const -> void = 0;
-    virtual auto clear(BufferBit buffer_bit) const -> void = 0;
 
     virtual auto queue_draw(
         RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
@@ -68,18 +63,6 @@ public:
     virtual auto queue_draw_instanced(
         RenderableId renderable_id,
         gsl::span<const Maths::Matrix4x4f> model_matrices
-    ) -> void = 0;
-
-    virtual auto queue_draw_with_color(
-        RenderableId renderable_id,
-        const Maths::Matrix4x4f& model_matrix,
-        const Maths::Vector3f& color
-    ) -> void = 0;
-
-    virtual auto queue_draw_line(
-        const Maths::Vector3f& start_position,
-        const Maths::Vector3f& end_position,
-        const Maths::Vector3f& color
     ) -> void = 0;
 
     virtual auto queue_draw_text(

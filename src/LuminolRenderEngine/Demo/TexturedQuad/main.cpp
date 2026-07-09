@@ -35,7 +35,6 @@ auto main() -> int {
         constexpr auto color = Maths::Vector4f{0.0F, 0.0F, 0.0F, 1.0F};
 
         luminol_engine.get_renderer().clear_color(color);
-        luminol_engine.get_renderer().clear(Graphics::BufferBit::ColorDepth);
 
         luminol_engine.get_renderer().queue_draw(
             quad_id, Maths::Matrix4x4f::identity()

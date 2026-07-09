@@ -39,11 +39,7 @@ public:
 
     auto set_exposure(float exposure) -> void override;
 
-    auto set_luminance_heatmap_enabled(bool enabled) -> void override;
-    [[nodiscard]] auto get_luminance_heatmap_enabled() const -> bool override;
-
     auto clear_color(const Maths::Vector4f& color) const -> void override;
-    auto clear(BufferBit buffer_bit) const -> void override;
 
     auto queue_draw(
         RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
@@ -52,18 +48,6 @@ public:
     auto queue_draw_instanced(
         RenderableId renderable_id,
         gsl::span<const Maths::Matrix4x4f> model_matrices
-    ) -> void override;
-
-    auto queue_draw_with_color(
-        RenderableId renderable_id,
-        const Maths::Matrix4x4f& model_matrix,
-        const Maths::Vector3f& color
-    ) -> void override;
-
-    auto queue_draw_line(
-        const Maths::Vector3f& start,
-        const Maths::Vector3f& end,
-        const Maths::Vector3f& color
     ) -> void override;
 
     auto queue_draw_text(
@@ -109,7 +93,6 @@ private:
     Maths::Matrix4x4f projection_matrix = Maths::Matrix4x4f::identity();
 
     mutable Maths::Vector4f clear_color_value = {0.0F, 0.0F, 0.0F, 1.0F};
-    bool luminance_heatmap_enabled = false;
     float exposure = 1.0F;
 };
 
