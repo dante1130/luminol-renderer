@@ -36,6 +36,12 @@ struct ColorTargetInfo {
     // callers can use designated-initializer syntax, matching `texture`.
     const TextureView* resolve_texture = nullptr;
     bool cycle_resolve_texture = false;
+    // Selects which mip level / cubemap face (or array layer) of `texture`
+    // to render into. Needed for precompute passes that render each face and
+    // mip of a cubemap individually (e.g. irradiance convolution,
+    // prefiltered specular).
+    uint32_t mip_level = 0;
+    uint32_t layer = 0;
 };
 
 struct DepthStencilTargetInfo {

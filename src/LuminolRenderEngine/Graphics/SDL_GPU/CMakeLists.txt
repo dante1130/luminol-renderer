@@ -19,6 +19,7 @@ add_library(Luminol.Graphics.SDL_GPU
     SDL_GPUTonemapPass.cpp
     SDL_GPUSkybox.cpp
     SDL_GPUSkyboxRenderPass.cpp
+    SDL_GPUIBLRenderPass.cpp
     SDL_GPUFont.cpp
     SDL_GPUTextRenderPass.cpp
 )

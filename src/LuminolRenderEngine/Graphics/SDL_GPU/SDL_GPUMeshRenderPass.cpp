@@ -54,9 +54,12 @@ constexpr auto mesh_vertex_attributes = std::array{
 constexpr auto depth_texture_format = TextureFormat::D24_Unorm;
 constexpr auto hdr_color_texture_format = TextureFormat::R16G16B16A16_Float;
 
-constexpr auto fragment_sampler_count = 7U;
+constexpr auto fragment_sampler_count = 10U;
 constexpr auto ssao_sampler_slot = 5U;
 constexpr auto shadow_map_sampler_slot = 6U;
+constexpr auto irradiance_sampler_slot = 7U;
+constexpr auto prefiltered_sampler_slot = 8U;
+constexpr auto brdf_lut_sampler_slot = 9U;
 
 auto make_mesh_shader(
     GPUDevice& device, const std::filesystem::path& path, ShaderStage stage
@@ -240,12 +243,16 @@ auto SDL_GPUMeshRenderPass::draw(
     const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
         queued_draws,
     const Maths::Matrix4x4f& view_proj,
-    const DirectionalLightData& light_data,
+    DirectionalLightData light_data,
     const Texture& ssao_texture,
     const Sampler& ssao_sampler,
     const Texture& shadow_map_texture,
-    const Sampler& shadow_map_sampler
+    const Sampler& shadow_map_sampler,
+    const IBLTextures& ibl_textures
 ) -> void {
+    light_data.shadow_params.z() =
+        static_cast<float>(ibl_textures.prefiltered_mip_count - 1);
+
     command_buffer.push_vertex_uniform_data(
         0,
         gsl::span{
@@ -270,6 +277,30 @@ auto SDL_GPUMeshRenderPass::draw(
     }};
     render_pass.bind_fragment_samplers(
         shadow_map_sampler_slot, shadow_map_sampler_bindings
+    );
+
+    const auto irradiance_sampler_bindings = std::array{TextureSamplerBinding{
+        .texture = ibl_textures.irradiance_texture,
+        .sampler = ibl_textures.irradiance_sampler
+    }};
+    render_pass.bind_fragment_samplers(
+        irradiance_sampler_slot, irradiance_sampler_bindings
+    );
+
+    const auto prefiltered_sampler_bindings = std::array{TextureSamplerBinding{
+        .texture = ibl_textures.prefiltered_texture,
+        .sampler = ibl_textures.prefiltered_sampler
+    }};
+    render_pass.bind_fragment_samplers(
+        prefiltered_sampler_slot, prefiltered_sampler_bindings
+    );
+
+    const auto brdf_lut_sampler_bindings = std::array{TextureSamplerBinding{
+        .texture = ibl_textures.brdf_lut_texture,
+        .sampler = ibl_textures.brdf_lut_sampler
+    }};
+    render_pass.bind_fragment_samplers(
+        brdf_lut_sampler_slot, brdf_lut_sampler_bindings
     );
 
     const auto draw_batches_matching =

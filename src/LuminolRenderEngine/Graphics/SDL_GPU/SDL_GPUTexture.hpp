@@ -39,6 +39,11 @@ struct TextureInfo {
     // SDL_GPU_TEXTUREUSAGE_COLOR_TARGET so SDL_GenerateMipmapsForGPUTexture
     // can blit into it.
     bool generate_mipmaps = false;
+    // Explicit mip level count, used when generate_mipmaps is false (e.g. a
+    // prefiltered specular cubemap where each level is rendered directly by
+    // a dedicated pass rather than blitted). Callers requesting more than 1
+    // level must include TextureUsage::ColorTarget themselves.
+    uint32_t mip_levels = 1;
 };
 
 class Texture {

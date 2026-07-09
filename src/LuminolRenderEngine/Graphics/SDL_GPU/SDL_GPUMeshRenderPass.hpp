@@ -35,7 +35,22 @@ struct DirectionalLightData {
     Maths::Vector4f view_position;
     Maths::Vector4f screen_size;
     Maths::Matrix4x4f light_space_matrix;
-    Maths::Vector4f shadow_params;  // x: shadow map resolution, y: bias
+    // x: shadow map resolution, y: normal-offset bias,
+    // z: max prefiltered specular mip level (see SDL_GPUIBLRenderPass)
+    Maths::Vector4f shadow_params;
+};
+
+// Bundles the precomputed split-sum IBL textures/samplers produced by
+// SDL_GPUIBLRenderPass, bound as the pbr_frag.hlsl fragment samplers at
+// slots 7-9 (see irradiance_sampler_slot etc. in SDL_GPUMeshRenderPass.cpp).
+struct IBLTextures {
+    const Texture* irradiance_texture;
+    const Sampler* irradiance_sampler;
+    const Texture* prefiltered_texture;
+    const Sampler* prefiltered_sampler;
+    uint32_t prefiltered_mip_count;
+    const Texture* brdf_lut_texture;
+    const Sampler* brdf_lut_sampler;
 };
 
 // Owns the mesh pipeline (position/uv vertex layout, view_proj uniform,
@@ -63,11 +78,12 @@ public:
         const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
             queued_draws,
         const Maths::Matrix4x4f& view_proj,
-        const DirectionalLightData& light_data,
+        DirectionalLightData light_data,
         const Texture& ssao_texture,
         const Sampler& ssao_sampler,
         const Texture& shadow_map_texture,
-        const Sampler& shadow_map_sampler
+        const Sampler& shadow_map_sampler,
+        const IBLTextures& ibl_textures
     ) -> void;
 
     [[nodiscard]] auto get_instance_buffer_cache() const

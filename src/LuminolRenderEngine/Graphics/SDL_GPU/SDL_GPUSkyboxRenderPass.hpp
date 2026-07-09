@@ -30,6 +30,9 @@ public:
         const Maths::Matrix4x4f& projection_matrix
     ) const -> void;
 
+    [[nodiscard]] auto get_skybox_texture() const -> const Texture&;
+    [[nodiscard]] auto get_skybox_sampler() const -> const Sampler&;
+
 private:
     Shader skybox_vertex_shader;
     Shader skybox_fragment_shader;

@@ -149,4 +149,12 @@ auto SDL_GPUSkyboxRenderPass::draw(
     render_pass.draw_primitives(3, 1, 0, 0);
 }
 
+auto SDL_GPUSkyboxRenderPass::get_skybox_texture() const -> const Texture& {
+    return skybox.get_texture();
+}
+
+auto SDL_GPUSkyboxRenderPass::get_skybox_sampler() const -> const Sampler& {
+    return skybox.get_sampler();
+}
+
 }  // namespace Luminol::Graphics::SDL_GPU

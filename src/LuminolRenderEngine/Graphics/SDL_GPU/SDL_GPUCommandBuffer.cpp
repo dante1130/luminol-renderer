@@ -112,8 +112,8 @@ auto CommandBuffer::begin_render_pass(
         Expects(!uses_resolve || target.resolve_texture != nullptr);
         sdl_color_targets[i] = SDL_GPUColorTargetInfo{
             .texture = target.texture->native_handle(),
-            .mip_level = 0,
-            .layer_or_depth_plane = 0,
+            .mip_level = target.mip_level,
+            .layer_or_depth_plane = target.layer,
             .clear_color =
                 SDL_FColor{
                     .r = target.clear_color.x(),

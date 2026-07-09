@@ -14,13 +14,23 @@ SamplerState ao_sampler : register(s4, space2);
 SamplerState ssao_sampler : register(s5, space2);
 SamplerComparisonState shadow_map_sampler : register(s6, space2);
 
+TextureCube irradiance_texture : register(t7, space2);
+TextureCube prefiltered_texture : register(t8, space2);
+Texture2D brdf_lut_texture : register(t9, space2);
+
+SamplerState irradiance_sampler : register(s7, space2);
+SamplerState prefiltered_sampler : register(s8, space2);
+SamplerState brdf_lut_sampler : register(s9, space2);
+
 cbuffer LightBuffer : register(b0, space3) {
     float4 light_direction;
     float4 light_color;
     float4 view_position;
     float4 screen_size;
     row_major float4x4 light_space_matrix;
-    float4 shadow_params; // x: shadow map resolution, y: normal-offset bias
+    // x: shadow map resolution, y: normal-offset bias,
+    // z: max prefiltered specular mip level
+    float4 shadow_params;
 };
 
 struct PSInput {
@@ -58,6 +68,13 @@ float visibility_smith_ggx_correlated(
 
 float3 fresnel_schlick(float cos_theta, float3 f0) {
     return f0 + (1.0f - f0) * pow(clamp(1.0f - cos_theta, 0.0f, 1.0f), 5.0f);
+}
+
+float3 fresnel_schlick_roughness(float cos_theta, float3 f0, float roughness) {
+    const float3 one_minus_roughness =
+        float3(1.0f - roughness, 1.0f - roughness, 1.0f - roughness);
+    return f0 + (max(one_minus_roughness, f0) - f0)
+        * pow(clamp(1.0f - cos_theta, 0.0f, 1.0f), 5.0f);
 }
 
 float specular_antialiasing(float3 normal, float roughness) {
@@ -212,7 +229,23 @@ float4 main(PSInput input) : SV_Target {
     );
     const float shadow = calculate_shadow(input.world_position, N);
 
-    const float3 ambient = 0.03f * albedo * ao * ssao;
+    const float3 R = reflect(-view_direction, normal);
+    const float n_dot_v = max(dot(normal, view_direction), 0.0f);
+
+    const float3 k_s = fresnel_schlick_roughness(n_dot_v, f0, roughness);
+    const float3 k_d = (1.0f - k_s) * (1.0f - metallic);
+
+    const float3 irradiance = irradiance_texture.Sample(irradiance_sampler, normal).rgb;
+    const float3 diffuse_ibl = k_d * irradiance * albedo;
+
+    const float max_reflection_lod = shadow_params.z;
+    const float3 prefiltered_color = prefiltered_texture.SampleLevel(
+        prefiltered_sampler, R, roughness * max_reflection_lod
+    ).rgb;
+    const float2 env_brdf = brdf_lut_texture.Sample(brdf_lut_sampler, float2(n_dot_v, roughness)).rg;
+    const float3 specular_ibl = prefiltered_color * (k_s * env_brdf.x + env_brdf.y);
+
+    const float3 ambient = (diffuse_ibl + specular_ibl) * ao * ssao;
     const float3 color = ambient + Lo * shadow;
 
     return float4(color, albedo_alpha.a);

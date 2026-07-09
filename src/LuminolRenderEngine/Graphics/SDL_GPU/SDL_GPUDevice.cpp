@@ -424,7 +424,7 @@ auto GPUDevice::create_texture(const TextureInfo& info) -> Texture {
             static_cast<uint32_t>(std::floor(
                 std::log2(static_cast<float>(std::max(info.width, info.height)))
             ))
-        : 1U;
+        : info.mip_levels;
 
     auto usage_flags = to_sdl_texture_usage(info.usage);
     if (info.generate_mipmaps) {

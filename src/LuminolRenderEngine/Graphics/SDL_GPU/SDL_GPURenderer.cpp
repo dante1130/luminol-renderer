@@ -182,6 +182,11 @@ SDL_GPURenderer::SDL_GPURenderer(
               *this->gpu_device, requested_msaa_sample_count
           )
       },
+      ibl_render_pass{
+          *this->gpu_device,
+          skybox_render_pass.get_skybox_texture(),
+          skybox_render_pass.get_skybox_sampler()
+      },
       text_render_pass{*this->gpu_device, sdl_window},
       depth_texture{make_depth_texture(*this->gpu_device, sdl_window)},
       hdr_color_texture{make_hdr_color_texture(*this->gpu_device, sdl_window)},
@@ -391,7 +396,17 @@ auto SDL_GPURenderer::draw() -> void {
             ao_pass.get_ao_texture(),
             ao_pass.get_sampler(),
             shadow_pass.get_shadow_map_texture(),
-            shadow_pass.get_sampler()
+            shadow_pass.get_sampler(),
+            IBLTextures{
+                .irradiance_texture = &ibl_render_pass.get_irradiance_texture(),
+                .irradiance_sampler = &ibl_render_pass.get_irradiance_sampler(),
+                .prefiltered_texture = &ibl_render_pass.get_prefiltered_texture(),
+                .prefiltered_sampler = &ibl_render_pass.get_prefiltered_sampler(),
+                .prefiltered_mip_count =
+                    ibl_render_pass.get_prefiltered_mip_count(),
+                .brdf_lut_texture = &ibl_render_pass.get_brdf_lut_texture(),
+                .brdf_lut_sampler = &ibl_render_pass.get_brdf_lut_sampler(),
+            }
         );
 
         skybox_render_pass.draw(
