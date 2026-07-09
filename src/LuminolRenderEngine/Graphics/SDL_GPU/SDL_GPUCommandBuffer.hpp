@@ -69,6 +69,10 @@ public:
 
     [[nodiscard]] auto begin_copy_pass() -> CopyPass;
 
+    // Must not be called while any render/copy pass on this command buffer
+    // is open. texture must have been created with more than 1 mip level.
+    auto generate_mipmaps(const Texture& texture) -> void;
+
     auto push_vertex_uniform_data(
         uint32_t slot, gsl::span<const std::byte> data
     ) -> void;

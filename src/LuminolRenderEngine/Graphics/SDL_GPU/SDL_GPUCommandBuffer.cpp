@@ -189,6 +189,11 @@ auto CommandBuffer::begin_copy_pass() -> CopyPass {
     return CopyPass{SDL_BeginGPUCopyPass(command_buffer)};
 }
 
+auto CommandBuffer::generate_mipmaps(const Texture& texture) -> void {
+    Expects(command_buffer != nullptr);
+    SDL_GenerateMipmapsForGPUTexture(command_buffer, texture.native_handle());
+}
+
 auto CommandBuffer::submit() -> void {
     Expects(command_buffer != nullptr);
 

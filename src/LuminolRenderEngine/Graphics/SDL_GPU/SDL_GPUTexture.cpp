@@ -15,9 +15,13 @@ auto TextureView::native_handle() const -> SDL_GPUTexture* { return handle; }
 Texture::Texture(
     std::unique_ptr<SDL_GPUTexture, SDL_GPUTextureDeleter> texture,
     uint32_t width,
-    uint32_t height
+    uint32_t height,
+    uint32_t mip_levels
 )
-    : texture{std::move(texture)}, width{width}, height{height} {
+    : texture{std::move(texture)},
+      width{width},
+      height{height},
+      mip_levels{mip_levels} {
     Expects(this->texture != nullptr);
 }
 
@@ -28,6 +32,8 @@ auto Texture::native_handle() const -> SDL_GPUTexture* {
 auto Texture::get_width() const -> uint32_t { return width; }
 
 auto Texture::get_height() const -> uint32_t { return height; }
+
+auto Texture::get_mip_levels() const -> uint32_t { return mip_levels; }
 
 Sampler::Sampler(std::unique_ptr<SDL_GPUSampler, SDL_GPUSamplerDeleter> sampler
 )

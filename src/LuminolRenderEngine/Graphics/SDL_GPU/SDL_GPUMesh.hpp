@@ -17,6 +17,7 @@ namespace Luminol::Graphics::SDL_GPU {
 class GPUDevice;
 class RenderPass;
 class CopyPass;
+class CommandBuffer;
 
 struct TextureImages {
     std::optional<Utilities::ImageLoader::Image> diffuse_texture;
@@ -64,6 +65,10 @@ public:
     ) const -> void;
 
     [[nodiscard]] auto alpha_mode() const -> Utilities::ModelLoader::AlphaMode;
+
+    // Generates mip chains for the material textures. Must be called outside
+    // any render/copy pass on command_buffer.
+    auto generate_mipmaps(CommandBuffer& command_buffer) const -> void;
 
 private:
     Buffer vertex_buffer;

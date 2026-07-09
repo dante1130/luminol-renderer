@@ -82,6 +82,7 @@ auto make_sampler(
     return device.create_sampler(SamplerInfo{
         .address_mode_u = to_sdl_gpu_address_mode(wrap.u),
         .address_mode_v = to_sdl_gpu_address_mode(wrap.v),
+        .enable_mipmap_filtering = true,
     });
 }
 
@@ -119,7 +120,8 @@ auto create_uploaded_texture(
     uint32_t width,
     uint32_t height,
     const uint8_t* rgba_pixels,
-    TextureFormat format = TextureFormat::R8G8B8A8_Unorm
+    TextureFormat format = TextureFormat::R8G8B8A8_Unorm,
+    bool generate_mipmaps = false
 ) -> Texture {
     const auto size_bytes = width * height * 4U;
 
@@ -127,6 +129,7 @@ auto create_uploaded_texture(
         .width = width,
         .height = height,
         .format = format,
+        .generate_mipmaps = generate_mipmaps,
     });
 
     auto transfer_buffer = device.create_transfer_buffer(TransferBufferInfo{
@@ -168,7 +171,8 @@ auto create_texture_from_path(
     CopyPass& copy_pass,
     const std::optional<std::filesystem::path>& texture_path,
     Texture (*default_texture)(GPUDevice&, CopyPass&),
-    TextureFormat format = TextureFormat::R8G8B8A8_Unorm
+    TextureFormat format = TextureFormat::R8G8B8A8_Unorm,
+    bool generate_mipmaps = false
 ) -> Texture {
     if (!texture_path.has_value()) {
         return default_texture(device, copy_pass);
@@ -182,7 +186,13 @@ auto create_texture_from_path(
     const auto height = static_cast<uint32_t>(image.height);
 
     return create_uploaded_texture(
-        device, copy_pass, width, height, image.data.data(), format
+        device,
+        copy_pass,
+        width,
+        height,
+        image.data.data(),
+        format,
+        generate_mipmaps
     );
 }
 
@@ -191,7 +201,8 @@ auto create_texture_from_image(
     CopyPass& copy_pass,
     const std::optional<Luminol::Utilities::ImageLoader::Image>& texture_image,
     Texture (*default_texture)(GPUDevice&, CopyPass&),
-    TextureFormat format = TextureFormat::R8G8B8A8_Unorm
+    TextureFormat format = TextureFormat::R8G8B8A8_Unorm,
+    bool generate_mipmaps = false
 ) -> Texture {
     if (!texture_image.has_value()) {
         return default_texture(device, copy_pass);
@@ -203,7 +214,13 @@ auto create_texture_from_image(
     const auto height = static_cast<uint32_t>(image.height);
 
     return create_uploaded_texture(
-        device, copy_pass, width, height, image.data.data(), format
+        device,
+        copy_pass,
+        width,
+        height,
+        image.data.data(),
+        format,
+        generate_mipmaps
     );
 }
 
@@ -238,51 +255,65 @@ SDL_GPUMesh::SDL_GPUMesh(
           copy_pass,
           texture_paths.diffuse_texture_path,
           create_white_pixel_texture,
-          TextureFormat::R8G8B8A8_Unorm_Srgb
+          TextureFormat::R8G8B8A8_Unorm_Srgb,
+          true
       )},
       normal_texture{create_texture_from_path(
           device,
           copy_pass,
           texture_paths.normal_texture_path,
-          create_flat_normal_texture
+          create_flat_normal_texture,
+          TextureFormat::R8G8B8A8_Unorm,
+          true
       )},
       metallic_texture{create_texture_from_path(
           device,
           copy_pass,
           texture_paths.metallic_texture_path,
-          create_white_pixel_texture
+          create_white_pixel_texture,
+          TextureFormat::R8G8B8A8_Unorm,
+          true
       )},
       roughness_texture{create_texture_from_path(
           device,
           copy_pass,
           texture_paths.roughness_texture_path,
-          create_white_pixel_texture
+          create_white_pixel_texture,
+          TextureFormat::R8G8B8A8_Unorm,
+          true
       )},
       ambient_occlusion_texture{create_texture_from_path(
           device,
           copy_pass,
           texture_paths.ambient_occlusion_texture_path,
-          create_white_pixel_texture
+          create_white_pixel_texture,
+          TextureFormat::R8G8B8A8_Unorm,
+          true
       )},
       diffuse_sampler{device.create_sampler(SamplerInfo{
           .address_mode_u = SamplerAddressMode::Repeat,
           .address_mode_v = SamplerAddressMode::Repeat,
+          .enable_mipmap_filtering = true,
       })},
       normal_sampler{device.create_sampler(SamplerInfo{
           .address_mode_u = SamplerAddressMode::Repeat,
           .address_mode_v = SamplerAddressMode::Repeat,
+          .enable_mipmap_filtering = true,
       })},
       metallic_sampler{device.create_sampler(SamplerInfo{
           .address_mode_u = SamplerAddressMode::Repeat,
           .address_mode_v = SamplerAddressMode::Repeat,
+          .enable_mipmap_filtering = true,
       })},
       roughness_sampler{device.create_sampler(SamplerInfo{
           .address_mode_u = SamplerAddressMode::Repeat,
           .address_mode_v = SamplerAddressMode::Repeat,
+          .enable_mipmap_filtering = true,
       })},
       ambient_occlusion_sampler{device.create_sampler(SamplerInfo{
           .address_mode_u = SamplerAddressMode::Repeat,
           .address_mode_v = SamplerAddressMode::Repeat,
+          .enable_mipmap_filtering = true,
       })},
       mesh_alpha_mode{
           texture_paths.is_transparent
@@ -317,31 +348,40 @@ SDL_GPUMesh::SDL_GPUMesh(
           copy_pass,
           texture_images.diffuse_texture,
           create_white_pixel_texture,
-          TextureFormat::R8G8B8A8_Unorm_Srgb
+          TextureFormat::R8G8B8A8_Unorm_Srgb,
+          true
       )},
       normal_texture{create_texture_from_image(
           device,
           copy_pass,
           texture_images.normal_texture,
-          create_flat_normal_texture
+          create_flat_normal_texture,
+          TextureFormat::R8G8B8A8_Unorm,
+          true
       )},
       metallic_texture{create_texture_from_image(
           device,
           copy_pass,
           texture_images.metallic_texture,
-          create_white_pixel_texture
+          create_white_pixel_texture,
+          TextureFormat::R8G8B8A8_Unorm,
+          true
       )},
       roughness_texture{create_texture_from_image(
           device,
           copy_pass,
           texture_images.roughness_texture,
-          create_white_pixel_texture
+          create_white_pixel_texture,
+          TextureFormat::R8G8B8A8_Unorm,
+          true
       )},
       ambient_occlusion_texture{create_texture_from_image(
           device,
           copy_pass,
           texture_images.ambient_occlusion_texture,
-          create_white_pixel_texture
+          create_white_pixel_texture,
+          TextureFormat::R8G8B8A8_Unorm,
+          true
       )},
       diffuse_sampler{make_sampler(device, texture_images.diffuse_texture_wrap)},
       normal_sampler{make_sampler(device, texture_images.normal_texture_wrap)},
@@ -414,6 +454,26 @@ auto SDL_GPUMesh::alpha_mode() const -> Utilities::ModelLoader::AlphaMode {
     return mesh_alpha_mode;
 }
 
+auto SDL_GPUMesh::generate_mipmaps(CommandBuffer& command_buffer) const
+    -> void {
+    const auto textures = std::array<const Texture*, 5>{
+        &diffuse_texture,
+        &normal_texture,
+        &metallic_texture,
+        &roughness_texture,
+        &ambient_occlusion_texture,
+    };
+
+    for (const auto* texture : textures) {
+        // Default 1x1 fallback textures (used when a material has no path
+        // for this slot) only have 1 mip level; SDL asserts if asked to
+        // generate mipmaps for those.
+        if (texture->get_mip_levels() > 1) {
+            command_buffer.generate_mipmaps(*texture);
+        }
+    }
+}
+
 auto load_meshes_from_model(
     GPUDevice& device, const std::filesystem::path& model_path
 ) -> std::vector<SDL_GPUMesh> {
@@ -470,6 +530,11 @@ auto load_meshes_from_model(
             );
         }
     }
+
+    for (const auto& mesh : meshes) {
+        mesh.generate_mipmaps(command_buffer);
+    }
+
     command_buffer.submit();
 
     return meshes;

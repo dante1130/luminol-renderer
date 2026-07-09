@@ -1,5 +1,8 @@
 #include "SDL_GPUDevice.hpp"
 
+#include <algorithm>
+#include <cfloat>
+#include <cmath>
 #include <fstream>
 #include <vector>
 
@@ -416,14 +419,26 @@ auto GPUDevice::create_transfer_buffer(const TransferBufferInfo& info)
 }
 
 auto GPUDevice::create_texture(const TextureInfo& info) -> Texture {
+    const auto num_levels = info.generate_mipmaps
+        ? 1U +
+            static_cast<uint32_t>(std::floor(
+                std::log2(static_cast<float>(std::max(info.width, info.height)))
+            ))
+        : 1U;
+
+    auto usage_flags = to_sdl_texture_usage(info.usage);
+    if (info.generate_mipmaps) {
+        usage_flags |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+    }
+
     const auto create_info = SDL_GPUTextureCreateInfo{
         .type = SDL_GPU_TEXTURETYPE_2D,
         .format = to_sdl_texture_format(info.format),
-        .usage = to_sdl_texture_usage(info.usage),
+        .usage = usage_flags,
         .width = info.width,
         .height = info.height,
         .layer_count_or_depth = 1,
-        .num_levels = 1,
+        .num_levels = num_levels,
         .sample_count = to_sdl_sample_count(info.sample_count),
         .props = 0,
     };
@@ -446,14 +461,16 @@ auto GPUDevice::create_texture(const TextureInfo& info) -> Texture {
         }
     );
 
-    return Texture{std::move(owned), info.width, info.height};
+    return Texture{std::move(owned), info.width, info.height, num_levels};
 }
 
 auto GPUDevice::create_sampler(const SamplerInfo& info) -> Sampler {
     const auto create_info = SDL_GPUSamplerCreateInfo{
         .min_filter = to_sdl_filter(info.filter),
         .mag_filter = to_sdl_filter(info.filter),
-        .mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
+        .mipmap_mode = info.enable_mipmap_filtering
+            ? SDL_GPU_SAMPLERMIPMAPMODE_LINEAR
+            : SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
         .address_mode_u = to_sdl_sampler_address_mode(info.address_mode_u),
         .address_mode_v = to_sdl_sampler_address_mode(info.address_mode_v),
         .address_mode_w = to_sdl_sampler_address_mode(info.address_mode_u),
@@ -463,7 +480,7 @@ auto GPUDevice::create_sampler(const SamplerInfo& info) -> Sampler {
             ? SDL_GPU_COMPAREOP_LESS_OR_EQUAL
             : SDL_GPU_COMPAREOP_INVALID,
         .min_lod = 0.0F,
-        .max_lod = 0.0F,
+        .max_lod = info.enable_mipmap_filtering ? FLT_MAX : 0.0F,
         .enable_anisotropy = false,
         .enable_compare = info.enable_compare,
         .padding1 = 0,

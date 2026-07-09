@@ -74,6 +74,11 @@ auto SDL_GPUFactory::create_mesh(
             *gpu_device, copy_pass, vertices, indices, texture_paths
         );
     }
+
+    for (const auto& mesh : meshes) {
+        mesh.generate_mipmaps(command_buffer);
+    }
+
     command_buffer.submit();
 
     this->meshes_by_id.emplace(renderable_id, std::move(meshes));

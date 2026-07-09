@@ -29,6 +29,10 @@ struct TextureInfo {
     TextureFormat format = TextureFormat::R8G8B8A8_Unorm;
     TextureUsage usage = TextureUsage::Sampler;
     SampleCount sample_count = SampleCount::x1;
+    // When true, a full mip chain is allocated and the texture is given
+    // SDL_GPU_TEXTUREUSAGE_COLOR_TARGET so SDL_GenerateMipmapsForGPUTexture
+    // can blit into it.
+    bool generate_mipmaps = false;
 };
 
 class Texture {
@@ -38,17 +42,20 @@ public:
     Texture(
         std::unique_ptr<SDL_GPUTexture, SDL_GPUTextureDeleter> texture,
         uint32_t width,
-        uint32_t height
+        uint32_t height,
+        uint32_t mip_levels = 1
     );
 
     [[nodiscard]] auto native_handle() const -> SDL_GPUTexture*;
     [[nodiscard]] auto get_width() const -> uint32_t;
     [[nodiscard]] auto get_height() const -> uint32_t;
+    [[nodiscard]] auto get_mip_levels() const -> uint32_t;
 
 private:
     std::unique_ptr<SDL_GPUTexture, SDL_GPUTextureDeleter> texture;
     uint32_t width;
     uint32_t height;
+    uint32_t mip_levels;
 };
 
 struct SamplerInfo {
@@ -58,6 +65,10 @@ struct SamplerInfo {
     // Depth-comparison sampler (hardware PCF via SampleCmpLevelZero); always
     // uses a less-or-equal comparison, the only mode this codebase needs.
     bool enable_compare = false;
+    // Enables trilinear mip filtering (mipmap_mode = LINEAR, max_lod
+    // unbounded). Only meaningful for textures created with
+    // TextureInfo::generate_mipmaps = true.
+    bool enable_mipmap_filtering = false;
 };
 
 class Sampler {
