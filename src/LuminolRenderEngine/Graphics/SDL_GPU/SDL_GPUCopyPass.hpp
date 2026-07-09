@@ -36,7 +36,8 @@ public:
         const Texture& destination,
         uint32_t width,
         uint32_t height,
-        bool cycle
+        bool cycle,
+        uint32_t layer = 0
     ) -> void;
 
     [[nodiscard]] auto native_handle() const -> SDL_GPUCopyPass*;

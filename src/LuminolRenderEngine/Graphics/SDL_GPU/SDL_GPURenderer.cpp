@@ -176,6 +176,12 @@ SDL_GPURenderer::SDL_GPURenderer(
       ao_pass{*this->gpu_device, sdl_window},
       shadow_pass{*this->gpu_device},
       tonemap_pass{*this->gpu_device, sdl_window},
+      skybox_render_pass{
+          *this->gpu_device,
+          clamp_supported_sample_count(
+              *this->gpu_device, requested_msaa_sample_count
+          )
+      },
       text_render_pass{*this->gpu_device, sdl_window},
       depth_texture{make_depth_texture(*this->gpu_device, sdl_window)},
       hdr_color_texture{make_hdr_color_texture(*this->gpu_device, sdl_window)},
@@ -386,6 +392,10 @@ auto SDL_GPURenderer::draw() -> void {
             ao_pass.get_sampler(),
             shadow_pass.get_shadow_map_texture(),
             shadow_pass.get_sampler()
+        );
+
+        skybox_render_pass.draw(
+            command_buffer, render_pass, view_matrix, projection_matrix
         );
 
         performance_logger.record(

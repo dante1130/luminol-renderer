@@ -61,7 +61,8 @@ auto CopyPass::upload_to_texture(
     const Texture& destination,
     uint32_t width,
     uint32_t height,
-    bool cycle
+    bool cycle,
+    uint32_t layer
 ) -> void {
     Expects(copy_pass != nullptr);
 
@@ -75,7 +76,7 @@ auto CopyPass::upload_to_texture(
     const auto destination_region = SDL_GPUTextureRegion{
         .texture = destination.native_handle(),
         .mip_level = 0,
-        .layer = 0,
+        .layer = layer,
         .x = 0,
         .y = 0,
         .z = 0,

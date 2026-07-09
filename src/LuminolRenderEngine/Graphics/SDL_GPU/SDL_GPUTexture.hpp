@@ -23,12 +23,18 @@ private:
     SDL_GPUTexture* handle;
 };
 
+enum class TextureType : uint8_t {
+    Texture2D,
+    TextureCube,
+};
+
 struct TextureInfo {
     uint32_t width;
     uint32_t height;
     TextureFormat format = TextureFormat::R8G8B8A8_Unorm;
     TextureUsage usage = TextureUsage::Sampler;
     SampleCount sample_count = SampleCount::x1;
+    TextureType type = TextureType::Texture2D;
     // When true, a full mip chain is allocated and the texture is given
     // SDL_GPU_TEXTUREUSAGE_COLOR_TARGET so SDL_GenerateMipmapsForGPUTexture
     // can blit into it.

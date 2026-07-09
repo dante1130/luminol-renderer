@@ -432,12 +432,15 @@ auto GPUDevice::create_texture(const TextureInfo& info) -> Texture {
     }
 
     const auto create_info = SDL_GPUTextureCreateInfo{
-        .type = SDL_GPU_TEXTURETYPE_2D,
+        .type = info.type == TextureType::TextureCube
+            ? SDL_GPU_TEXTURETYPE_CUBE
+            : SDL_GPU_TEXTURETYPE_2D,
         .format = to_sdl_texture_format(info.format),
         .usage = usage_flags,
         .width = info.width,
         .height = info.height,
-        .layer_count_or_depth = 1,
+        .layer_count_or_depth =
+            info.type == TextureType::TextureCube ? 6U : 1U,
         .num_levels = num_levels,
         .sample_count = to_sdl_sample_count(info.sample_count),
         .props = 0,
