@@ -1,5 +1,6 @@
 #include "SDL_GPURenderer.hpp"
 
+#include <algorithm>
 #include <array>
 #include <utility>
 
@@ -330,8 +331,8 @@ auto SDL_GPURenderer::draw() -> void {
         performance_logger
     );
 
-    const auto& directional_light =
-        get_light_manager().get_light_data().directional_light;
+    const auto& light_manager_data = get_light_manager().get_light_data();
+    const auto& directional_light = light_manager_data.directional_light;
     const auto camera_position = get_view_position(view_matrix);
 
     shadow_pass.draw(
@@ -364,7 +365,7 @@ auto SDL_GPURenderer::draw() -> void {
             color_targets, &depth_stencil_target
         );
 
-        const auto light_data = DirectionalLightData{
+        auto light_data = LightData{
             .direction = directional_light.direction,
             .color = directional_light.color,
             .view_position = camera_position,
@@ -383,7 +384,11 @@ auto SDL_GPURenderer::draw() -> void {
                 0.0F,
                 0.0F,
             },
+            .point_light_count = light_manager_data.point_light_count,
         };
+        std::ranges::copy(
+            light_manager_data.point_lights, light_data.point_lights.begin()
+        );
 
         mesh_render_pass.draw(
             *this->sdl_gpu_factory,

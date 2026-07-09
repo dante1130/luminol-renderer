@@ -243,7 +243,7 @@ auto SDL_GPUMeshRenderPass::draw(
     const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
         queued_draws,
     const Maths::Matrix4x4f& view_proj,
-    DirectionalLightData light_data,
+    LightData light_data,
     const Texture& ssao_texture,
     const Sampler& ssao_sampler,
     const Texture& shadow_map_texture,

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <unordered_map>
 #include <vector>
 
@@ -7,6 +8,7 @@
 #include <LuminolMaths/Matrix.hpp>
 #include <LuminolMaths/Vector.hpp>
 
+#include <LuminolRenderEngine/Graphics/Light.hpp>
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBufferCache.hpp>
@@ -27,9 +29,10 @@ struct InstanceBatch {
 };
 
 // Layout matches the LightBuffer cbuffer in pbr_frag.hlsl (register b0,
-// space3): four float4s, a row_major float4x4, then a trailing float4, so no
-// manual padding is needed.
-struct DirectionalLightData {
+// space3): four float4s, a row_major float4x4, a trailing float4, then a
+// point light count padded to 16 bytes followed by the fixed-size point
+// light array, so no manual padding is needed beyond what's declared below.
+struct LightData {
     Maths::Vector4f direction;
     Maths::Vector4f color;
     Maths::Vector4f view_position;
@@ -38,6 +41,9 @@ struct DirectionalLightData {
     // x: shadow map resolution, y: normal-offset bias,
     // z: max prefiltered specular mip level (see SDL_GPUIBLRenderPass)
     Maths::Vector4f shadow_params;
+    uint32_t point_light_count = 0;
+    Maths::Vector3f point_light_padding = {};
+    std::array<AlignedPointLight, max_point_lights> point_lights = {};
 };
 
 // Bundles the precomputed split-sum IBL textures/samplers produced by
@@ -78,7 +84,7 @@ public:
         const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
             queued_draws,
         const Maths::Matrix4x4f& view_proj,
-        DirectionalLightData light_data,
+        LightData light_data,
         const Texture& ssao_texture,
         const Sampler& ssao_sampler,
         const Texture& shadow_map_texture,
