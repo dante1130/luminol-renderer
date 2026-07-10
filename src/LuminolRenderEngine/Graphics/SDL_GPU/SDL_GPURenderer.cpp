@@ -210,6 +210,7 @@ SDL_GPURenderer::SDL_GPURenderer(
       ao_pass{*this->gpu_device, sdl_window},
       cluster_pass{*this->gpu_device},
       shadow_pass{*this->gpu_device},
+      point_spot_shadow_pass{*this->gpu_device},
       tonemap_pass{*this->gpu_device, sdl_window},
       skybox_render_pass{
           *this->gpu_device,
@@ -340,10 +341,18 @@ auto SDL_GPURenderer::draw() -> void {
         performance_logger
     );
 
-    const auto& light_manager_data = get_light_manager().get_light_data();
-    const auto& directional_light = light_manager_data.directional_light;
     const auto camera_position = get_view_position(view_matrix);
     const auto camera_params = extract_camera_params(projection_matrix);
+
+    get_light_manager().update_shadow_casters(
+        view_matrix * projection_matrix,
+        Maths::Vector3f{
+            camera_position.x(), camera_position.y(), camera_position.z()
+        }
+    );
+
+    const auto& light_manager_data = get_light_manager().get_light_data();
+    const auto& directional_light = light_manager_data.directional_light;
 
     {
         const auto pass_timer = Utilities::Timer{};
@@ -380,6 +389,15 @@ auto SDL_GPURenderer::draw() -> void {
         Maths::Vector3f{
             camera_position.x(), camera_position.y(), camera_position.z()
         },
+        performance_logger
+    );
+
+    point_spot_shadow_pass.draw(
+        *this->sdl_gpu_factory,
+        command_buffer,
+        mesh_render_pass.get_instance_buffer_cache(),
+        instance_batches,
+        light_manager_data,
         performance_logger
     );
 
@@ -452,6 +470,18 @@ auto SDL_GPURenderer::draw() -> void {
                 .cluster_light_grid = &cluster_pass.get_cluster_light_grid_buffer(),
                 .global_light_index_list =
                     &cluster_pass.get_global_light_index_list_buffer(),
+            },
+            PointSpotShadowTextures{
+                .point_shadow_texture =
+                    &point_spot_shadow_pass.get_point_shadow_texture(),
+                .point_shadow_sampler =
+                    &point_spot_shadow_pass.get_point_shadow_sampler(),
+                .spot_shadow_texture =
+                    &point_spot_shadow_pass.get_spot_shadow_texture(),
+                .spot_shadow_sampler =
+                    &point_spot_shadow_pass.get_spot_shadow_sampler(),
+                .spot_shadow_matrices =
+                    &point_spot_shadow_pass.get_spot_shadow_matrix_buffer(),
             }
         );
 

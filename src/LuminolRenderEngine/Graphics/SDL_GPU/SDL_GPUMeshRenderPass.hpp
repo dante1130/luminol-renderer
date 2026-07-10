@@ -71,6 +71,18 @@ struct IBLTextures {
     const Sampler* brdf_lut_sampler;
 };
 
+// Shadow maps produced by SDL_GPUPointSpotShadowPass for a capped,
+// frame-selected subset of point/spot lights, bound as the pbr_frag.hlsl
+// fragment samplers at slots 10-11 (see point_shadow_sampler_slot etc. in
+// SDL_GPUMeshRenderPass.cpp) plus a per-slot spot shadow-matrix buffer.
+struct PointSpotShadowTextures {
+    const Texture* point_shadow_texture;
+    const Sampler* point_shadow_sampler;
+    const Texture* spot_shadow_texture;
+    const Sampler* spot_shadow_sampler;
+    const Buffer* spot_shadow_matrices;
+};
+
 // Owns the mesh pipeline (position/uv vertex layout, view_proj uniform,
 // per-instance model matrices via a storage buffer indexed by
 // SV_InstanceID) and the persistent instance buffers backing it. The pass
@@ -101,7 +113,8 @@ public:
         const Texture& shadow_map_texture,
         const Sampler& shadow_map_sampler,
         const IBLTextures& ibl_textures,
-        const ClusteredLightBuffers& clustered_light_buffers
+        const ClusteredLightBuffers& clustered_light_buffers,
+        const PointSpotShadowTextures& point_spot_shadow_textures
     ) -> void;
 
     [[nodiscard]] auto get_instance_buffer_cache() const

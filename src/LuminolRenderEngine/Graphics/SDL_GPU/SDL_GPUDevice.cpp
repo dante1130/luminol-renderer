@@ -551,16 +551,41 @@ auto GPUDevice::create_texture(const TextureInfo& info) -> Texture {
         usage_flags |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
     }
 
+    const auto sdl_texture_type = [&info] {
+        switch (info.type) {
+            case TextureType::TextureCube:
+                return SDL_GPU_TEXTURETYPE_CUBE;
+            case TextureType::Texture2DArray:
+                return SDL_GPU_TEXTURETYPE_2D_ARRAY;
+            case TextureType::TextureCubeArray:
+                return SDL_GPU_TEXTURETYPE_CUBE_ARRAY;
+            case TextureType::Texture2D:
+            default:
+                return SDL_GPU_TEXTURETYPE_2D;
+        }
+    }();
+
+    const auto layer_count_or_depth = [&info] {
+        switch (info.type) {
+            case TextureType::TextureCube:
+                return 6U;
+            case TextureType::Texture2DArray:
+                return info.layer_count;
+            case TextureType::TextureCubeArray:
+                return 6U * info.layer_count;
+            case TextureType::Texture2D:
+            default:
+                return 1U;
+        }
+    }();
+
     const auto create_info = SDL_GPUTextureCreateInfo{
-        .type = info.type == TextureType::TextureCube
-            ? SDL_GPU_TEXTURETYPE_CUBE
-            : SDL_GPU_TEXTURETYPE_2D,
+        .type = sdl_texture_type,
         .format = to_sdl_texture_format(info.format),
         .usage = usage_flags,
         .width = info.width,
         .height = info.height,
-        .layer_count_or_depth =
-            info.type == TextureType::TextureCube ? 6U : 1U,
+        .layer_count_or_depth = layer_count_or_depth,
         .num_levels = num_levels,
         .sample_count = to_sdl_sample_count(info.sample_count),
         .props = 0,

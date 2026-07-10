@@ -14,6 +14,9 @@
 struct PointLight {
     float4 position;
     float4 color;
+    // x: shadow map slot, unused here but must stay in the struct so the
+    // StructuredBuffer stride matches AlignedPointLight (Light.hpp) exactly.
+    float4 shadow_data;
 };
 
 struct SpotLight {
@@ -22,7 +25,10 @@ struct SpotLight {
     float3 color;
     float cut_off;
     float outer_cut_off;
-    float3 padding;
+    // Shadow map slot, unused here but must stay in the struct so the
+    // StructuredBuffer stride matches AlignedSpotLight (Light.hpp) exactly.
+    float shadow_slot;
+    float2 padding;
 };
 
 struct ClusterAABB {

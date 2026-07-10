@@ -26,6 +26,8 @@ private:
 enum class TextureType : uint8_t {
     Texture2D,
     TextureCube,
+    Texture2DArray,
+    TextureCubeArray,
 };
 
 struct TextureInfo {
@@ -44,6 +46,9 @@ struct TextureInfo {
     // a dedicated pass rather than blitted). Callers requesting more than 1
     // level must include TextureUsage::ColorTarget themselves.
     uint32_t mip_levels = 1;
+    // Number of array elements, only used when type is Texture2DArray or
+    // TextureCubeArray (for TextureCubeArray, each element is 6 faces).
+    uint32_t layer_count = 1;
 };
 
 class Texture {

@@ -149,6 +149,8 @@ auto CommandBuffer::begin_render_pass(
             .stencil_store_op = SDL_GPU_STOREOP_DONT_CARE,
             .cycle = depth_stencil_target->cycle,
             .clear_stencil = 0,
+            .mip_level = static_cast<Uint8>(depth_stencil_target->mip_level),
+            .layer = static_cast<Uint8>(depth_stencil_target->layer),
         };
     }
 

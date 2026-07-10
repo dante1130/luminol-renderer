@@ -14,6 +14,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFont.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUIBLRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUPointSpotShadowPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShadowPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUSkyboxRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTextRenderPass.hpp>
@@ -70,6 +71,7 @@ private:
     SDL_GPUAmbientOcclusionPass ao_pass;
     SDL_GPUClusterPass cluster_pass;
     SDL_GPUShadowPass shadow_pass;
+    SDL_GPUPointSpotShadowPass point_spot_shadow_pass;
     SDL_GPUTonemapPass tonemap_pass;
     SDL_GPUSkyboxRenderPass skybox_render_pass;
     SDL_GPUIBLRenderPass ibl_render_pass;

@@ -41,22 +41,39 @@ struct AlignedDirectionalLight {
         Maths::Vector4f{1.0f, 1.0f, 1.0f, 1.0f};  // 16 bytes
 };
 
+// Point/spot lights are far too numerous (up to max_point_lights /
+// max_spot_lights) to each get a full shadow map, so only the
+// highest-scoring (nearest/brightest, in-frustum) lights cast shadows each
+// frame. See LightManager::update_shadow_casters (selection/hysteresis) and
+// SDL_GPUPointSpotShadowPass (rendering into the shadow slots these produce).
+constexpr static auto max_shadow_casting_point_lights = 16u;
+constexpr static auto max_shadow_casting_spot_lights = 32u;
+
 struct AlignedPointLight {
     Maths::Vector4f position =
         Maths::Vector4f{0.0f, 0.0f, 0.0f, 0.0f};  // 16 bytes
     Maths::Vector4f color =
         Maths::Vector4f{1.0f, 1.0f, 1.0f, 1.0f};  // 16 bytes
+    // x: shadow map slot (-1 if this light doesn't cast a shadow this frame,
+    // else an index into SDL_GPUPointSpotShadowPass's point shadow cube
+    // array), yzw: unused/reserved.
+    Maths::Vector4f shadow_data =
+        Maths::Vector4f{-1.0f, 0.0f, 0.0f, 0.0f};  // 16 bytes
 };
 
 struct AlignedSpotLight {
     Maths::Vector4f position =
         Maths::Vector4f{0.0f, 0.0f, 0.0f, 0.0f};  // 16 bytes
     Maths::Vector4f direction =
-        Maths::Vector4f{0.0f, 0.0f, 0.0f, 0.0f};                  // 16 bytes
-    Maths::Vector3f color = Maths::Vector3f{1.0f, 1.0f, 1.0f};    // 12 bytes
-    float cut_off = default_cut_off;                              // 4 bytes
-    float outer_cut_off = default_outer_cut_off;                  // 4 bytes
-    Maths::Vector3f padding = Maths::Vector3f{0.0f, 0.0f, 0.0f};  // 12 bytes
+        Maths::Vector4f{0.0f, 0.0f, 0.0f, 0.0f};                // 16 bytes
+    Maths::Vector3f color = Maths::Vector3f{1.0f, 1.0f, 1.0f};  // 12 bytes
+    float cut_off = default_cut_off;                            // 4 bytes
+    float outer_cut_off = default_outer_cut_off;                // 4 bytes
+    // Shadow map slot (-1 if this light doesn't cast a shadow this frame,
+    // else an index into SDL_GPUPointSpotShadowPass's spot shadow 2D array
+    // and shadow-matrix buffer).
+    float shadow_slot = -1.0f;                                  // 4 bytes
+    Maths::Vector2f padding = Maths::Vector2f{0.0f, 0.0f};      // 8 bytes
 };
 
 struct Light {

@@ -60,6 +60,11 @@ struct DepthStencilTargetInfo {
     LoadOp load_op = LoadOp::Clear;
     StoreOp store_op = StoreOp::Store;
     bool cycle = false;
+    // Selects which mip level / array layer (or cubemap face, for a
+    // TextureCubeArray this is face_index + 6 * array_index) of `texture` to
+    // render into. Mirrors ColorTargetInfo::mip_level/layer.
+    uint32_t mip_level = 0;
+    uint32_t layer = 0;
 };
 
 class CommandBuffer {

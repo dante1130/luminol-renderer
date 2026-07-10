@@ -22,9 +22,25 @@ SamplerState irradiance_sampler : register(s7, space2);
 SamplerState prefiltered_sampler : register(s8, space2);
 SamplerState brdf_lut_sampler : register(s9, space2);
 
+// Point/spot shadow maps for a capped, frame-selected subset of
+// shadow-casting lights (see LightManager::update_shadow_casters,
+// SDL_GPUPointSpotShadowPass). shadow_data.x / shadow_slot on
+// PointLight/SpotLight (< 0 if unshadowed) index into these. Must stay
+// grouped with the texture/sampler resources above (not the StructuredBuffer
+// block below) - SDL_GPU's fragment resource-space convention requires all
+// textures/samplers declared contiguously before any storage buffers.
+TextureCubeArray point_shadow_maps : register(t10, space2);
+Texture2DArray spot_shadow_maps : register(t11, space2);
+
+SamplerComparisonState point_shadow_sampler : register(s10, space2);
+SamplerComparisonState spot_shadow_sampler : register(s11, space2);
+
 struct PointLight {
     float4 position;
     float4 color;
+    // x: shadow map slot (< 0 if this light doesn't cast a shadow this
+    // frame), else an index into point_shadow_maps. yzw: unused/reserved.
+    float4 shadow_data;
 };
 
 struct SpotLight {
@@ -33,7 +49,10 @@ struct SpotLight {
     float3 color;
     float cut_off;
     float outer_cut_off;
-    float3 spot_light_element_padding;
+    // Shadow map slot (< 0 if this light doesn't cast a shadow this frame),
+    // else an index into spot_shadow_maps/spot_shadow_matrices.
+    float shadow_slot;
+    float2 spot_light_element_padding;
 };
 
 struct ClusterLightGrid {
@@ -45,13 +64,18 @@ struct ClusterLightGrid {
 
 // Clustered Forward+ light buffers, populated by SDL_GPUClusterPass's
 // count -> scan -> compact compute passes. Continue the t-register index
-// right after the 10 textures/samplers above (t0-t9), per SDL_GPU's
+// right after the 12 textures/samplers above (t0-t11), per SDL_GPU's
 // fragment resource-space convention (space2 = textures then storage
 // buffers, in declaration order).
-StructuredBuffer<PointLight> point_lights : register(t10, space2);
-StructuredBuffer<SpotLight> spot_lights : register(t11, space2);
-StructuredBuffer<ClusterLightGrid> cluster_light_grid : register(t12, space2);
-StructuredBuffer<uint> global_light_index_list : register(t13, space2);
+StructuredBuffer<PointLight> point_lights : register(t12, space2);
+StructuredBuffer<SpotLight> spot_lights : register(t13, space2);
+StructuredBuffer<ClusterLightGrid> cluster_light_grid : register(t14, space2);
+StructuredBuffer<uint> global_light_index_list : register(t15, space2);
+StructuredBuffer<row_major float4x4> spot_shadow_matrices : register(t16, space2);
+
+// Must match SDL_GPUPointSpotShadowPass.cpp exactly.
+static const float POINT_SHADOW_NEAR_PLANE = 0.05f;
+static const float SPOT_SHADOW_RESOLUTION = 1024.0f;
 
 // Must match cluster_grid_x/y/z in SDL_GPUClusterPass.hpp.
 static const uint CLUSTER_GRID_X = 16;
@@ -352,6 +376,88 @@ float calculate_shadow(float3 world_position, float3 normal) {
     return visibility / 9.0f;
 }
 
+// Point lights use a real TextureCubeArray, so hardware cross-face
+// filtering handles the seams - no atlas/manual face lookup needed. The
+// depth pass writes ordinary perspective depth per face (fov 90, near
+// POINT_SHADOW_NEAR_PLANE, far light_cull_radius(color)); this re-derives
+// that same depth from the world-space light-to-fragment vector so a single
+// SampleCmpLevelZero can compare against it, matching
+// SDL_GPUPointSpotShadowPass::point_light_face_view_projection. The cube
+// faces are world-axis-aligned, so the view-space depth for whichever face
+// a direction resolves to is exactly the absolute value of that direction's
+// dominant axis.
+float calculate_point_shadow(float3 world_position, float3 normal, PointLight light) {
+    const int shadow_slot = (int)round(light.shadow_data.x);
+    if (shadow_slot < 0) {
+        return 1.0f;
+    }
+
+    const float normal_offset_bias = shadow_params.y;
+    const float3 offset_position = world_position + normal * normal_offset_bias;
+    const float3 light_to_fragment = offset_position - light.position.xyz;
+
+    const float3 abs_direction = abs(light_to_fragment);
+    const float major_axis =
+        max(abs_direction.x, max(abs_direction.y, abs_direction.z));
+
+    const float near_plane = POINT_SHADOW_NEAR_PLANE;
+    const float far_plane = light_cull_radius(light.color.rgb);
+    const float range = far_plane - near_plane;
+    const float ndc_depth =
+        (far_plane / range) - ((near_plane * far_plane) / (range * major_axis));
+
+    const float constant_bias = 0.0015f;
+
+    return point_shadow_maps.SampleCmpLevelZero(
+        point_shadow_sampler,
+        float4(light_to_fragment, float(shadow_slot)),
+        ndc_depth - constant_bias
+    );
+}
+
+float calculate_spot_shadow(float3 world_position, float3 normal, SpotLight light) {
+    const int shadow_slot = (int)round(light.shadow_slot);
+    if (shadow_slot < 0) {
+        return 1.0f;
+    }
+
+    const float normal_offset_bias = shadow_params.y;
+    const float3 offset_position = world_position + normal * normal_offset_bias;
+
+    const float4x4 light_space_matrix_for_slot = spot_shadow_matrices[shadow_slot];
+    const float4 light_space_position =
+        mul(float4(offset_position, 1.0f), light_space_matrix_for_slot);
+    const float inv_w = 1.0f / light_space_position.w;
+
+    float2 shadow_uv = (light_space_position.xy * inv_w) * 0.5f + 0.5f;
+    shadow_uv.y = 1.0f - shadow_uv.y;
+    const float fragment_depth = light_space_position.z * inv_w;
+
+    if (fragment_depth < 0.0f || fragment_depth > 1.0f ||
+        any(shadow_uv < 0.0f) || any(shadow_uv > 1.0f)) {
+        return 1.0f;
+    }
+
+    const float texel_size = 1.0f / SPOT_SHADOW_RESOLUTION;
+    const float constant_bias = 0.0015f;
+
+    float visibility = 0.0f;
+    [unroll]
+    for (int x = -1; x <= 1; ++x) {
+        [unroll]
+        for (int y = -1; y <= 1; ++y) {
+            const float2 offset = float2(x, y) * texel_size;
+            visibility += spot_shadow_maps.SampleCmpLevelZero(
+                spot_shadow_sampler,
+                float3(shadow_uv + offset, float(shadow_slot)),
+                fragment_depth - constant_bias
+            );
+        }
+    }
+
+    return visibility / 9.0f;
+}
+
 float4 main(PSInput input) : SV_Target {
     const float4 albedo_alpha = albedo_texture.Sample(albedo_sampler, input.uv);
 
@@ -399,10 +505,13 @@ float4 main(PSInput input) : SV_Target {
     [loop]
     for (uint i = 0; i < grid.point_count; ++i) {
         const uint light_index = global_light_index_list[grid.offset + i];
+        const PointLight point_light = point_lights[light_index];
+        const float point_shadow =
+            calculate_point_shadow(input.world_position, N, point_light);
         point_lo += calculate_point_light(
-            point_lights[light_index], normal, view_direction, input.world_position,
+            point_light, normal, view_direction, input.world_position,
             albedo, f0, metallic, roughness
-        );
+        ) * point_shadow;
     }
 
     float3 spot_lo = float3(0.0f, 0.0f, 0.0f);
@@ -410,10 +519,13 @@ float4 main(PSInput input) : SV_Target {
     for (uint i = 0; i < grid.spot_count; ++i) {
         const uint light_index =
             global_light_index_list[grid.offset + grid.point_count + i];
+        const SpotLight spot_light = spot_lights[light_index];
+        const float spot_shadow =
+            calculate_spot_shadow(input.world_position, N, spot_light);
         spot_lo += calculate_spot_light(
-            spot_lights[light_index], normal, view_direction, input.world_position,
+            spot_light, normal, view_direction, input.world_position,
             albedo, f0, metallic, roughness
-        );
+        ) * spot_shadow;
     }
 
     const float shadow = calculate_shadow(input.world_position, N);
