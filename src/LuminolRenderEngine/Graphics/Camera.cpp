@@ -114,6 +114,14 @@ auto Camera::get_right_vector() const -> const Maths::Vector3f& {
     return this->right_vector;
 }
 
+auto Camera::get_fov() const -> Units::Degrees_f { return this->fov; }
+
+auto Camera::get_aspect_ratio() const -> float { return this->aspect_ratio; }
+
+auto Camera::get_near_plane() const -> float { return this->near_plane; }
+
+auto Camera::get_far_plane() const -> float { return this->far_plane; }
+
 auto Camera::set_position(const Maths::Vector3f& position) -> void {
     this->position = position;
 }

@@ -48,6 +48,11 @@ public:
     [[nodiscard]] auto get_up_vector() const -> const Maths::Vector3f&;
     [[nodiscard]] auto get_right_vector() const -> const Maths::Vector3f&;
 
+    [[nodiscard]] auto get_fov() const -> Units::Degrees_f;
+    [[nodiscard]] auto get_aspect_ratio() const -> float;
+    [[nodiscard]] auto get_near_plane() const -> float;
+    [[nodiscard]] auto get_far_plane() const -> float;
+
     auto set_position(const Maths::Vector3f& position) -> void;
     auto set_fov(Units::Degrees_f fov) -> void;
     auto set_aspect_ratio(float aspect_ratio) -> void;
