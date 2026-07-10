@@ -126,12 +126,24 @@ enum class ShaderSourceLanguage : uint8_t {
 };
 
 enum class BufferUsage : uint8_t {
-    Vertex,
-    Index,
-    StorageRead,
-    ComputeStorageRead,
-    ComputeStorageReadWrite,
+    Vertex = 1U << 0U,
+    Index = 1U << 1U,
+    StorageRead = 1U << 2U,
+    ComputeStorageRead = 1U << 3U,
+    ComputeStorageReadWrite = 1U << 4U,
 };
+
+constexpr auto operator|(BufferUsage lhs, BufferUsage rhs) -> BufferUsage {
+    return static_cast<BufferUsage>(
+        static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs)
+    );
+}
+
+constexpr auto operator&(BufferUsage lhs, BufferUsage rhs) -> BufferUsage {
+    return static_cast<BufferUsage>(
+        static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs)
+    );
+}
 
 enum class TransferBufferUsage : uint8_t {
     Upload,

@@ -36,6 +36,28 @@ struct SpotLight {
     float3 spot_light_element_padding;
 };
 
+struct ClusterLightGrid {
+    uint offset;
+    uint point_count;
+    uint spot_count;
+    uint padding;
+};
+
+// Clustered Forward+ light buffers, populated by SDL_GPUClusterPass's
+// count -> scan -> compact compute passes. Continue the t-register index
+// right after the 10 textures/samplers above (t0-t9), per SDL_GPU's
+// fragment resource-space convention (space2 = textures then storage
+// buffers, in declaration order).
+StructuredBuffer<PointLight> point_lights : register(t10, space2);
+StructuredBuffer<SpotLight> spot_lights : register(t11, space2);
+StructuredBuffer<ClusterLightGrid> cluster_light_grid : register(t12, space2);
+StructuredBuffer<uint> global_light_index_list : register(t13, space2);
+
+// Must match cluster_grid_x/y/z in SDL_GPUClusterPass.hpp.
+static const uint CLUSTER_GRID_X = 16;
+static const uint CLUSTER_GRID_Y = 9;
+static const uint CLUSTER_GRID_Z = 24;
+
 cbuffer LightBuffer : register(b0, space3) {
     float4 light_direction;
     float4 light_color;
@@ -45,13 +67,37 @@ cbuffer LightBuffer : register(b0, space3) {
     // x: shadow map resolution, y: normal-offset bias,
     // z: max prefiltered specular mip level
     float4 shadow_params;
-    uint point_light_count;
-    float3 point_light_padding;
-    PointLight point_lights[64];
-    uint spot_light_count;
-    float3 spot_light_padding;
-    SpotLight spot_lights[64];
+    // x: camera near plane, y: camera far plane, z/w: unused.
+    float4 cluster_params;
 };
+
+// Must match the cluster index encoding in cluster_aabb_build.hlsl /
+// cluster_light_count.hlsl / cluster_light_compact.hlsl exactly.
+uint compute_cluster_index(
+    float2 screen_position, float z_ndc, float near_plane, float far_plane
+) {
+    const float2 tile_uv = screen_position / screen_size.xy;
+
+    const uint cluster_x =
+        min(uint(tile_uv.x * float(CLUSTER_GRID_X)), CLUSTER_GRID_X - 1);
+    // Viewport +Y is down, but cluster row 0 corresponds to NDC y=-1
+    // (bottom, see cluster_aabb_build.hlsl), so flip.
+    const uint cluster_y = min(
+        uint((1.0f - tile_uv.y) * float(CLUSTER_GRID_Y)), CLUSTER_GRID_Y - 1
+    );
+
+    const float z_view = (near_plane * far_plane) /
+        (far_plane - z_ndc * (far_plane - near_plane));
+    const float slice_ratio = far_plane / near_plane;
+    const uint cluster_z = min(
+        uint(max(log(z_view / near_plane) / log(slice_ratio), 0.0f) *
+             float(CLUSTER_GRID_Z)),
+        CLUSTER_GRID_Z - 1
+    );
+
+    return cluster_z * (CLUSTER_GRID_X * CLUSTER_GRID_Y) +
+        cluster_y * CLUSTER_GRID_X + cluster_x;
+}
 
 struct PSInput {
     float2 uv : TEXCOORD0;
@@ -321,20 +367,29 @@ float4 main(PSInput input) : SV_Target {
         normal, view_direction, albedo, f0, metallic, roughness
     );
 
+    const uint cluster_index = compute_cluster_index(
+        input.screen_position.xy, input.screen_position.z,
+        cluster_params.x, cluster_params.y
+    );
+    const ClusterLightGrid grid = cluster_light_grid[cluster_index];
+
     float3 point_lo = float3(0.0f, 0.0f, 0.0f);
     [loop]
-    for (uint i = 0; i < point_light_count; ++i) {
+    for (uint i = 0; i < grid.point_count; ++i) {
+        const uint light_index = global_light_index_list[grid.offset + i];
         point_lo += calculate_point_light(
-            point_lights[i], normal, view_direction, input.world_position,
+            point_lights[light_index], normal, view_direction, input.world_position,
             albedo, f0, metallic, roughness
         );
     }
 
     float3 spot_lo = float3(0.0f, 0.0f, 0.0f);
     [loop]
-    for (uint i = 0; i < spot_light_count; ++i) {
+    for (uint i = 0; i < grid.spot_count; ++i) {
+        const uint light_index =
+            global_light_index_list[grid.offset + grid.point_count + i];
         spot_lo += calculate_spot_light(
-            spot_lights[i], normal, view_direction, input.world_position,
+            spot_lights[light_index], normal, view_direction, input.world_position,
             albedo, f0, metallic, roughness
         );
     }

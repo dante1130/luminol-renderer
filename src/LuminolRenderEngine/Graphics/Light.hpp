@@ -11,14 +11,18 @@ struct DirectionalLight {
     Maths::Vector3f color = {1.0f, 1.0f, 1.0f};
 };
 
-constexpr static auto max_point_lights = 64u;
+// Raised from 64 now that lighting is Clustered Forward+ (per-cluster light
+// index lists via SDL_GPUClusterPass) rather than a fixed-size cbuffer array
+// in pbr_frag.hlsl, so the cap no longer needs to fit inside a uniform
+// buffer.
+constexpr static auto max_point_lights = 1024u;
 
 struct PointLight {
     Maths::Vector3f position = {0.0f, 0.0f, 0.0f};
     Maths::Vector3f color = {1.0f, 1.0f, 1.0f};
 };
 
-constexpr static auto max_spot_lights = 64u;
+constexpr static auto max_spot_lights = 1024u;
 constexpr static auto default_cut_off = 0.0f;
 constexpr static auto default_outer_cut_off = 0.0f;
 

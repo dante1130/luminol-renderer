@@ -9,6 +9,7 @@
 
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUAmbientOcclusionPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUClusterPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFont.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUIBLRenderPass.hpp>
@@ -67,6 +68,7 @@ private:
 
     SDL_GPUMeshRenderPass mesh_render_pass;
     SDL_GPUAmbientOcclusionPass ao_pass;
+    SDL_GPUClusterPass cluster_pass;
     SDL_GPUShadowPass shadow_pass;
     SDL_GPUTonemapPass tonemap_pass;
     SDL_GPUSkyboxRenderPass skybox_render_pass;

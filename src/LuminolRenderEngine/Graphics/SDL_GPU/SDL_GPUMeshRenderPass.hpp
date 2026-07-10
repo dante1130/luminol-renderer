@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <unordered_map>
 #include <vector>
 
@@ -8,8 +7,8 @@
 #include <LuminolMaths/Matrix.hpp>
 #include <LuminolMaths/Vector.hpp>
 
-#include <LuminolRenderEngine/Graphics/Light.hpp>
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBufferCache.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
@@ -29,10 +28,11 @@ struct InstanceBatch {
 };
 
 // Layout matches the LightBuffer cbuffer in pbr_frag.hlsl (register b0,
-// space3): four float4s, a row_major float4x4, a trailing float4, then a
-// point light count and a spot light count, each padded to 16 bytes and
-// followed by their fixed-size light array, so no manual padding is needed
-// beyond what's declared below.
+// space3): five float4s then a row_major float4x4, no manual padding needed
+// beyond what's declared below. Point/spot lights are no longer part of this
+// cbuffer - they're read from storage buffers (see SDL_GPUClusterPass) via
+// the per-cluster light index list built by the clustered light-culling
+// compute passes.
 struct LightData {
     Maths::Vector4f direction;
     Maths::Vector4f color;
@@ -42,12 +42,20 @@ struct LightData {
     // x: shadow map resolution, y: normal-offset bias,
     // z: max prefiltered specular mip level (see SDL_GPUIBLRenderPass)
     Maths::Vector4f shadow_params;
-    uint32_t point_light_count = 0;
-    Maths::Vector3f point_light_padding = {};
-    std::array<AlignedPointLight, max_point_lights> point_lights = {};
-    uint32_t spot_light_count = 0;
-    Maths::Vector3f spot_light_padding = {};
-    std::array<AlignedSpotLight, max_spot_lights> spot_lights = {};
+    // x: camera near plane, y: camera far plane (for view-space depth
+    // reconstruction when computing the cluster index), z/w: unused.
+    Maths::Vector4f cluster_params;
+};
+
+// The Clustered Forward+ buffers produced by SDL_GPUClusterPass, bound as
+// pbr_frag.hlsl fragment storage buffers starting right after its 10
+// existing textures/samplers (see cluster_light_buffer_slot in
+// SDL_GPUMeshRenderPass.cpp).
+struct ClusteredLightBuffers {
+    const Buffer* point_lights;
+    const Buffer* spot_lights;
+    const Buffer* cluster_light_grid;
+    const Buffer* global_light_index_list;
 };
 
 // Bundles the precomputed split-sum IBL textures/samplers produced by
@@ -92,7 +100,8 @@ public:
         const Sampler& ssao_sampler,
         const Texture& shadow_map_texture,
         const Sampler& shadow_map_sampler,
-        const IBLTextures& ibl_textures
+        const IBLTextures& ibl_textures,
+        const ClusteredLightBuffers& clustered_light_buffers
     ) -> void;
 
     [[nodiscard]] auto get_instance_buffer_cache() const

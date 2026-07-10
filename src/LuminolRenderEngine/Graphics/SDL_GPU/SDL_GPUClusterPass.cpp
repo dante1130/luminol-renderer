@@ -132,19 +132,19 @@ SDL_GPUClusterPass::SDL_GPUClusterPass(GPUDevice& device)
           .size = cluster_aabb_buffer_size,
       })},
       cluster_light_grid_buffer{device.create_buffer(BufferInfo{
-          .usage = BufferUsage::ComputeStorageReadWrite,
+          .usage = BufferUsage::ComputeStorageReadWrite | BufferUsage::StorageRead,
           .size = cluster_light_grid_buffer_size,
       })},
       global_light_index_list_buffer{device.create_buffer(BufferInfo{
-          .usage = BufferUsage::ComputeStorageReadWrite,
+          .usage = BufferUsage::ComputeStorageReadWrite | BufferUsage::StorageRead,
           .size = global_light_index_list_buffer_size,
       })},
       point_light_buffer{device.create_buffer(BufferInfo{
-          .usage = BufferUsage::ComputeStorageRead,
+          .usage = BufferUsage::ComputeStorageRead | BufferUsage::StorageRead,
           .size = point_light_buffer_size,
       })},
       spot_light_buffer{device.create_buffer(BufferInfo{
-          .usage = BufferUsage::ComputeStorageRead,
+          .usage = BufferUsage::ComputeStorageRead | BufferUsage::StorageRead,
           .size = spot_light_buffer_size,
       })},
       point_light_transfer_buffer{device.create_transfer_buffer(TransferBufferInfo{

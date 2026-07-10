@@ -166,19 +166,27 @@ auto to_sdl_vertex_input_rate(VertexInputRate rate)
 
 auto to_sdl_buffer_usage(BufferUsage usage)
     -> SDL_GPUBufferUsageFlags {
-    switch (usage) {
-        case BufferUsage::Vertex:
-            return SDL_GPU_BUFFERUSAGE_VERTEX;
-        case BufferUsage::Index:
-            return SDL_GPU_BUFFERUSAGE_INDEX;
-        case BufferUsage::StorageRead:
-            return SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ;
-        case BufferUsage::ComputeStorageRead:
-            return SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_READ;
-        case BufferUsage::ComputeStorageReadWrite:
-            return SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_WRITE;
+    auto flags = SDL_GPUBufferUsageFlags{0};
+
+    if ((usage & BufferUsage::Vertex) == BufferUsage::Vertex) {
+        flags |= SDL_GPU_BUFFERUSAGE_VERTEX;
     }
-    throw std::runtime_error{"Invalid buffer usage"};
+    if ((usage & BufferUsage::Index) == BufferUsage::Index) {
+        flags |= SDL_GPU_BUFFERUSAGE_INDEX;
+    }
+    if ((usage & BufferUsage::StorageRead) == BufferUsage::StorageRead) {
+        flags |= SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ;
+    }
+    if ((usage & BufferUsage::ComputeStorageRead) ==
+        BufferUsage::ComputeStorageRead) {
+        flags |= SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_READ;
+    }
+    if ((usage & BufferUsage::ComputeStorageReadWrite) ==
+        BufferUsage::ComputeStorageReadWrite) {
+        flags |= SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_WRITE;
+    }
+
+    return flags;
 }
 
 auto to_sdl_transfer_buffer_usage(TransferBufferUsage usage)

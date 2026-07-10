@@ -61,6 +61,13 @@ constexpr auto irradiance_sampler_slot = 7U;
 constexpr auto prefiltered_sampler_slot = 8U;
 constexpr auto brdf_lut_sampler_slot = 9U;
 
+// Clustered Forward+ light buffers, bound as fragment storage buffers
+// (t10-t13, space2 - continuing the t-register index right after the 10
+// textures/samplers above, per SDL_GPU's fragment resource-space
+// convention).
+constexpr auto cluster_light_buffer_count = 4U;
+constexpr auto cluster_light_buffer_slot = 0U;
+
 auto make_mesh_shader(
     GPUDevice& device, const std::filesystem::path& path, ShaderStage stage
 ) -> Shader {
@@ -71,7 +78,9 @@ auto make_mesh_shader(
         .sampler_count =
             (stage == ShaderStage::Fragment) ? fragment_sampler_count : 0U,
         .uniform_buffer_count = 1U,
-        .storage_buffer_count = (stage == ShaderStage::Vertex) ? 1U : 0U,
+        .storage_buffer_count = stage == ShaderStage::Vertex ? 1U
+            : stage == ShaderStage::Fragment  ? cluster_light_buffer_count
+                                               : 0U,
     });
 }
 
@@ -248,7 +257,8 @@ auto SDL_GPUMeshRenderPass::draw(
     const Sampler& ssao_sampler,
     const Texture& shadow_map_texture,
     const Sampler& shadow_map_sampler,
-    const IBLTextures& ibl_textures
+    const IBLTextures& ibl_textures,
+    const ClusteredLightBuffers& clustered_light_buffers
 ) -> void {
     light_data.shadow_params.z() =
         static_cast<float>(ibl_textures.prefiltered_mip_count - 1);
@@ -265,6 +275,16 @@ auto SDL_GPUMeshRenderPass::draw(
         gsl::span{
             reinterpret_cast<const std::byte*>(&light_data), sizeof(light_data)
         }
+    );
+
+    const auto cluster_light_buffer_bindings = std::array<const Buffer* const, 4>{
+        clustered_light_buffers.point_lights,
+        clustered_light_buffers.spot_lights,
+        clustered_light_buffers.cluster_light_grid,
+        clustered_light_buffers.global_light_index_list,
+    };
+    render_pass.bind_fragment_storage_buffers(
+        cluster_light_buffer_slot, cluster_light_buffer_bindings
     );
 
     const auto ssao_sampler_bindings = std::array{TextureSamplerBinding{

@@ -1,7 +1,8 @@
 #include "SDL_GPURenderer.hpp"
 
-#include <algorithm>
 #include <array>
+#include <cmath>
+#include <numbers>
 #include <utility>
 
 #include <gsl/gsl>
@@ -20,6 +21,38 @@ using namespace Luminol::Maths;
 constexpr auto depth_texture_format = TextureFormat::D24_Unorm;
 constexpr auto hdr_color_texture_format = TextureFormat::R16G16B16A16_Float;
 constexpr auto shadow_normal_offset_bias = 0.05F;
+
+struct CameraParams {
+    float vertical_fov_degrees;
+    float aspect_ratio;
+    float near_plane;
+    float far_plane;
+};
+
+// Recovers the camera parameters used to build `projection_matrix` (see
+// Maths::Transform::left_handed_perspective_projection_matrix) directly from
+// the matrix, so SDL_GPURenderer doesn't need a separate camera-params API -
+// Renderer only ever receives already-computed matrices.
+auto extract_camera_params(const Matrix4x4f& projection_matrix) -> CameraParams {
+    const auto a = projection_matrix[0][0];
+    const auto b = projection_matrix[1][1];
+    const auto c = projection_matrix[2][2];
+    const auto e = projection_matrix[3][2];
+
+    const auto tan_half_fov_y = 1.0F / b;
+    const auto vertical_fov_degrees = 2.0F * std::atan(tan_half_fov_y) *
+        (180.0F / std::numbers::pi_v<float>);
+    const auto aspect_ratio = b / a;
+    const auto near_plane = -e / c;
+    const auto far_plane = e / (1.0F - c);
+
+    return CameraParams{
+        .vertical_fov_degrees = vertical_fov_degrees,
+        .aspect_ratio = aspect_ratio,
+        .near_plane = near_plane,
+        .far_plane = far_plane,
+    };
+}
 
 auto get_view_position(const Matrix4x4f& view_matrix) -> Vector4f {
     const auto inverse_view_matrix = view_matrix.inverse();
@@ -175,6 +208,7 @@ SDL_GPURenderer::SDL_GPURenderer(
           )
       },
       ao_pass{*this->gpu_device, sdl_window},
+      cluster_pass{*this->gpu_device},
       shadow_pass{*this->gpu_device},
       tonemap_pass{*this->gpu_device, sdl_window},
       skybox_render_pass{
@@ -309,6 +343,29 @@ auto SDL_GPURenderer::draw() -> void {
     const auto& light_manager_data = get_light_manager().get_light_data();
     const auto& directional_light = light_manager_data.directional_light;
     const auto camera_position = get_view_position(view_matrix);
+    const auto camera_params = extract_camera_params(projection_matrix);
+
+    {
+        const auto pass_timer = Utilities::Timer{};
+        cluster_pass.build_cluster_grid(
+            command_buffer,
+            camera_params.vertical_fov_degrees,
+            camera_params.aspect_ratio,
+            camera_params.near_plane,
+            camera_params.far_plane
+        );
+        performance_logger.record(
+            "cluster_build", Units::Seconds{pass_timer.elapsed_seconds()}
+        );
+    }
+
+    {
+        const auto pass_timer = Utilities::Timer{};
+        cluster_pass.cull_lights(command_buffer, light_manager_data, view_matrix);
+        performance_logger.record(
+            "cluster_cull", Units::Seconds{pass_timer.elapsed_seconds()}
+        );
+    }
 
     shadow_pass.draw(
         *this->sdl_gpu_factory,
@@ -359,15 +416,13 @@ auto SDL_GPURenderer::draw() -> void {
                 0.0F,
                 0.0F,
             },
-            .point_light_count = light_manager_data.point_light_count,
-            .spot_light_count = light_manager_data.spot_light_count,
+            .cluster_params = Maths::Vector4f{
+                camera_params.near_plane,
+                camera_params.far_plane,
+                0.0F,
+                0.0F,
+            },
         };
-        std::ranges::copy(
-            light_manager_data.point_lights, light_data.point_lights.begin()
-        );
-        std::ranges::copy(
-            light_manager_data.spot_lights, light_data.spot_lights.begin()
-        );
 
         mesh_render_pass.draw(
             *this->sdl_gpu_factory,
@@ -390,6 +445,13 @@ auto SDL_GPURenderer::draw() -> void {
                     ibl_render_pass.get_prefiltered_mip_count(),
                 .brdf_lut_texture = &ibl_render_pass.get_brdf_lut_texture(),
                 .brdf_lut_sampler = &ibl_render_pass.get_brdf_lut_sampler(),
+            },
+            ClusteredLightBuffers{
+                .point_lights = &cluster_pass.get_point_light_buffer(),
+                .spot_lights = &cluster_pass.get_spot_light_buffer(),
+                .cluster_light_grid = &cluster_pass.get_cluster_light_grid_buffer(),
+                .global_light_index_list =
+                    &cluster_pass.get_global_light_index_list_buffer(),
             }
         );
 

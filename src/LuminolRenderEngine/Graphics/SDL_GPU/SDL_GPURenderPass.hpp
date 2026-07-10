@@ -37,6 +37,10 @@ public:
         uint32_t first_slot, gsl::span<const TextureSamplerBinding> bindings
     ) -> void;
 
+    auto bind_fragment_storage_buffers(
+        uint32_t first_slot, gsl::span<const Buffer* const> buffers
+    ) -> void;
+
     auto bind_index_buffer(
         const Buffer& buffer,
         IndexElementSize element_size,

@@ -121,6 +121,25 @@ auto RenderPass::bind_fragment_samplers(
     );
 }
 
+auto RenderPass::bind_fragment_storage_buffers(
+    uint32_t first_slot, gsl::span<const Buffer* const> buffers
+) -> void {
+    Expects(render_pass != nullptr);
+
+    auto sdl_buffers = std::vector<SDL_GPUBuffer*>(buffers.size());
+    for (auto i = size_t{0}; i < buffers.size(); ++i) {
+        Expects(buffers[i] != nullptr);
+        sdl_buffers[i] = buffers[i]->native_handle();
+    }
+
+    SDL_BindGPUFragmentStorageBuffers(
+        render_pass,
+        first_slot,
+        sdl_buffers.data(),
+        static_cast<uint32_t>(sdl_buffers.size())
+    );
+}
+
 auto RenderPass::draw_primitives(
     uint32_t num_vertices,
     uint32_t num_instances,
