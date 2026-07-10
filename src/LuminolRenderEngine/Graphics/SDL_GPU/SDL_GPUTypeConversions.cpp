@@ -185,6 +185,9 @@ auto to_sdl_buffer_usage(BufferUsage usage)
         BufferUsage::ComputeStorageReadWrite) {
         flags |= SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_WRITE;
     }
+    if ((usage & BufferUsage::Indirect) == BufferUsage::Indirect) {
+        flags |= SDL_GPU_BUFFERUSAGE_INDIRECT;
+    }
 
     return flags;
 }

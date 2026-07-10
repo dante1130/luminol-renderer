@@ -131,6 +131,7 @@ enum class BufferUsage : uint8_t {
     StorageRead = 1U << 2U,
     ComputeStorageRead = 1U << 3U,
     ComputeStorageReadWrite = 1U << 4U,
+    Indirect = 1U << 5U,
 };
 
 constexpr auto operator|(BufferUsage lhs, BufferUsage rhs) -> BufferUsage {

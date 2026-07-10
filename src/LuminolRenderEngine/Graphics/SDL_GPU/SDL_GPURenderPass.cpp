@@ -214,6 +214,15 @@ auto RenderPass::draw_indexed_primitives(
     );
 }
 
+auto RenderPass::draw_indexed_primitives_indirect(
+    const Buffer& buffer, uint32_t offset, uint32_t draw_count
+) -> void {
+    Expects(render_pass != nullptr);
+    SDL_DrawGPUIndexedPrimitivesIndirect(
+        render_pass, buffer.native_handle(), offset, draw_count
+    );
+}
+
 auto RenderPass::native_handle() const -> SDL_GPURenderPass* {
     return render_pass;
 }

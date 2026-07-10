@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <optional>
 #include <stdexcept>
 
 #include <gsl/gsl>
@@ -18,47 +19,6 @@
 namespace {
 
 using namespace Luminol::Graphics::SDL_GPU;
-
-constexpr auto vertex_stride_in_floats = 11U;
-
-// Axis-aligned bounding box over vertex positions (first 3 of the 11-float
-// vertex stride: position, uv, normal, tangent), used for CPU-side frustum
-// culling. Tighter than a bounding sphere for large flat/elongated meshes
-// (e.g. building floors/walls), where a sphere's radius would be close to
-// the shape's full diagonal.
-auto compute_local_bounds(gsl::span<const float> vertices)
-    -> Luminol::Graphics::BoundingBox {
-    const auto vertex_count = vertices.size() / vertex_stride_in_floats;
-    if (vertex_count == 0) {
-        return Luminol::Graphics::BoundingBox{};
-    }
-
-    const auto first_position = Luminol::Maths::Vector3f{
-        vertices[0], vertices[1], vertices[2]
-    };
-    auto min = first_position;
-    auto max = first_position;
-
-    for (auto i = size_t{1}; i < vertex_count; ++i) {
-        const auto offset = i * vertex_stride_in_floats;
-        const auto position = Luminol::Maths::Vector3f{
-            vertices[offset], vertices[offset + 1], vertices[offset + 2]
-        };
-
-        min = Luminol::Maths::Vector3f{
-            std::min(min.x(), position.x()),
-            std::min(min.y(), position.y()),
-            std::min(min.z(), position.z()),
-        };
-        max = Luminol::Maths::Vector3f{
-            std::max(max.x(), position.x()),
-            std::max(max.y(), position.y()),
-            std::max(max.z(), position.z()),
-        };
-    }
-
-    return Luminol::Graphics::BoundingBox{.min = min, .max = max};
-}
 
 auto load_first_texture_or_nothing(
     const std::vector<std::filesystem::path>& texture_paths,
@@ -270,29 +230,54 @@ auto create_texture_from_image(
 
 namespace Luminol::Graphics::SDL_GPU {
 
+constexpr auto vertex_stride_in_floats = 11U;
+
+auto compute_mesh_local_bounds(gsl::span<const float> vertices) -> BoundingBox {
+    const auto vertex_count = vertices.size() / vertex_stride_in_floats;
+    if (vertex_count == 0) {
+        return BoundingBox{};
+    }
+
+    const auto first_position = Luminol::Maths::Vector3f{
+        vertices[0], vertices[1], vertices[2]
+    };
+    auto min = first_position;
+    auto max = first_position;
+
+    for (auto i = size_t{1}; i < vertex_count; ++i) {
+        const auto offset = i * vertex_stride_in_floats;
+        const auto position = Luminol::Maths::Vector3f{
+            vertices[offset], vertices[offset + 1], vertices[offset + 2]
+        };
+
+        min = Luminol::Maths::Vector3f{
+            std::min(min.x(), position.x()),
+            std::min(min.y(), position.y()),
+            std::min(min.z(), position.z()),
+        };
+        max = Luminol::Maths::Vector3f{
+            std::max(max.x(), position.x()),
+            std::max(max.y(), position.y()),
+            std::max(max.z(), position.z()),
+        };
+    }
+
+    return BoundingBox{.min = min, .max = max};
+}
+
 SDL_GPUMesh::SDL_GPUMesh(
     GPUDevice& device,
     CopyPass& copy_pass,
-    gsl::span<const float> vertices,
-    gsl::span<const uint32_t> indices,
+    uint32_t first_index,
+    uint32_t index_count,
+    int32_t vertex_offset,
+    const BoundingBox& local_bounds,
     const TexturePaths& texture_paths
 )
-    : vertex_buffer{create_uploaded_buffer(
-          device,
-          copy_pass,
-          vertices.data(),
-          static_cast<uint32_t>(vertices.size_bytes()),
-          BufferUsage::Vertex
-      )},
-      index_buffer{create_uploaded_buffer(
-          device,
-          copy_pass,
-          indices.data(),
-          static_cast<uint32_t>(indices.size_bytes()),
-          BufferUsage::Index
-      )},
-      index_count{static_cast<uint32_t>(indices.size())},
-      local_bounds{compute_local_bounds(vertices)},
+    : first_index{first_index},
+      index_count{index_count},
+      vertex_offset{vertex_offset},
+      local_bounds{local_bounds},
       diffuse_texture{create_texture_from_path(
           device,
           copy_pass,
@@ -367,26 +352,16 @@ SDL_GPUMesh::SDL_GPUMesh(
 SDL_GPUMesh::SDL_GPUMesh(
     GPUDevice& device,
     CopyPass& copy_pass,
-    gsl::span<const float> vertices,
-    gsl::span<const uint32_t> indices,
+    uint32_t first_index,
+    uint32_t index_count,
+    int32_t vertex_offset,
+    const BoundingBox& local_bounds,
     const TextureImages& texture_images
 )
-    : vertex_buffer{create_uploaded_buffer(
-          device,
-          copy_pass,
-          vertices.data(),
-          static_cast<uint32_t>(vertices.size_bytes()),
-          BufferUsage::Vertex
-      )},
-      index_buffer{create_uploaded_buffer(
-          device,
-          copy_pass,
-          indices.data(),
-          static_cast<uint32_t>(indices.size_bytes()),
-          BufferUsage::Index
-      )},
-      index_count{static_cast<uint32_t>(indices.size())},
-      local_bounds{compute_local_bounds(vertices)},
+    : first_index{first_index},
+      index_count{index_count},
+      vertex_offset{vertex_offset},
+      local_bounds{local_bounds},
       diffuse_texture{create_texture_from_image(
           device,
           copy_pass,
@@ -451,13 +426,6 @@ auto SDL_GPUMesh::draw(RenderPass& sdl_gpu_pass) const -> void {
 auto SDL_GPUMesh::draw_instanced(
     int32_t instance_count, RenderPass& sdl_gpu_pass
 ) const -> void {
-    const auto vertex_bindings = std::array{VertexBufferBinding{
-        .buffer = &vertex_buffer,
-        .offset = 0,
-    }};
-    sdl_gpu_pass.bind_vertex_buffers(0, vertex_bindings);
-    sdl_gpu_pass.bind_index_buffer(index_buffer, IndexElementSize::Bits32, 0);
-
     const auto sampler_bindings = std::array{
         TextureSamplerBinding{
             .texture = &diffuse_texture, .sampler = &diffuse_sampler
@@ -479,27 +447,30 @@ auto SDL_GPUMesh::draw_instanced(
     sdl_gpu_pass.bind_fragment_samplers(0, sampler_bindings);
 
     sdl_gpu_pass.draw_indexed_primitives(
-        index_count, static_cast<uint32_t>(instance_count)
+        index_count, static_cast<uint32_t>(instance_count), first_index,
+        vertex_offset
     );
 }
 
 auto SDL_GPUMesh::draw_instanced_geometry_only(
     int32_t instance_count, RenderPass& sdl_gpu_pass
 ) const -> void {
-    const auto vertex_bindings = std::array{VertexBufferBinding{
-        .buffer = &vertex_buffer,
-        .offset = 0,
-    }};
-    sdl_gpu_pass.bind_vertex_buffers(0, vertex_bindings);
-    sdl_gpu_pass.bind_index_buffer(index_buffer, IndexElementSize::Bits32, 0);
-
     sdl_gpu_pass.draw_indexed_primitives(
-        index_count, static_cast<uint32_t>(instance_count)
+        index_count, static_cast<uint32_t>(instance_count), first_index,
+        vertex_offset
     );
 }
 
 auto SDL_GPUMesh::alpha_mode() const -> Utilities::ModelLoader::AlphaMode {
     return mesh_alpha_mode;
+}
+
+auto SDL_GPUMesh::get_first_index() const -> uint32_t { return first_index; }
+
+auto SDL_GPUMesh::get_index_count() const -> uint32_t { return index_count; }
+
+auto SDL_GPUMesh::get_vertex_offset() const -> int32_t {
+    return vertex_offset;
 }
 
 auto SDL_GPUMesh::generate_mipmaps(CommandBuffer& command_buffer) const
@@ -524,7 +495,7 @@ auto SDL_GPUMesh::generate_mipmaps(CommandBuffer& command_buffer) const
 
 auto load_meshes_from_model(
     GPUDevice& device, const std::filesystem::path& model_path
-) -> std::vector<SDL_GPUMesh> {
+) -> RenderableMeshes {
     const auto model_data_opt =
         Luminol::Utilities::ModelLoader::load_model(model_path);
 
@@ -532,48 +503,111 @@ auto load_meshes_from_model(
 
     const auto& model_data = model_data_opt.value();
 
+    constexpr auto vertex_components = 11;
+
+    // Build one shared vertex/index buffer covering every submesh, so all of
+    // a renderable's submeshes can be drawn against a single bound
+    // vertex/index buffer (required for indirect multi-draw batching, see
+    // SDL_GPUPointSpotShadowPass). Each submesh's indices in ModelLoader
+    // output are already local/0-based, so they're concatenated as-is; only
+    // first_index/vertex_offset need to track the running totals.
+    struct SubmeshInfo {
+        uint32_t first_index;
+        uint32_t index_count;
+        int32_t vertex_offset;
+        BoundingBox local_bounds;
+        Utilities::ModelLoader::MeshData const* mesh_data;
+    };
+
+    auto combined_vertices = std::vector<float>{};
+    auto combined_indices = std::vector<uint32_t>{};
+    auto submesh_infos = std::vector<SubmeshInfo>{};
+    submesh_infos.reserve(model_data.meshes.size());
+
+    auto running_vertex_offset = int32_t{0};
+    auto running_first_index = uint32_t{0};
+
+    for (const auto& mesh_data : model_data.meshes) {
+        Expects(
+            mesh_data.vertices.size() == mesh_data.texture_coordinates.size()
+        );
+
+        auto mesh_vertices = std::vector<float>{};
+        mesh_vertices.reserve(mesh_data.vertices.size() * vertex_components);
+
+        for (size_t i = 0; i < mesh_data.vertices.size(); ++i) {
+            mesh_vertices.push_back(mesh_data.vertices[i].x());
+            mesh_vertices.push_back(mesh_data.vertices[i].y());
+            mesh_vertices.push_back(mesh_data.vertices[i].z());
+            mesh_vertices.push_back(mesh_data.texture_coordinates[i].x());
+            mesh_vertices.push_back(mesh_data.texture_coordinates[i].y());
+            mesh_vertices.push_back(mesh_data.normals[i].x());
+            mesh_vertices.push_back(mesh_data.normals[i].y());
+            mesh_vertices.push_back(mesh_data.normals[i].z());
+            mesh_vertices.push_back(mesh_data.tangents[i].x());
+            mesh_vertices.push_back(mesh_data.tangents[i].y());
+            mesh_vertices.push_back(mesh_data.tangents[i].z());
+        }
+
+        submesh_infos.push_back(SubmeshInfo{
+            .first_index = running_first_index,
+            .index_count = static_cast<uint32_t>(mesh_data.indices.size()),
+            .vertex_offset = running_vertex_offset,
+            .local_bounds = compute_mesh_local_bounds(mesh_vertices),
+            .mesh_data = &mesh_data,
+        });
+
+        combined_vertices.insert(
+            combined_vertices.end(), mesh_vertices.begin(), mesh_vertices.end()
+        );
+        combined_indices.insert(
+            combined_indices.end(), mesh_data.indices.begin(),
+            mesh_data.indices.end()
+        );
+
+        running_vertex_offset += static_cast<int32_t>(mesh_data.vertices.size());
+        running_first_index += static_cast<uint32_t>(mesh_data.indices.size());
+    }
+
     auto meshes = std::vector<SDL_GPUMesh>{};
-    meshes.reserve(model_data.meshes.size());
+    meshes.reserve(submesh_infos.size());
 
     auto command_buffer = device.create_command_buffer();
+    auto vertex_buffer = std::optional<Buffer>{};
+    auto index_buffer = std::optional<Buffer>{};
     {
         auto copy_pass = command_buffer.begin_copy_pass();
 
-        for (const auto& mesh_data : model_data.meshes) {
-            Expects(
-                mesh_data.vertices.size() ==
-                mesh_data.texture_coordinates.size()
-            );
+        vertex_buffer = create_uploaded_buffer(
+            device,
+            copy_pass,
+            combined_vertices.data(),
+            static_cast<uint32_t>(
+                combined_vertices.size() * sizeof(float)
+            ),
+            BufferUsage::Vertex
+        );
+        index_buffer = create_uploaded_buffer(
+            device,
+            copy_pass,
+            combined_indices.data(),
+            static_cast<uint32_t>(
+                combined_indices.size() * sizeof(uint32_t)
+            ),
+            BufferUsage::Index
+        );
 
-            constexpr auto vertex_components = 11;
-
-            auto mesh_vertices = std::vector<float>{};
-            mesh_vertices.reserve(
-                mesh_data.vertices.size() * vertex_components
-            );
-
-            for (size_t i = 0; i < mesh_data.vertices.size(); ++i) {
-                mesh_vertices.push_back(mesh_data.vertices[i].x());
-                mesh_vertices.push_back(mesh_data.vertices[i].y());
-                mesh_vertices.push_back(mesh_data.vertices[i].z());
-                mesh_vertices.push_back(mesh_data.texture_coordinates[i].x());
-                mesh_vertices.push_back(mesh_data.texture_coordinates[i].y());
-                mesh_vertices.push_back(mesh_data.normals[i].x());
-                mesh_vertices.push_back(mesh_data.normals[i].y());
-                mesh_vertices.push_back(mesh_data.normals[i].z());
-                mesh_vertices.push_back(mesh_data.tangents[i].x());
-                mesh_vertices.push_back(mesh_data.tangents[i].y());
-                mesh_vertices.push_back(mesh_data.tangents[i].z());
-            }
-
+        for (const auto& info : submesh_infos) {
             const auto texture_images =
-                to_texture_images(mesh_data, model_data.textures_map);
+                to_texture_images(*info.mesh_data, model_data.textures_map);
 
             meshes.emplace_back(
                 device,
                 copy_pass,
-                mesh_vertices,
-                mesh_data.indices,
+                info.first_index,
+                info.index_count,
+                info.vertex_offset,
+                info.local_bounds,
                 texture_images
             );
         }
@@ -585,7 +619,11 @@ auto load_meshes_from_model(
 
     command_buffer.submit();
 
-    return meshes;
+    return RenderableMeshes{
+        .vertex_buffer = std::move(vertex_buffer).value(),
+        .index_buffer = std::move(index_buffer).value(),
+        .meshes = std::move(meshes),
+    };
 }
 
 }  // namespace Luminol::Graphics::SDL_GPU

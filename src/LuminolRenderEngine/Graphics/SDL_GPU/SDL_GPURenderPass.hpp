@@ -67,6 +67,14 @@ public:
         uint32_t first_instance = 0
     ) -> void;
 
+    // Draws draw_count SDL_GPUIndexedIndirectDrawCommand entries starting at
+    // offset (bytes) within buffer, using whichever vertex/index buffer is
+    // currently bound. buffer must have been created with
+    // BufferUsage::Indirect.
+    auto draw_indexed_primitives_indirect(
+        const Buffer& buffer, uint32_t offset, uint32_t draw_count
+    ) -> void;
+
     auto draw_primitives(
         uint32_t num_vertices,
         uint32_t num_instances = 1,

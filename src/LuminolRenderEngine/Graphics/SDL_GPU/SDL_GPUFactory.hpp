@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <unordered_map>
-#include <vector>
 
 #include <LuminolRenderEngine/Graphics/GraphicsFactory.hpp>
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
@@ -45,6 +44,13 @@ public:
     [[nodiscard]] auto get_meshes(RenderableId renderable_id) const
         -> gsl::span<const SDL_GPUMesh>;
 
+    // The renderable's shared vertex/index buffers - callers must bind these
+    // once before drawing any of its meshes (see SDL_GPUMesh, RenderableMeshes).
+    [[nodiscard]] auto get_vertex_buffer(RenderableId renderable_id) const
+        -> const Buffer&;
+    [[nodiscard]] auto get_index_buffer(RenderableId renderable_id) const
+        -> const Buffer&;
+
     [[nodiscard]] auto create_font(
         const std::filesystem::path& font_path, float point_size
     ) -> FontId override;
@@ -56,7 +62,7 @@ private:
 
     std::shared_ptr<GPUDevice> gpu_device;
     RenderableManager renderable_manager;
-    std::unordered_map<RenderableId, std::vector<SDL_GPUMesh>> meshes_by_id;
+    std::unordered_map<RenderableId, RenderableMeshes> meshes_by_id;
 
     RenderableManager font_manager;
     std::unordered_map<FontId, SDL_GPUFont> fonts_by_id;

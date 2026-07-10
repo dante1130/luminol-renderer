@@ -70,6 +70,13 @@ private:
 
     Buffer spot_shadow_matrix_buffer;
     TransferBuffer spot_shadow_matrix_transfer_buffer;
+
+    // Indirect draw commands for both atlases, built and uploaded fresh each
+    // frame from CPU-side AABB culling results, so each (tile, batch) can be
+    // submitted as a single indirect multi-draw call instead of one draw
+    // call per surviving mesh.
+    Buffer indirect_draw_buffer;
+    TransferBuffer indirect_draw_transfer_buffer;
 };
 
 }  // namespace Luminol::Graphics::SDL_GPU

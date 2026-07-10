@@ -1,12 +1,17 @@
 #include "SDL_GPUFactory.hpp"
 
+#include <cstring>
+#include <optional>
+
 #include <gsl/gsl>
 #include <SDL3/SDL_video.h>
 #include <SDL3_ttf/SDL_ttf.h>
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCopyPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderer.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTransferBuffer.hpp>
 
 namespace {
 
@@ -68,10 +73,62 @@ auto SDL_GPUFactory::create_mesh(
     auto meshes = std::vector<SDL_GPUMesh>{};
 
     auto command_buffer = gpu_device->create_command_buffer();
+    auto vertex_buffer = std::optional<Buffer>{};
+    auto index_buffer = std::optional<Buffer>{};
     {
         auto copy_pass = command_buffer.begin_copy_pass();
+
+        vertex_buffer = gpu_device->create_buffer(BufferInfo{
+            .usage = BufferUsage::Vertex,
+            .size = static_cast<uint32_t>(vertices.size_bytes()),
+        });
+        index_buffer = gpu_device->create_buffer(BufferInfo{
+            .usage = BufferUsage::Index,
+            .size = static_cast<uint32_t>(indices.size_bytes()),
+        });
+
+        auto vertex_transfer_buffer =
+            gpu_device->create_transfer_buffer(TransferBufferInfo{
+                .usage = TransferBufferUsage::Upload,
+                .size = static_cast<uint32_t>(vertices.size_bytes()),
+            });
+        {
+            const auto mapped = vertex_transfer_buffer.map(false);
+            std::memcpy(
+                mapped.data(), vertices.data(), vertices.size_bytes()
+            );
+        }
+        vertex_transfer_buffer.unmap();
+        copy_pass.upload_to_buffer(
+            vertex_transfer_buffer, 0, *vertex_buffer, 0,
+            static_cast<uint32_t>(vertices.size_bytes()), false
+        );
+
+        auto index_transfer_buffer =
+            gpu_device->create_transfer_buffer(TransferBufferInfo{
+                .usage = TransferBufferUsage::Upload,
+                .size = static_cast<uint32_t>(indices.size_bytes()),
+            });
+        {
+            const auto mapped = index_transfer_buffer.map(false);
+            std::memcpy(mapped.data(), indices.data(), indices.size_bytes());
+        }
+        index_transfer_buffer.unmap();
+        copy_pass.upload_to_buffer(
+            index_transfer_buffer, 0, *index_buffer, 0,
+            static_cast<uint32_t>(indices.size_bytes()), false
+        );
+
+        const auto local_bounds = compute_mesh_local_bounds(vertices);
+
         meshes.emplace_back(
-            *gpu_device, copy_pass, vertices, indices, texture_paths
+            *gpu_device,
+            copy_pass,
+            0U,
+            static_cast<uint32_t>(indices.size()),
+            0,
+            local_bounds,
+            texture_paths
         );
     }
 
@@ -81,7 +138,14 @@ auto SDL_GPUFactory::create_mesh(
 
     command_buffer.submit();
 
-    this->meshes_by_id.emplace(renderable_id, std::move(meshes));
+    this->meshes_by_id.emplace(
+        renderable_id,
+        RenderableMeshes{
+            .vertex_buffer = std::move(vertex_buffer).value(),
+            .index_buffer = std::move(index_buffer).value(),
+            .meshes = std::move(meshes),
+        }
+    );
 
     return renderable_id;
 }
@@ -114,7 +178,17 @@ auto SDL_GPUFactory::get_graphics_api() const -> GraphicsApi {
 
 auto SDL_GPUFactory::get_meshes(RenderableId renderable_id) const
     -> gsl::span<const SDL_GPUMesh> {
-    return this->meshes_by_id.at(renderable_id);
+    return this->meshes_by_id.at(renderable_id).meshes;
+}
+
+auto SDL_GPUFactory::get_vertex_buffer(RenderableId renderable_id) const
+    -> const Buffer& {
+    return this->meshes_by_id.at(renderable_id).vertex_buffer;
+}
+
+auto SDL_GPUFactory::get_index_buffer(RenderableId renderable_id) const
+    -> const Buffer& {
+    return this->meshes_by_id.at(renderable_id).index_buffer;
 }
 
 auto SDL_GPUFactory::create_font(

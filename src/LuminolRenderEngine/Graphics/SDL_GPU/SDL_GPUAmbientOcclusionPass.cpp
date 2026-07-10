@@ -282,6 +282,17 @@ auto SDL_GPUAmbientOcclusionPass::draw(
                 0, storage_buffer_bindings
             );
 
+            const auto vertex_bindings = std::array{VertexBufferBinding{
+                .buffer =
+                    &graphics_factory.get_vertex_buffer(batch.renderable_id),
+                .offset = 0,
+            }};
+            render_pass.bind_vertex_buffers(0, vertex_bindings);
+            render_pass.bind_index_buffer(
+                graphics_factory.get_index_buffer(batch.renderable_id),
+                IndexElementSize::Bits32, 0
+            );
+
             for (const auto& mesh :
                  graphics_factory.get_meshes(batch.renderable_id)) {
                 mesh.draw_instanced_geometry_only(
