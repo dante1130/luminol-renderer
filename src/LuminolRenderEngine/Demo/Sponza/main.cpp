@@ -74,14 +74,19 @@ auto main() -> int {
 
     constexpr auto directional_light = Graphics::DirectionalLight{
         .direction = Maths::Vector3f{0.15f, -0.5f, 0.15f},
-        .color = Maths::Vector3f{1.0f, 1.0f, 1.0f},
+        .color = Maths::Vector3f{0.1f, 0.1f, 0.1f},
     };
 
     luminol_engine.get_renderer().get_light_manager().update_directional_light(
         directional_light
     );
 
-    constexpr auto lights_count = 64u;
+    // Stress-tests Clustered Forward+ light culling (max_point_lights is
+    // 1024 - see Graphics/Light.hpp) so cluster_build/cluster_cull/main_pass
+    // timings (logged periodically via PerformanceLogger -> SDL_Log) reflect
+    // a scene with meaningfully more lights than the old 64-light brute-force
+    // cap ever supported.
+    constexpr auto lights_count = 500u;
 
     auto lights = Lights{
         .renderable_id = luminol_engine.get_renderer().create_renderable(
