@@ -8,8 +8,9 @@ Features:
 - Deferred shading
 - Light casters
   - Directional light
-  - 64 point lights
-  - 64 spot lights
+  - 1024 point lights
+  - 1024 spot lights
+- MSAA
 - Model loading
 - Skybox
 - HDR
