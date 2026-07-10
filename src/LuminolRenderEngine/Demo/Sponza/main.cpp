@@ -202,7 +202,7 @@ auto main() -> int {
 
         for (auto& light_data : lights.light_data) {
             const auto rotation_degrees = Units::Degrees_f{
-                90.0f * gsl::narrow_cast<float>(delta_time_seconds)
+                10.0f * gsl::narrow_cast<float>(delta_time_seconds)
             };
 
             auto rotation = Maths::Transform::rotate_y<float, 4>(
