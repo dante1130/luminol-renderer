@@ -50,7 +50,7 @@ cbuffer ClusterCullParams : register(b0, space2) {
 };
 
 float light_cull_radius(float3 color) {
-    const float cutoff = 1.0 / 256.0;
+    const float cutoff = 1.0 / 16.0;
     float intensity = max(color.r, max(color.g, color.b));
     return sqrt(max(intensity, 0.0) / cutoff);
 }

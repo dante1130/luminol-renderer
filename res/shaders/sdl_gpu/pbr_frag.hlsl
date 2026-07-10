@@ -223,6 +223,24 @@ float3 calculate_directional_light(
     return (k_d * albedo / PI + specular) * radiance * n_dot_l;
 }
 
+// Must match the cutoff in cluster_light_count.hlsl / cluster_light_compact.hlsl
+// exactly, so a light's shaded falloff (via distance_window below) reaches
+// zero at the same radius culling uses to exclude it entirely - otherwise
+// lights would pop off abruptly at cluster boundaries instead of fading out.
+float light_cull_radius(float3 color) {
+    const float cutoff = 1.0f / 16.0f;
+    const float intensity = max(color.r, max(color.g, color.b));
+    return sqrt(max(intensity, 0.0f) / cutoff);
+}
+
+// Smoothly attenuates to zero at `radius` (Frostbite/UE4-style windowed
+// falloff), keeping shading consistent with the hard radius used for
+// culling.
+float distance_window(float dist, float radius) {
+    const float ratio = saturate(1.0f - pow(dist / radius, 4.0f));
+    return ratio * ratio;
+}
+
 float3 calculate_point_light(
     PointLight light,
     float3 normal,
@@ -234,7 +252,9 @@ float3 calculate_point_light(
     float roughness
 ) {
     const float distance = length(light.position.xyz - world_position);
-    const float attenuation = 1.0f / (distance * distance);
+    const float radius = light_cull_radius(light.color.rgb);
+    const float attenuation =
+        distance_window(distance, radius) / (distance * distance);
 
     const float3 radiance = light.color.rgb * attenuation;
 
@@ -274,7 +294,9 @@ float3 calculate_spot_light(
     const float intensity = saturate((theta - light.outer_cut_off) / epsilon);
 
     const float distance = length(light.position.xyz - world_position);
-    const float attenuation = 1.0f / (distance * distance);
+    const float radius = light_cull_radius(light.color);
+    const float attenuation =
+        distance_window(distance, radius) / (distance * distance);
 
     const float3 radiance = light.color * attenuation;
 
