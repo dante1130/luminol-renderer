@@ -55,6 +55,29 @@ auto CopyPass::upload_to_buffer(
     );
 }
 
+auto CopyPass::download_from_buffer(
+    const Buffer& source,
+    uint32_t source_offset,
+    const TransferBuffer& destination,
+    uint32_t destination_offset,
+    uint32_t size
+) -> void {
+    Expects(copy_pass != nullptr);
+
+    const auto source_region = SDL_GPUBufferRegion{
+        .buffer = source.native_handle(),
+        .offset = source_offset,
+        .size = size,
+    };
+
+    const auto destination_location = SDL_GPUTransferBufferLocation{
+        .transfer_buffer = destination.native_handle(),
+        .offset = destination_offset,
+    };
+
+    SDL_DownloadFromGPUBuffer(copy_pass, &source_region, &destination_location);
+}
+
 auto CopyPass::upload_to_texture(
     const TransferBuffer& source,
     uint32_t source_offset,

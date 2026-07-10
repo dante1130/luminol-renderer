@@ -15,6 +15,8 @@ class Shader;
 struct ShaderInfo;
 class GraphicsPipeline;
 struct GraphicsPipelineInfo;
+class ComputePipeline;
+struct ComputePipelineInfo;
 class Buffer;
 struct BufferInfo;
 class TransferBuffer;
@@ -34,6 +36,8 @@ public:
     [[nodiscard]] auto create_shader(const ShaderInfo& info) -> Shader;
     [[nodiscard]] auto create_graphics_pipeline(const GraphicsPipelineInfo& info
     ) -> GraphicsPipeline;
+    [[nodiscard]] auto create_compute_pipeline(const ComputePipelineInfo& info
+    ) -> ComputePipeline;
     [[nodiscard]] auto create_buffer(const BufferInfo& info) -> Buffer;
     [[nodiscard]] auto create_transfer_buffer(const TransferBufferInfo& info)
         -> TransferBuffer;
@@ -46,6 +50,10 @@ public:
     [[nodiscard]] auto supports_sample_count(
         TextureFormat format, SampleCount sample_count
     ) const -> bool;
+
+    // Blocks the calling thread until all submitted GPU work has completed.
+    // Intended for readback/debug paths, not per-frame use.
+    auto wait_for_idle() const -> void;
 
 private:
     using SDL_GPUDeviceDeleter = std::function<void(SDL_GPUDevice*)>;

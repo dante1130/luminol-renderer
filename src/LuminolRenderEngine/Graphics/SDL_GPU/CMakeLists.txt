@@ -5,7 +5,9 @@ add_library(Luminol.Graphics.SDL_GPU
     SDL_GPUShader.cpp
     SDL_GPUCommandBuffer.cpp
     SDL_GPURenderPass.cpp
+    SDL_GPUComputePass.cpp
     SDL_GPUGraphicsPipeline.cpp
+    SDL_GPUComputePipeline.cpp
     SDL_GPUBuffer.cpp
     SDL_GPUTransferBuffer.cpp
     SDL_GPUFactory.cpp

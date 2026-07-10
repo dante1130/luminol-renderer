@@ -7,6 +7,8 @@
 #include <SDL3/SDL_gpu.h>
 #include <SDL3/SDL_log.h>
 
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
+
 namespace {
 
 using namespace Luminol::Graphics::SDL_GPU;
@@ -189,9 +191,51 @@ auto CommandBuffer::begin_copy_pass() -> CopyPass {
     return CopyPass{SDL_BeginGPUCopyPass(command_buffer)};
 }
 
+auto CommandBuffer::begin_compute_pass(
+    gsl::span<const StorageBufferReadWriteBinding> storage_buffer_bindings
+) -> ComputePass {
+    Expects(command_buffer != nullptr);
+
+    auto sdl_bindings = std::vector<SDL_GPUStorageBufferReadWriteBinding>(
+        storage_buffer_bindings.size()
+    );
+    for (auto i = size_t{0}; i < storage_buffer_bindings.size(); ++i) {
+        Expects(storage_buffer_bindings[i].buffer != nullptr);
+        sdl_bindings[i] = SDL_GPUStorageBufferReadWriteBinding{
+            .buffer = storage_buffer_bindings[i].buffer->native_handle(),
+            .cycle = storage_buffer_bindings[i].cycle,
+            .padding1 = 0,
+            .padding2 = 0,
+            .padding3 = 0,
+        };
+    }
+
+    auto* compute_pass = SDL_BeginGPUComputePass(
+        command_buffer,
+        nullptr,
+        0,
+        sdl_bindings.data(),
+        static_cast<uint32_t>(sdl_bindings.size())
+    );
+
+    return ComputePass{compute_pass};
+}
+
 auto CommandBuffer::generate_mipmaps(const Texture& texture) -> void {
     Expects(command_buffer != nullptr);
     SDL_GenerateMipmapsForGPUTexture(command_buffer, texture.native_handle());
+}
+
+auto CommandBuffer::push_compute_uniform_data(
+    uint32_t slot, gsl::span<const std::byte> data
+) -> void {
+    Expects(command_buffer != nullptr);
+    SDL_PushGPUComputeUniformData(
+        command_buffer,
+        slot,
+        data.data(),
+        static_cast<uint32_t>(data.size())
+    );
 }
 
 auto CommandBuffer::submit() -> void {

@@ -7,6 +7,8 @@
 
 namespace Luminol::Graphics::SDL_GPU {
 
+// Only valid for ShaderStage::Vertex/Fragment; SDL_GPUShaderStage has no
+// Compute value (compute pipelines are created via a separate SDL API).
 [[nodiscard]] auto to_sdl_shader_stage(ShaderStage stage)
     -> SDL_GPUShaderStage;
 

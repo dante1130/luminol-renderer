@@ -1,5 +1,6 @@
 add_subdirectory(Sponza)
 add_subdirectory(Triangle)
+add_subdirectory(ComputeSmokeTest)
 add_subdirectory(TexturedQuad)
 add_subdirectory(TexturedCube)
 add_subdirectory(TexturedModel)

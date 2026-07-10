@@ -30,6 +30,14 @@ public:
         bool cycle
     ) -> void;
 
+    auto download_from_buffer(
+        const Buffer& source,
+        uint32_t source_offset,
+        const TransferBuffer& destination,
+        uint32_t destination_offset,
+        uint32_t size
+    ) -> void;
+
     auto upload_to_texture(
         const TransferBuffer& source,
         uint32_t source_offset,

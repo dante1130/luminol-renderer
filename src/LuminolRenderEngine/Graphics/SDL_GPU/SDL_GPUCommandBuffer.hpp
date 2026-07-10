@@ -7,6 +7,7 @@
 #include <gsl/gsl>
 #include <LuminolMaths/Vector.hpp>
 
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUComputePass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCopyPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
@@ -17,10 +18,19 @@ struct SDL_Window;
 
 namespace Luminol::Graphics::SDL_GPU {
 
+class Buffer;
+
 struct SwapchainTexture {
     TextureView texture;
     uint32_t width;
     uint32_t height;
+};
+
+struct StorageBufferReadWriteBinding {
+    // Required; asserted non-null in begin_compute_pass. Pointer (not
+    // reference) so callers can use designated-initializer syntax.
+    const Buffer* buffer = nullptr;
+    bool cycle = false;
 };
 
 struct ColorTargetInfo {
@@ -75,6 +85,13 @@ public:
 
     [[nodiscard]] auto begin_copy_pass() -> CopyPass;
 
+    // storage_buffer_bindings buffers must have been created with
+    // BufferUsage::ComputeStorageReadWrite; asserted non-null in
+    // begin_compute_pass.
+    [[nodiscard]] auto begin_compute_pass(
+        gsl::span<const StorageBufferReadWriteBinding> storage_buffer_bindings
+    ) -> ComputePass;
+
     // Must not be called while any render/copy pass on this command buffer
     // is open. texture must have been created with more than 1 mip level.
     auto generate_mipmaps(const Texture& texture) -> void;
@@ -84,6 +101,10 @@ public:
     ) -> void;
 
     auto push_fragment_uniform_data(
+        uint32_t slot, gsl::span<const std::byte> data
+    ) -> void;
+
+    auto push_compute_uniform_data(
         uint32_t slot, gsl::span<const std::byte> data
     ) -> void;
 

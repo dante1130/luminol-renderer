@@ -117,6 +117,7 @@ struct VertexBufferDescription {
 enum class ShaderStage : uint8_t {
     Vertex,
     Fragment,
+    Compute,
 };
 
 enum class ShaderSourceLanguage : uint8_t {
@@ -128,6 +129,8 @@ enum class BufferUsage : uint8_t {
     Vertex,
     Index,
     StorageRead,
+    ComputeStorageRead,
+    ComputeStorageReadWrite,
 };
 
 enum class TransferBufferUsage : uint8_t {

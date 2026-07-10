@@ -10,6 +10,8 @@ auto to_sdl_shader_stage(ShaderStage stage) -> SDL_GPUShaderStage {
             return SDL_GPU_SHADERSTAGE_VERTEX;
         case ShaderStage::Fragment:
             return SDL_GPU_SHADERSTAGE_FRAGMENT;
+        case ShaderStage::Compute:
+            break;
     }
     throw std::runtime_error{"Invalid shader stage"};
 }
@@ -21,6 +23,8 @@ auto to_shadercross_stage(ShaderStage stage)
             return SDL_SHADERCROSS_SHADERSTAGE_VERTEX;
         case ShaderStage::Fragment:
             return SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT;
+        case ShaderStage::Compute:
+            return SDL_SHADERCROSS_SHADERSTAGE_COMPUTE;
     }
     throw std::runtime_error{"Invalid shader stage"};
 }
@@ -169,6 +173,10 @@ auto to_sdl_buffer_usage(BufferUsage usage)
             return SDL_GPU_BUFFERUSAGE_INDEX;
         case BufferUsage::StorageRead:
             return SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ;
+        case BufferUsage::ComputeStorageRead:
+            return SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_READ;
+        case BufferUsage::ComputeStorageReadWrite:
+            return SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_WRITE;
     }
     throw std::runtime_error{"Invalid buffer usage"};
 }

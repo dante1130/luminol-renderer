@@ -14,6 +14,7 @@
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUComputePipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
@@ -352,6 +353,125 @@ auto GPUDevice::create_graphics_pipeline(const GraphicsPipelineInfo& info)
     )};
 }
 
+auto GPUDevice::create_compute_pipeline(const ComputePipelineInfo& info)
+    -> ComputePipeline {
+    auto pipeline_deleter =
+        [device = shared_from_this()](SDL_GPUComputePipeline* pipeline) {
+            SDL_ReleaseGPUComputePipeline(device->native_handle(), pipeline);
+        };
+
+    if (info.source_language == ShaderSourceLanguage::Hlsl) {
+        auto shader_file = std::ifstream{info.path, std::ios::in};
+        auto hlsl_source = std::string{
+            std::istreambuf_iterator<char>{shader_file},
+            std::istreambuf_iterator<char>{}
+        };
+
+        const auto hlsl_info = SDL_ShaderCross_HLSL_Info{
+            .source = hlsl_source.c_str(),
+            .entrypoint = info.entrypoint.c_str(),
+            .include_dir = nullptr,
+            .defines = nullptr,
+            .shader_stage = SDL_SHADERCROSS_SHADERSTAGE_COMPUTE,
+            .props = 0,
+        };
+
+        size_t spirv_size = 0;
+        auto* spirv_bytes = static_cast<uint8_t*>(
+            SDL_ShaderCross_CompileSPIRVFromHLSL(&hlsl_info, &spirv_size)
+        );
+        if (spirv_bytes == nullptr) {
+            SDL_LogError(
+                SDL_LOG_CATEGORY_ERROR,
+                "Failed to compile HLSL to SPIRV (%s): %s",
+                info.path.string().c_str(),
+                SDL_GetError()
+            );
+            Ensures(false);
+        }
+
+        const auto spirv_info = SDL_ShaderCross_SPIRV_Info{
+            .bytecode = spirv_bytes,
+            .bytecode_size = spirv_size,
+            .entrypoint = info.entrypoint.c_str(),
+            .shader_stage = SDL_SHADERCROSS_SHADERSTAGE_COMPUTE,
+            .props = 0,
+        };
+
+        const auto metadata = SDL_ShaderCross_ComputePipelineMetadata{
+            .num_samplers = info.sampler_count,
+            .num_readonly_storage_textures =
+                info.readonly_storage_texture_count,
+            .num_readonly_storage_buffers = info.readonly_storage_buffer_count,
+            .num_readwrite_storage_textures =
+                info.readwrite_storage_texture_count,
+            .num_readwrite_storage_buffers =
+                info.readwrite_storage_buffer_count,
+            .num_uniform_buffers = info.uniform_buffer_count,
+            .threadcount_x = info.threadcount_x,
+            .threadcount_y = info.threadcount_y,
+            .threadcount_z = info.threadcount_z,
+        };
+
+        auto* sdl_pipeline = SDL_ShaderCross_CompileComputePipelineFromSPIRV(
+            this->device.get(), &spirv_info, &metadata, 0
+        );
+
+        SDL_free(spirv_bytes);
+
+        if (sdl_pipeline == nullptr) {
+            SDL_LogError(
+                SDL_LOG_CATEGORY_ERROR,
+                "Failed to compile compute pipeline from SPIRV (%s): %s",
+                info.path.string().c_str(),
+                SDL_GetError()
+            );
+            Ensures(false);
+        }
+
+        return ComputePipeline{std::unique_ptr<
+            SDL_GPUComputePipeline,
+            ComputePipeline::SDL_GPUComputePipelineDeleter>(
+            sdl_pipeline, pipeline_deleter
+        )};
+    }
+
+    auto shader_file = std::ifstream{
+        info.path, std::ios::in | std::ios::binary | std::ios::ate
+    };
+
+    const auto code_size = shader_file.tellg();
+    shader_file.seekg(0, std::ios::beg);
+
+    auto code_vector = std::vector<uint8_t>{};
+    code_vector.resize(code_size);
+    shader_file.read(reinterpret_cast<char*>(code_vector.data()), code_size);
+
+    const auto create_info = SDL_GPUComputePipelineCreateInfo{
+        .code_size = static_cast<size_t>(code_size),
+        .code = code_vector.data(),
+        .entrypoint = info.entrypoint.c_str(),
+        .format = SDL_GPU_SHADERFORMAT_SPIRV,
+        .num_samplers = info.sampler_count,
+        .num_readonly_storage_textures = info.readonly_storage_texture_count,
+        .num_readonly_storage_buffers = info.readonly_storage_buffer_count,
+        .num_readwrite_storage_textures = info.readwrite_storage_texture_count,
+        .num_readwrite_storage_buffers = info.readwrite_storage_buffer_count,
+        .num_uniform_buffers = info.uniform_buffer_count,
+        .threadcount_x = info.threadcount_x,
+        .threadcount_y = info.threadcount_y,
+        .threadcount_z = info.threadcount_z,
+        .props = 0,
+    };
+
+    return ComputePipeline{std::unique_ptr<
+        SDL_GPUComputePipeline,
+        ComputePipeline::SDL_GPUComputePipelineDeleter>(
+        SDL_CreateGPUComputePipeline(this->device.get(), &create_info),
+        pipeline_deleter
+    )};
+}
+
 auto GPUDevice::create_buffer(const BufferInfo& info) -> Buffer {
     const auto create_info = SDL_GPUBufferCreateInfo{
         .usage = to_sdl_buffer_usage(info.usage),
@@ -536,6 +656,16 @@ auto GPUDevice::supports_sample_count(
         to_sdl_texture_format(format),
         to_sdl_sample_count(sample_count)
     );
+}
+
+auto GPUDevice::wait_for_idle() const -> void {
+    if (!SDL_WaitForGPUIdle(this->device.get())) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_ERROR,
+            "Failed to wait for GPU idle: %s",
+            SDL_GetError()
+        );
+    }
 }
 
 }  // namespace Luminol::Graphics::SDL_GPU
