@@ -5,12 +5,13 @@ A simple renderer using SDL_GPU. This project is still a WIP.
 Features:
 
 - Physically based rendering
-- Deferred shading
+- Clustered Forward+ shading
 - Light casters
   - Directional light
   - 1024 point lights
   - 1024 spot lights
 - MSAA
+- SSAO
 - Model loading
 - Skybox
 - HDR
