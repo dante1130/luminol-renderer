@@ -1,5 +1,8 @@
 #pragma once
 
+#include <unordered_map>
+#include <vector>
+
 #include <gsl/gsl>
 #include <LuminolMaths/Matrix.hpp>
 #include <LuminolMaths/Vector.hpp>
@@ -34,12 +37,16 @@ public:
 
     // light_data must already have shadow slots assigned (i.e.
     // LightManager::update_shadow_casters was called before
-    // LightManager::get_light_data() this frame).
+    // LightManager::get_light_data() this frame). queued_draws provides the
+    // per-instance transforms used to compute world-space bounding spheres
+    // for per-light-face draw-call culling.
     auto draw(
         const SDL_GPUFactory& graphics_factory,
         CommandBuffer& command_buffer,
         const SDL_GPUInstanceBufferCache& instance_buffer_cache,
         gsl::span<const InstanceBatch> instance_batches,
+        const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
+            queued_draws,
         const Light& light_data,
         Utilities::PerformanceLogger& performance_logger
     ) -> void;

@@ -5,11 +5,14 @@
 #include <cmath>
 #include <cstring>
 #include <numbers>
+#include <unordered_map>
 #include <vector>
 
 #include <LuminolMaths/Transform.hpp>
 #include <LuminolMaths/Units/Angle.hpp>
 
+#include <LuminolRenderEngine/Graphics/BoundingBox.hpp>
+#include <LuminolRenderEngine/Graphics/Frustum.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCopyPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
@@ -19,6 +22,7 @@
 
 namespace {
 
+using namespace Luminol::Graphics;
 using namespace Luminol::Graphics::SDL_GPU;
 using namespace Luminol::Maths;
 
@@ -248,6 +252,103 @@ auto make_shadow_pipeline(
     });
 }
 
+// Transforms a local-space point by a row-major matrix under row-vector
+// convention (p * M, see pbr_vert.hlsl's mul(pos, vp)).
+auto transform_point(const Matrix4x4f& matrix, const Vector3f& point)
+    -> Vector3f {
+    return Vector3f{
+        (point.x() * matrix[0][0]) + (point.y() * matrix[1][0]) +
+            (point.z() * matrix[2][0]) + matrix[3][0],
+        (point.x() * matrix[0][1]) + (point.y() * matrix[1][1]) +
+            (point.z() * matrix[2][1]) + matrix[3][1],
+        (point.x() * matrix[0][2]) + (point.y() * matrix[1][2]) +
+            (point.z() * matrix[2][2]) + matrix[3][2],
+    };
+}
+
+// One world-space AABB per mesh (submesh) within a batch, covering the union
+// of all of that batch's current-frame instances. Computed once per frame
+// and reused across every light-face pass, since it doesn't depend on the
+// light.
+using BatchMeshBounds = std::vector<std::vector<Luminol::Graphics::BoundingBox>>;
+
+auto compute_batch_mesh_world_bounds(
+    const SDL_GPUFactory& graphics_factory,
+    gsl::span<const InstanceBatch> instance_batches,
+    const std::unordered_map<RenderableId, std::vector<Matrix4x4f>>&
+        queued_draws
+) -> BatchMeshBounds {
+    auto result = BatchMeshBounds{};
+    result.reserve(instance_batches.size());
+
+    for (const auto& batch : instance_batches) {
+        const auto meshes = graphics_factory.get_meshes(batch.renderable_id);
+        auto mesh_bounds = std::vector<Luminol::Graphics::BoundingBox>{};
+        mesh_bounds.reserve(meshes.size());
+
+        const auto transforms_it = queued_draws.find(batch.renderable_id);
+        const auto has_transforms = transforms_it != queued_draws.end() &&
+            !transforms_it->second.empty();
+
+        for (const auto& mesh : meshes) {
+            const auto& local_bounds = mesh.get_local_bounds();
+
+            if (!has_transforms) {
+                mesh_bounds.push_back(local_bounds);
+                continue;
+            }
+
+            const auto local_corners = std::array{
+                Vector3f{local_bounds.min.x(), local_bounds.min.y(), local_bounds.min.z()},
+                Vector3f{local_bounds.max.x(), local_bounds.min.y(), local_bounds.min.z()},
+                Vector3f{local_bounds.min.x(), local_bounds.max.y(), local_bounds.min.z()},
+                Vector3f{local_bounds.max.x(), local_bounds.max.y(), local_bounds.min.z()},
+                Vector3f{local_bounds.min.x(), local_bounds.min.y(), local_bounds.max.z()},
+                Vector3f{local_bounds.max.x(), local_bounds.min.y(), local_bounds.max.z()},
+                Vector3f{local_bounds.min.x(), local_bounds.max.y(), local_bounds.max.z()},
+                Vector3f{local_bounds.max.x(), local_bounds.max.y(), local_bounds.max.z()},
+            };
+
+            auto world_min = Vector3f{0.0F, 0.0F, 0.0F};
+            auto world_max = Vector3f{0.0F, 0.0F, 0.0F};
+            auto bounds_initialized = false;
+
+            for (const auto& transform : transforms_it->second) {
+                for (const auto& corner : local_corners) {
+                    const auto world_corner = transform_point(transform, corner);
+
+                    if (!bounds_initialized) {
+                        world_min = world_corner;
+                        world_max = world_corner;
+                        bounds_initialized = true;
+                        continue;
+                    }
+
+                    world_min = Vector3f{
+                        std::min(world_min.x(), world_corner.x()),
+                        std::min(world_min.y(), world_corner.y()),
+                        std::min(world_min.z(), world_corner.z()),
+                    };
+                    world_max = Vector3f{
+                        std::max(world_max.x(), world_corner.x()),
+                        std::max(world_max.y(), world_corner.y()),
+                        std::max(world_max.z(), world_corner.z()),
+                    };
+                }
+            }
+
+            mesh_bounds.push_back(Luminol::Graphics::BoundingBox{
+                .min = world_min,
+                .max = world_max,
+            });
+        }
+
+        result.push_back(std::move(mesh_bounds));
+    }
+
+    return result;
+}
+
 struct SelectedPointLight {
     uint32_t slot;
     Vector3f position;
@@ -350,10 +451,16 @@ auto SDL_GPUPointSpotShadowPass::draw(
     CommandBuffer& command_buffer,
     const SDL_GPUInstanceBufferCache& instance_buffer_cache,
     gsl::span<const InstanceBatch> instance_batches,
+    const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
+        queued_draws,
     const Light& light_data,
     Utilities::PerformanceLogger& performance_logger
 ) -> void {
     const auto pass_timer = Utilities::Timer{};
+
+    const auto batch_mesh_world_bounds = compute_batch_mesh_world_bounds(
+        graphics_factory, instance_batches, queued_draws
+    );
 
     const auto selected_point_lights = collect_selected_point_lights(light_data);
     const auto selected_spot_lights = collect_selected_spot_lights(light_data);
@@ -388,21 +495,65 @@ auto SDL_GPUPointSpotShadowPass::draw(
     const auto spot_shadow_texture_view =
         TextureView{spot_shadow_texture.native_handle()};
 
-    const auto draw_instance_batches = [&](RenderPass& render_pass) {
-        for (const auto& batch : instance_batches) {
-            const auto& instance_buffer =
-                instance_buffer_cache.get(batch.renderable_id);
-            const auto storage_buffer_bindings = std::array{&instance_buffer};
-            render_pass.bind_vertex_storage_buffers(0, storage_buffer_bindings);
+    // Binds the pipeline and pushes the view-projection uniform lazily, on
+    // the first mesh that actually survives culling - so a light-face that
+    // sees nothing at all skips that fixed per-pass cost entirely, not just
+    // the individual draw calls.
+    const auto draw_instance_batches =
+        [&](RenderPass& render_pass, const Matrix4x4f& view_projection) {
+            const auto frustum_planes = extract_frustum_planes(view_projection);
 
-            for (const auto& mesh :
-                 graphics_factory.get_meshes(batch.renderable_id)) {
-                mesh.draw_instanced_geometry_only(
-                    static_cast<int32_t>(batch.instance_count), render_pass
-                );
+            auto pipeline_bound = false;
+
+            for (auto batch_index = std::size_t{0};
+                 batch_index < instance_batches.size(); ++batch_index) {
+                const auto& batch = instance_batches[batch_index];
+                const auto meshes =
+                    graphics_factory.get_meshes(batch.renderable_id);
+                const auto& mesh_bounds = batch_mesh_world_bounds[batch_index];
+
+                auto bound_storage_buffer = false;
+
+                for (auto mesh_index = std::size_t{0};
+                     mesh_index < meshes.size(); ++mesh_index) {
+                    const auto& bounds = mesh_bounds[mesh_index];
+                    if (!aabb_in_frustum(
+                            frustum_planes, bounds.min, bounds.max
+                        )) {
+                        continue;
+                    }
+
+                    if (!pipeline_bound) {
+                        render_pass.bind_graphics_pipeline(shadow_pipeline);
+                        command_buffer.push_vertex_uniform_data(
+                            0,
+                            gsl::span{
+                                reinterpret_cast<const std::byte*>(
+                                    &view_projection
+                                ),
+                                sizeof(view_projection)
+                            }
+                        );
+                        pipeline_bound = true;
+                    }
+
+                    if (!bound_storage_buffer) {
+                        const auto& instance_buffer =
+                            instance_buffer_cache.get(batch.renderable_id);
+                        const auto storage_buffer_bindings =
+                            std::array{&instance_buffer};
+                        render_pass.bind_vertex_storage_buffers(
+                            0, storage_buffer_bindings
+                        );
+                        bound_storage_buffer = true;
+                    }
+
+                    meshes[mesh_index].draw_instanced_geometry_only(
+                        static_cast<int32_t>(batch.instance_count), render_pass
+                    );
+                }
             }
-        }
-    };
+        };
 
     auto point_texture_cycled = false;
     for (const auto& point_light : selected_point_lights) {
@@ -427,17 +578,8 @@ auto SDL_GPUPointSpotShadowPass::draw(
 
             auto render_pass =
                 command_buffer.begin_render_pass({}, &depth_stencil_target);
-            render_pass.bind_graphics_pipeline(shadow_pipeline);
 
-            command_buffer.push_vertex_uniform_data(
-                0,
-                gsl::span{
-                    reinterpret_cast<const std::byte*>(&view_projection),
-                    sizeof(view_projection)
-                }
-            );
-
-            draw_instance_batches(render_pass);
+            draw_instance_batches(render_pass, view_projection);
         }
     }
 
@@ -459,19 +601,8 @@ auto SDL_GPUPointSpotShadowPass::draw(
 
         auto render_pass =
             command_buffer.begin_render_pass({}, &depth_stencil_target);
-        render_pass.bind_graphics_pipeline(shadow_pipeline);
 
-        command_buffer.push_vertex_uniform_data(
-            0,
-            gsl::span{
-                reinterpret_cast<const std::byte*>(
-                    &spot_shadow_matrices[spot_light.slot]
-                ),
-                sizeof(Maths::Matrix4x4f)
-            }
-        );
-
-        draw_instance_batches(render_pass);
+        draw_instance_batches(render_pass, spot_shadow_matrices[spot_light.slot]);
     }
 
     performance_logger.record(

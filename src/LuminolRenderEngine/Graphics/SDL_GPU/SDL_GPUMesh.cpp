@@ -1,5 +1,6 @@
 #include "SDL_GPUMesh.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstring>
 #include <stdexcept>
@@ -17,6 +18,47 @@
 namespace {
 
 using namespace Luminol::Graphics::SDL_GPU;
+
+constexpr auto vertex_stride_in_floats = 11U;
+
+// Axis-aligned bounding box over vertex positions (first 3 of the 11-float
+// vertex stride: position, uv, normal, tangent), used for CPU-side frustum
+// culling. Tighter than a bounding sphere for large flat/elongated meshes
+// (e.g. building floors/walls), where a sphere's radius would be close to
+// the shape's full diagonal.
+auto compute_local_bounds(gsl::span<const float> vertices)
+    -> Luminol::Graphics::BoundingBox {
+    const auto vertex_count = vertices.size() / vertex_stride_in_floats;
+    if (vertex_count == 0) {
+        return Luminol::Graphics::BoundingBox{};
+    }
+
+    const auto first_position = Luminol::Maths::Vector3f{
+        vertices[0], vertices[1], vertices[2]
+    };
+    auto min = first_position;
+    auto max = first_position;
+
+    for (auto i = size_t{1}; i < vertex_count; ++i) {
+        const auto offset = i * vertex_stride_in_floats;
+        const auto position = Luminol::Maths::Vector3f{
+            vertices[offset], vertices[offset + 1], vertices[offset + 2]
+        };
+
+        min = Luminol::Maths::Vector3f{
+            std::min(min.x(), position.x()),
+            std::min(min.y(), position.y()),
+            std::min(min.z(), position.z()),
+        };
+        max = Luminol::Maths::Vector3f{
+            std::max(max.x(), position.x()),
+            std::max(max.y(), position.y()),
+            std::max(max.z(), position.z()),
+        };
+    }
+
+    return Luminol::Graphics::BoundingBox{.min = min, .max = max};
+}
 
 auto load_first_texture_or_nothing(
     const std::vector<std::filesystem::path>& texture_paths,
@@ -250,6 +292,7 @@ SDL_GPUMesh::SDL_GPUMesh(
           BufferUsage::Index
       )},
       index_count{static_cast<uint32_t>(indices.size())},
+      local_bounds{compute_local_bounds(vertices)},
       diffuse_texture{create_texture_from_path(
           device,
           copy_pass,
@@ -343,6 +386,7 @@ SDL_GPUMesh::SDL_GPUMesh(
           BufferUsage::Index
       )},
       index_count{static_cast<uint32_t>(indices.size())},
+      local_bounds{compute_local_bounds(vertices)},
       diffuse_texture{create_texture_from_image(
           device,
           copy_pass,
@@ -395,6 +439,10 @@ SDL_GPUMesh::SDL_GPUMesh(
           device, texture_images.ambient_occlusion_texture_wrap
       )},
       mesh_alpha_mode{texture_images.alpha_mode} {}
+
+auto SDL_GPUMesh::get_local_bounds() const -> const Luminol::Graphics::BoundingBox& {
+    return local_bounds;
+}
 
 auto SDL_GPUMesh::draw(RenderPass& sdl_gpu_pass) const -> void {
     draw_instanced(1, sdl_gpu_pass);

@@ -6,6 +6,7 @@
 
 #include <gsl/gsl>
 
+#include <LuminolRenderEngine/Graphics/BoundingBox.hpp>
 #include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
@@ -66,6 +67,11 @@ public:
 
     [[nodiscard]] auto alpha_mode() const -> Utilities::ModelLoader::AlphaMode;
 
+    // Local-space bounding box derived from vertex positions at construction
+    // time, used for CPU-side frustum culling (e.g. per-light shadow pass
+    // draw skipping).
+    [[nodiscard]] auto get_local_bounds() const -> const BoundingBox&;
+
     // Generates mip chains for the material textures. Must be called outside
     // any render/copy pass on command_buffer.
     auto generate_mipmaps(CommandBuffer& command_buffer) const -> void;
@@ -74,6 +80,7 @@ private:
     Buffer vertex_buffer;
     Buffer index_buffer;
     uint32_t index_count;
+    BoundingBox local_bounds;
 
     Texture diffuse_texture;
     Texture normal_texture;

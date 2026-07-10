@@ -7,6 +7,8 @@
 
 #include <gsl/gsl>
 
+#include <LuminolRenderEngine/Graphics/Frustum.hpp>
+
 namespace {
 
 using namespace Luminol::Graphics;
@@ -33,62 +35,8 @@ auto light_cull_radius(const Vector3f& color) -> float {
     return std::sqrt(std::max(intensity, 0.0f) / cutoff);
 }
 
-// Gribb/Hartmann frustum plane extraction for a row-major view-projection
-// matrix used with row-vector multiplication (mul(pos, vp), see
-// pbr_vert.hlsl), so each plane's coefficients come from a column of the
-// matrix rather than a row.
-auto extract_frustum_planes(const Matrix4x4f& view_projection)
-    -> std::array<Vector4f, 6> {
-    const auto column = [&view_projection](int index) {
-        return Vector4f{
-            view_projection[0][index],
-            view_projection[1][index],
-            view_projection[2][index],
-            view_projection[3][index],
-        };
-    };
-
-    const auto col0 = column(0);
-    const auto col1 = column(1);
-    const auto col2 = column(2);
-    const auto col3 = column(3);
-
-    return std::array<Vector4f, 6>{
-        col3 + col0,  // left
-        col3 - col0,  // right
-        col3 + col1,  // bottom
-        col3 - col1,  // top
-        col2,         // near
-        col3 - col2,  // far
-    };
-}
-
-auto sphere_in_frustum(
-    const std::array<Vector4f, 6>& planes,
-    const Vector3f& center,
-    float radius
-) -> bool {
-    for (const auto& plane : planes) {
-        const auto normal_length = std::sqrt(
-            (plane.x() * plane.x()) + (plane.y() * plane.y()) +
-            (plane.z() * plane.z())
-        );
-        if (normal_length < 1e-6f) {
-            continue;
-        }
-
-        const auto distance =
-            ((plane.x() * center.x()) + (plane.y() * center.y()) +
-             (plane.z() * center.z()) + plane.w()) /
-            normal_length;
-
-        if (distance < -radius) {
-            return false;
-        }
-    }
-
-    return true;
-}
+using Luminol::Graphics::extract_frustum_planes;
+using Luminol::Graphics::sphere_in_frustum;
 
 struct ShadowCandidate {
     LightManager::LightId id;

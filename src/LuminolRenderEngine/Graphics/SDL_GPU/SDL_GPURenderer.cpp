@@ -397,6 +397,7 @@ auto SDL_GPURenderer::draw() -> void {
         command_buffer,
         mesh_render_pass.get_instance_buffer_cache(),
         instance_batches,
+        queued_draws,
         light_manager_data,
         performance_logger
     );
