@@ -43,6 +43,22 @@ auto PerformanceLogger::end_frame() -> void {
 auto PerformanceLogger::log_and_reset() -> void {
     auto message = std::string{"[Perf]"};
 
+    // Every sample here (other than "frame" and "acquire_swapchain") times a
+    // plain CPU std::chrono span around SDL_GPU command-recording calls, not
+    // GPU execution: SDL_GPU submission is asynchronous, so these measure how
+    // long the CPU took to encode commands, which is not the same as how
+    // long the GPU took to run them. SDL_GPU has no timestamp/query API, so
+    // there is currently no way to measure true per-pass GPU duration.
+    //
+    // "acquire_swapchain" (SDL_WaitAndAcquireGPUSwapchainTexture) is the one
+    // place actual GPU cost differences are likely to surface: it blocks the
+    // CPU until a swapchain image is free, which includes both
+    // presentation/VSync pacing and the GPU catching up on backlogged work
+    // from prior frames. Do not exclude it when comparing GPU-bound changes
+    // between builds - excluding it (as an earlier version of this function
+    // did) hides exactly the signal you'd be looking for.
+    auto cpu_record_total_milliseconds = 0.0;
+
     for (const auto& sample : samples) {
         const auto average_seconds =
             sample.total_time / static_cast<double>(sample.count);
@@ -51,7 +67,14 @@ auto PerformanceLogger::log_and_reset() -> void {
 
         message += " " + sample.name + ": " +
                    std::to_string(average_milliseconds) + "ms |";
+
+        if (sample.name != "acquire_swapchain" && sample.name != "frame") {
+            cpu_record_total_milliseconds += average_milliseconds;
+        }
     }
+
+    message += " cpu_record_total: " +
+        std::to_string(cpu_record_total_milliseconds) + "ms |";
 
     SDL_Log("%s", message.c_str());
 

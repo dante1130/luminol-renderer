@@ -81,12 +81,7 @@ auto main() -> int {
         directional_light
     );
 
-    // Stress-tests Clustered Forward+ light culling (max_point_lights is
-    // 1024 - see Graphics/Light.hpp) so cluster_build/cluster_cull/main_pass
-    // timings (logged periodically via PerformanceLogger -> SDL_Log) reflect
-    // a scene with meaningfully more lights than the old 64-light brute-force
-    // cap ever supported.
-    constexpr auto lights_count = 500u;
+    constexpr auto lights_count = 256u;
 
     auto lights = Lights{
         .renderable_id = luminol_engine.get_renderer().create_renderable(
@@ -101,9 +96,9 @@ auto main() -> int {
 
     for (auto i = 0u; i < lights_count; ++i) {
         const auto position = Maths::Vector3f{
-            std::uniform_real_distribution<float>(-5.0f, 5.0f)(random),
-            std::uniform_real_distribution<float>(-5.0f, 5.0f)(random) + 5.0f,
-            std::uniform_real_distribution<float>(-5.0f, 5.0f)(random)
+            std::uniform_real_distribution<float>(-10.0f, 10.0f)(random),
+            std::uniform_real_distribution<float>(-10.0f, 10.0f)(random) + 5.0f,
+            std::uniform_real_distribution<float>(-10.0f, 10.0f)(random)
         };
 
         const auto color = Maths::Vector3f{
