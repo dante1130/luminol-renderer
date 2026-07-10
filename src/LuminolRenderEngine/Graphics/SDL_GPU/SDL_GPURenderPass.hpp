@@ -25,6 +25,18 @@ public:
 
     auto bind_graphics_pipeline(const GraphicsPipeline& pipeline) -> void;
 
+    auto set_viewport(
+        float x,
+        float y,
+        float width,
+        float height,
+        float min_depth = 0.0F,
+        float max_depth = 1.0F
+    ) -> void;
+
+    auto set_scissor(int32_t x, int32_t y, int32_t width, int32_t height)
+        -> void;
+
     auto bind_vertex_buffers(
         uint32_t first_slot, gsl::span<const VertexBufferBinding> bindings
     ) -> void;

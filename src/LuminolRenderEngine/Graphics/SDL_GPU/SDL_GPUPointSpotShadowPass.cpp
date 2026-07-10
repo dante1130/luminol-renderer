@@ -72,6 +72,53 @@ constexpr auto point_shadow_near_plane = 0.05F;
 constexpr auto spot_shadow_near_plane = 0.05F;
 constexpr auto cube_faces_per_light = 6U;
 
+// Atlas grid layout: every point-light cube face / spot light gets a fixed
+// tile in one shared 2D texture, addressed by (slot, face) rather than an
+// array layer. Grid dims are hardcoded to exactly fit the shadow-caster caps
+// (see static_asserts below) - must match the equivalent constants in
+// pbr_frag.hlsl.
+constexpr auto point_atlas_cols = 8U;
+constexpr auto point_atlas_rows = 12U;
+constexpr auto spot_atlas_cols = 8U;
+constexpr auto spot_atlas_rows = 4U;
+
+static_assert(
+    point_atlas_cols * point_atlas_rows >=
+    Luminol::Graphics::max_shadow_casting_point_lights * cube_faces_per_light
+);
+static_assert(
+    spot_atlas_cols * spot_atlas_rows >=
+    Luminol::Graphics::max_shadow_casting_spot_lights
+);
+
+constexpr auto point_atlas_width = point_atlas_cols * point_shadow_resolution;
+constexpr auto point_atlas_height = point_atlas_rows * point_shadow_resolution;
+constexpr auto spot_atlas_width = spot_atlas_cols * spot_shadow_resolution;
+constexpr auto spot_atlas_height = spot_atlas_rows * spot_shadow_resolution;
+
+struct AtlasTileRect {
+    uint32_t x;
+    uint32_t y;
+    uint32_t size;
+};
+
+auto point_atlas_tile_rect(uint32_t slot, uint32_t face) -> AtlasTileRect {
+    const auto tile_index = (slot * cube_faces_per_light) + face;
+    return AtlasTileRect{
+        .x = (tile_index % point_atlas_cols) * point_shadow_resolution,
+        .y = (tile_index / point_atlas_cols) * point_shadow_resolution,
+        .size = point_shadow_resolution,
+    };
+}
+
+auto spot_atlas_tile_rect(uint32_t slot) -> AtlasTileRect {
+    return AtlasTileRect{
+        .x = (slot % spot_atlas_cols) * spot_shadow_resolution,
+        .y = (slot / spot_atlas_cols) * spot_shadow_resolution,
+        .size = spot_shadow_resolution,
+    };
+}
+
 constexpr auto spot_shadow_matrix_buffer_size =
     Luminol::Graphics::max_shadow_casting_spot_lights *
     static_cast<uint32_t>(sizeof(Matrix4x4f));
@@ -187,23 +234,21 @@ auto spot_light_view_projection(
 
 auto make_point_shadow_texture(GPUDevice& device) -> Texture {
     return device.create_texture(TextureInfo{
-        .width = point_shadow_resolution,
-        .height = point_shadow_resolution,
+        .width = point_atlas_width,
+        .height = point_atlas_height,
         .format = shadow_map_format,
         .usage = TextureUsage::DepthStencilTarget | TextureUsage::Sampler,
-        .type = TextureType::TextureCubeArray,
-        .layer_count = Luminol::Graphics::max_shadow_casting_point_lights,
+        .type = TextureType::Texture2D,
     });
 }
 
 auto make_spot_shadow_texture(GPUDevice& device) -> Texture {
     return device.create_texture(TextureInfo{
-        .width = spot_shadow_resolution,
-        .height = spot_shadow_resolution,
+        .width = spot_atlas_width,
+        .height = spot_atlas_height,
         .format = shadow_map_format,
         .usage = TextureUsage::DepthStencilTarget | TextureUsage::Sampler,
-        .type = TextureType::Texture2DArray,
-        .layer_count = Luminol::Graphics::max_shadow_casting_spot_lights,
+        .type = TextureType::Texture2D,
     });
 }
 
@@ -495,15 +540,15 @@ auto SDL_GPUPointSpotShadowPass::draw(
     const auto spot_shadow_texture_view =
         TextureView{spot_shadow_texture.native_handle()};
 
-    // Binds the pipeline and pushes the view-projection uniform lazily, on
-    // the first mesh that actually survives culling - so a light-face that
-    // sees nothing at all skips that fixed per-pass cost entirely, not just
-    // the individual draw calls.
-    const auto draw_instance_batches =
+    // Culls and draws into whichever tile the caller has already pointed the
+    // viewport/scissor at, pushing the view-projection uniform lazily (only
+    // once something actually survives culling for this tile). The pipeline
+    // itself is bound once per atlas by the caller, not per tile.
+    const auto draw_instance_batches_in_tile =
         [&](RenderPass& render_pass, const Matrix4x4f& view_projection) {
             const auto frustum_planes = extract_frustum_planes(view_projection);
 
-            auto pipeline_bound = false;
+            auto uniform_pushed = false;
 
             for (auto batch_index = std::size_t{0};
                  batch_index < instance_batches.size(); ++batch_index) {
@@ -523,8 +568,7 @@ auto SDL_GPUPointSpotShadowPass::draw(
                         continue;
                     }
 
-                    if (!pipeline_bound) {
-                        render_pass.bind_graphics_pipeline(shadow_pipeline);
+                    if (!uniform_pushed) {
                         command_buffer.push_vertex_uniform_data(
                             0,
                             gsl::span{
@@ -534,7 +578,7 @@ auto SDL_GPUPointSpotShadowPass::draw(
                                 sizeof(view_projection)
                             }
                         );
-                        pipeline_bound = true;
+                        uniform_pushed = true;
                     }
 
                     if (!bound_storage_buffer) {
@@ -555,54 +599,76 @@ auto SDL_GPUPointSpotShadowPass::draw(
             }
         };
 
-    auto point_texture_cycled = false;
-    for (const auto& point_light : selected_point_lights) {
-        if (point_light.slot >= max_shadow_casting_point_lights) {
-            continue;
-        }
+    {
+        const auto depth_stencil_target = DepthStencilTargetInfo{
+            .texture = &point_shadow_texture_view,
+            .clear_depth = 1.0F,
+            .load_op = LoadOp::Clear,
+            .store_op = StoreOp::Store,
+            .cycle = true,
+        };
 
-        for (auto face = uint32_t{0}; face < cube_faces_per_light; ++face) {
-            const auto view_projection = point_light_face_view_projection(
-                point_light.position, point_light.far_plane, face
-            );
+        auto render_pass =
+            command_buffer.begin_render_pass({}, &depth_stencil_target);
+        render_pass.bind_graphics_pipeline(shadow_pipeline);
 
-            const auto depth_stencil_target = DepthStencilTargetInfo{
-                .texture = &point_shadow_texture_view,
-                .clear_depth = 1.0F,
-                .load_op = LoadOp::Clear,
-                .store_op = StoreOp::Store,
-                .cycle = !point_texture_cycled,
-                .layer = (point_light.slot * cube_faces_per_light) + face,
-            };
-            point_texture_cycled = true;
+        for (const auto& point_light : selected_point_lights) {
+            if (point_light.slot >= max_shadow_casting_point_lights) {
+                continue;
+            }
 
-            auto render_pass =
-                command_buffer.begin_render_pass({}, &depth_stencil_target);
+            for (auto face = uint32_t{0}; face < cube_faces_per_light; ++face) {
+                const auto view_projection = point_light_face_view_projection(
+                    point_light.position, point_light.far_plane, face
+                );
 
-            draw_instance_batches(render_pass, view_projection);
+                const auto tile = point_atlas_tile_rect(point_light.slot, face);
+                render_pass.set_viewport(
+                    static_cast<float>(tile.x), static_cast<float>(tile.y),
+                    static_cast<float>(tile.size), static_cast<float>(tile.size)
+                );
+                render_pass.set_scissor(
+                    static_cast<int32_t>(tile.x), static_cast<int32_t>(tile.y),
+                    static_cast<int32_t>(tile.size), static_cast<int32_t>(tile.size)
+                );
+
+                draw_instance_batches_in_tile(render_pass, view_projection);
+            }
         }
     }
 
-    auto spot_texture_cycled = false;
-    for (const auto& spot_light : selected_spot_lights) {
-        if (spot_light.slot >= max_shadow_casting_spot_lights) {
-            continue;
-        }
-
+    {
         const auto depth_stencil_target = DepthStencilTargetInfo{
             .texture = &spot_shadow_texture_view,
             .clear_depth = 1.0F,
             .load_op = LoadOp::Clear,
             .store_op = StoreOp::Store,
-            .cycle = !spot_texture_cycled,
-            .layer = spot_light.slot,
+            .cycle = true,
         };
-        spot_texture_cycled = true;
 
         auto render_pass =
             command_buffer.begin_render_pass({}, &depth_stencil_target);
+        render_pass.bind_graphics_pipeline(shadow_pipeline);
 
-        draw_instance_batches(render_pass, spot_shadow_matrices[spot_light.slot]);
+        for (const auto& spot_light : selected_spot_lights) {
+            if (spot_light.slot >= max_shadow_casting_spot_lights) {
+                continue;
+            }
+
+            const auto tile = spot_atlas_tile_rect(spot_light.slot);
+            render_pass.set_viewport(
+                static_cast<float>(tile.x), static_cast<float>(tile.y),
+                static_cast<float>(tile.size), static_cast<float>(tile.size)
+            );
+            render_pass.set_scissor(
+                static_cast<int32_t>(tile.x), static_cast<int32_t>(tile.y),
+                static_cast<int32_t>(tile.size), static_cast<int32_t>(tile.size)
+            );
+
+            draw_instance_batches_in_tile(
+                render_pass, spot_shadow_matrices[spot_light.slot]
+            );
+        }
     }
 
     performance_logger.record(

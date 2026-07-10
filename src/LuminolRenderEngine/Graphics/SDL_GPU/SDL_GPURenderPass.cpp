@@ -56,6 +56,33 @@ auto RenderPass::bind_graphics_pipeline(const GraphicsPipeline& pipeline)
     SDL_BindGPUGraphicsPipeline(render_pass, pipeline.native_handle());
 }
 
+auto RenderPass::set_viewport(
+    float x,
+    float y,
+    float width,
+    float height,
+    float min_depth,
+    float max_depth
+) -> void {
+    Expects(render_pass != nullptr);
+    const auto viewport = SDL_GPUViewport{
+        .x = x,
+        .y = y,
+        .w = width,
+        .h = height,
+        .min_depth = min_depth,
+        .max_depth = max_depth,
+    };
+    SDL_SetGPUViewport(render_pass, &viewport);
+}
+
+auto RenderPass::set_scissor(int32_t x, int32_t y, int32_t width, int32_t height)
+    -> void {
+    Expects(render_pass != nullptr);
+    const auto scissor = SDL_Rect{.x = x, .y = y, .w = width, .h = height};
+    SDL_SetGPUScissor(render_pass, &scissor);
+}
+
 auto RenderPass::bind_vertex_buffers(
     uint32_t first_slot, gsl::span<const VertexBufferBinding> bindings
 ) -> void {

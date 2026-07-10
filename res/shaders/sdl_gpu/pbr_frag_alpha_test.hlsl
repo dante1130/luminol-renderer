@@ -25,12 +25,16 @@ SamplerState brdf_lut_sampler : register(s9, space2);
 // Point/spot shadow maps for a capped, frame-selected subset of
 // shadow-casting lights (see LightManager::update_shadow_casters,
 // SDL_GPUPointSpotShadowPass). shadow_data.x / shadow_slot on
-// PointLight/SpotLight (< 0 if unshadowed) index into these. Must stay
-// grouped with the texture/sampler resources above (not the StructuredBuffer
-// block below) - SDL_GPU's fragment resource-space convention requires all
-// textures/samplers declared contiguously before any storage buffers.
-TextureCubeArray point_shadow_maps : register(t10, space2);
-Texture2DArray spot_shadow_maps : register(t11, space2);
+// PointLight/SpotLight (< 0 if unshadowed) index into these. Both are flat
+// 2D atlases (one tile per light-face/light, see the ATLAS constants below)
+// rather than texture arrays, so a single render pass can cover every
+// shadow-casting light via viewport/scissor instead of one pass per layer.
+// Must stay grouped with the texture/sampler resources above (not the
+// StructuredBuffer block below) - SDL_GPU's fragment resource-space
+// convention requires all textures/samplers declared contiguously before any
+// storage buffers.
+Texture2D point_shadow_maps : register(t10, space2);
+Texture2D spot_shadow_maps : register(t11, space2);
 
 SamplerComparisonState point_shadow_sampler : register(s10, space2);
 SamplerComparisonState spot_shadow_sampler : register(s11, space2);
@@ -75,7 +79,15 @@ StructuredBuffer<row_major float4x4> spot_shadow_matrices : register(t16, space2
 
 // Must match SDL_GPUPointSpotShadowPass.cpp exactly.
 static const float POINT_SHADOW_NEAR_PLANE = 0.05f;
+static const float POINT_SHADOW_RESOLUTION = 512.0f;
 static const float SPOT_SHADOW_RESOLUTION = 1024.0f;
+
+// Atlas grid layout - must match point_atlas_cols/rows and
+// spot_atlas_cols/rows in SDL_GPUPointSpotShadowPass.cpp exactly.
+static const float POINT_ATLAS_COLS = 8.0f;
+static const float POINT_ATLAS_ROWS = 12.0f;
+static const float SPOT_ATLAS_COLS = 8.0f;
+static const float SPOT_ATLAS_ROWS = 4.0f;
 
 // Must match cluster_grid_x/y/z in SDL_GPUClusterPass.hpp.
 static const uint CLUSTER_GRID_X = 16;
@@ -376,16 +388,45 @@ float calculate_shadow(float3 world_position, float3 normal) {
     return visibility / 9.0f;
 }
 
-// Point lights use a real TextureCubeArray, so hardware cross-face
-// filtering handles the seams - no atlas/manual face lookup needed. The
-// depth pass writes ordinary perspective depth per face (fov 90, near
-// POINT_SHADOW_NEAR_PLANE, far light_cull_radius(color)); this re-derives
-// that same depth from the world-space light-to-fragment vector so a single
-// SampleCmpLevelZero can compare against it, matching
-// SDL_GPUPointSpotShadowPass::point_light_face_view_projection. The cube
-// faces are world-axis-aligned, so the view-space depth for whichever face
-// a direction resolves to is exactly the absolute value of that direction's
-// dominant axis.
+// Cube face basis vectors (right, up, forward), derived from
+// SDL_GPUPointSpotShadowPass.cpp's cube_faces target_offset/up pairs run
+// through the same left_handed_look_at_matrix formula used to render each
+// face (right = normalize(cross(up_input, forward)), up = cross(forward,
+// right)) - hardcoded here since both inputs are compile-time axis-aligned
+// constants. Order matches cube_faces: +X,-X,+Y,-Y,+Z,-Z.
+static const float3 POINT_FACE_RIGHT[6] = {
+    float3(0.0f, 0.0f, -1.0f),
+    float3(0.0f, 0.0f, 1.0f),
+    float3(1.0f, 0.0f, 0.0f),
+    float3(1.0f, 0.0f, 0.0f),
+    float3(1.0f, 0.0f, 0.0f),
+    float3(-1.0f, 0.0f, 0.0f),
+};
+static const float3 POINT_FACE_UP[6] = {
+    float3(0.0f, 1.0f, 0.0f),
+    float3(0.0f, 1.0f, 0.0f),
+    float3(0.0f, 0.0f, -1.0f),
+    float3(0.0f, 0.0f, 1.0f),
+    float3(0.0f, 1.0f, 0.0f),
+    float3(0.0f, 1.0f, 0.0f),
+};
+static const float3 POINT_FACE_FORWARD[6] = {
+    float3(1.0f, 0.0f, 0.0f),
+    float3(-1.0f, 0.0f, 0.0f),
+    float3(0.0f, 1.0f, 0.0f),
+    float3(0.0f, -1.0f, 0.0f),
+    float3(0.0f, 0.0f, 1.0f),
+    float3(0.0f, 0.0f, -1.0f),
+};
+
+// Point lights are a flat 2D atlas (see the ATLAS constants above), so there
+// is no hardware cube-face selection or cross-face filtering. This manually
+// picks the dominant-axis face (matching cube_faces' +X,-X,+Y,-Y,+Z,-Z
+// order), projects the direction into that face's local UV using the same
+// view/projection convention SDL_GPUPointSpotShadowPass used to render it,
+// then maps (slot, face) to its atlas tile. The compare depth re-derivation
+// is unchanged - it only depends on the dominant axis's magnitude, not which
+// face it belongs to.
 float calculate_point_shadow(float3 world_position, float3 normal, PointLight light) {
     const int shadow_slot = (int)round(light.shadow_data.x);
     if (shadow_slot < 0) {
@@ -397,8 +438,22 @@ float calculate_point_shadow(float3 world_position, float3 normal, PointLight li
     const float3 light_to_fragment = offset_position - light.position.xyz;
 
     const float3 abs_direction = abs(light_to_fragment);
-    const float major_axis =
-        max(abs_direction.x, max(abs_direction.y, abs_direction.z));
+
+    int face;
+    if (abs_direction.x >= abs_direction.y && abs_direction.x >= abs_direction.z) {
+        face = light_to_fragment.x > 0.0f ? 0 : 1;
+    } else if (abs_direction.y >= abs_direction.x && abs_direction.y >= abs_direction.z) {
+        face = light_to_fragment.y > 0.0f ? 2 : 3;
+    } else {
+        face = light_to_fragment.z > 0.0f ? 4 : 5;
+    }
+
+    const float3 view_direction = float3(
+        dot(light_to_fragment, POINT_FACE_RIGHT[face]),
+        dot(light_to_fragment, POINT_FACE_UP[face]),
+        dot(light_to_fragment, POINT_FACE_FORWARD[face])
+    );
+    const float major_axis = view_direction.z;
 
     const float near_plane = POINT_SHADOW_NEAR_PLANE;
     const float far_plane = light_cull_radius(light.color.rgb);
@@ -406,13 +461,40 @@ float calculate_point_shadow(float3 world_position, float3 normal, PointLight li
     const float ndc_depth =
         (far_plane / range) - ((near_plane * far_plane) / (range * major_axis));
 
+    float2 local_uv = (view_direction.xy / major_axis) * 0.5f + 0.5f;
+    local_uv.y = 1.0f - local_uv.y;
+
+    // Inset away from the tile edges so the 3x3 PCF kernel below never reads
+    // into a neighboring tile's data (no hardware cross-face clamping with a
+    // flat atlas).
+    const float tile_inset = 1.5f / POINT_SHADOW_RESOLUTION;
+    local_uv = clamp(local_uv, tile_inset, 1.0f - tile_inset);
+
+    const float tile_index = float(shadow_slot) * 6.0f + float(face);
+    const float2 tile_coord =
+        float2(fmod(tile_index, POINT_ATLAS_COLS), floor(tile_index / POINT_ATLAS_COLS));
+    const float2 atlas_uv =
+        (tile_coord + local_uv) / float2(POINT_ATLAS_COLS, POINT_ATLAS_ROWS);
+
+    const float2 texel_size = float2(
+        1.0f / (POINT_ATLAS_COLS * POINT_SHADOW_RESOLUTION),
+        1.0f / (POINT_ATLAS_ROWS * POINT_SHADOW_RESOLUTION)
+    );
     const float constant_bias = 0.0015f;
 
-    return point_shadow_maps.SampleCmpLevelZero(
-        point_shadow_sampler,
-        float4(light_to_fragment, float(shadow_slot)),
-        ndc_depth - constant_bias
-    );
+    float visibility = 0.0f;
+    [unroll]
+    for (int x = -1; x <= 1; ++x) {
+        [unroll]
+        for (int y = -1; y <= 1; ++y) {
+            const float2 offset = float2(x, y) * texel_size;
+            visibility += point_shadow_maps.SampleCmpLevelZero(
+                point_shadow_sampler, atlas_uv + offset, ndc_depth - constant_bias
+            );
+        }
+    }
+
+    return visibility / 9.0f;
 }
 
 float calculate_spot_shadow(float3 world_position, float3 normal, SpotLight light) {
@@ -429,16 +511,32 @@ float calculate_spot_shadow(float3 world_position, float3 normal, SpotLight ligh
         mul(float4(offset_position, 1.0f), light_space_matrix_for_slot);
     const float inv_w = 1.0f / light_space_position.w;
 
-    float2 shadow_uv = (light_space_position.xy * inv_w) * 0.5f + 0.5f;
-    shadow_uv.y = 1.0f - shadow_uv.y;
+    float2 local_uv = (light_space_position.xy * inv_w) * 0.5f + 0.5f;
+    local_uv.y = 1.0f - local_uv.y;
     const float fragment_depth = light_space_position.z * inv_w;
 
     if (fragment_depth < 0.0f || fragment_depth > 1.0f ||
-        any(shadow_uv < 0.0f) || any(shadow_uv > 1.0f)) {
+        any(local_uv < 0.0f) || any(local_uv > 1.0f)) {
         return 1.0f;
     }
 
-    const float texel_size = 1.0f / SPOT_SHADOW_RESOLUTION;
+    // Inset away from the tile edges so the 3x3 PCF kernel below never reads
+    // into a neighboring tile's data (no per-layer isolation with a flat
+    // atlas).
+    const float tile_inset = 1.5f / SPOT_SHADOW_RESOLUTION;
+    local_uv = clamp(local_uv, tile_inset, 1.0f - tile_inset);
+
+    const float2 tile_coord = float2(
+        fmod(float(shadow_slot), SPOT_ATLAS_COLS),
+        floor(float(shadow_slot) / SPOT_ATLAS_COLS)
+    );
+    const float2 atlas_uv =
+        (tile_coord + local_uv) / float2(SPOT_ATLAS_COLS, SPOT_ATLAS_ROWS);
+
+    const float2 texel_size = float2(
+        1.0f / (SPOT_ATLAS_COLS * SPOT_SHADOW_RESOLUTION),
+        1.0f / (SPOT_ATLAS_ROWS * SPOT_SHADOW_RESOLUTION)
+    );
     const float constant_bias = 0.0015f;
 
     float visibility = 0.0f;
@@ -448,9 +546,7 @@ float calculate_spot_shadow(float3 world_position, float3 normal, SpotLight ligh
         for (int y = -1; y <= 1; ++y) {
             const float2 offset = float2(x, y) * texel_size;
             visibility += spot_shadow_maps.SampleCmpLevelZero(
-                spot_shadow_sampler,
-                float3(shadow_uv + offset, float(shadow_slot)),
-                fragment_depth - constant_bias
+                spot_shadow_sampler, atlas_uv + offset, fragment_depth - constant_bias
             );
         }
     }
