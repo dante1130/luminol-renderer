@@ -95,7 +95,14 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID) {
 
     row_major float4x4 model = instance_models[instance_index];
 
-    float3 corners[8] = {
+    float3 mid = (local_bounds_min.xyz + local_bounds_max.xyz) * 0.5;
+
+    // 8 corners + 6 face centers + 12 edge midpoints, so the occlusion test
+    // below has more coverage than just the extremal corners - a cube
+    // mostly hidden behind nearer neighbors, with only a thin sliver
+    // actually visible through a gap, can have that sliver miss the
+    // corners and face centers but still land near an edge midpoint.
+    float3 sample_points[26] = {
         float3(local_bounds_min.x, local_bounds_min.y, local_bounds_min.z),
         float3(local_bounds_max.x, local_bounds_min.y, local_bounds_min.z),
         float3(local_bounds_min.x, local_bounds_max.y, local_bounds_min.z),
@@ -104,18 +111,41 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID) {
         float3(local_bounds_max.x, local_bounds_min.y, local_bounds_max.z),
         float3(local_bounds_min.x, local_bounds_max.y, local_bounds_max.z),
         float3(local_bounds_max.x, local_bounds_max.y, local_bounds_max.z),
+        // Face centers.
+        float3(local_bounds_min.x, mid.y, mid.z),
+        float3(local_bounds_max.x, mid.y, mid.z),
+        float3(mid.x, local_bounds_min.y, mid.z),
+        float3(mid.x, local_bounds_max.y, mid.z),
+        float3(mid.x, mid.y, local_bounds_min.z),
+        float3(mid.x, mid.y, local_bounds_max.z),
+        // Edge midpoints: 4 on the min.z face, 4 on the max.z face, 4
+        // connecting them.
+        float3(mid.x, local_bounds_min.y, local_bounds_min.z),
+        float3(local_bounds_min.x, mid.y, local_bounds_min.z),
+        float3(local_bounds_max.x, mid.y, local_bounds_min.z),
+        float3(mid.x, local_bounds_max.y, local_bounds_min.z),
+        float3(mid.x, local_bounds_min.y, local_bounds_max.z),
+        float3(local_bounds_min.x, mid.y, local_bounds_max.z),
+        float3(local_bounds_max.x, mid.y, local_bounds_max.z),
+        float3(mid.x, local_bounds_max.y, local_bounds_max.z),
+        float3(local_bounds_min.x, local_bounds_min.y, mid.z),
+        float3(local_bounds_max.x, local_bounds_min.y, mid.z),
+        float3(local_bounds_min.x, local_bounds_max.y, mid.z),
+        float3(local_bounds_max.x, local_bounds_max.y, mid.z),
     };
 
-    float3 world_corners[8];
-    for (int i = 0; i < 8; ++i) {
-        world_corners[i] = mul(float4(corners[i], 1.0), model).xyz;
+    float3 world_samples[26];
+    for (int i = 0; i < 26; ++i) {
+        world_samples[i] = mul(float4(sample_points[i], 1.0), model).xyz;
     }
 
-    float3 world_min = world_corners[0];
-    float3 world_max = world_corners[0];
+    // Only the 8 true corners (not the face centers) are needed for a
+    // correct AABB frustum bound.
+    float3 world_min = world_samples[0];
+    float3 world_max = world_samples[0];
     for (int i = 1; i < 8; ++i) {
-        world_min = min(world_min, world_corners[i]);
-        world_max = max(world_max, world_corners[i]);
+        world_min = min(world_min, world_samples[i]);
+        world_max = max(world_max, world_samples[i]);
     }
 
     if (!aabb_in_frustum(world_min, world_max)) {
@@ -123,63 +153,56 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID) {
     }
 
     if (hiz_mip_levels > 0) {
-        // Reproject the same 8 world corners with THIS frame's camera to
-        // get the object's actual current screen-space bounding rect (a
-        // single point - even the object's own nearest corner - is not a
-        // valid occlusion proxy in a dense scene: that one sampled pixel
-        // can legitimately belong to a different, nearby object, causing a
-        // false occlusion that has nothing to do with the object's own
-        // visibility). Testing the whole rect and taking the max stored
-        // depth over it is the conservative, correct test: only cull if
-        // the object's nearest point is farther than EVERYTHING stored
-        // across its whole footprint.
-        float3 screen_min = float3(1e30, 1e30, 1e30);
-        float3 screen_max = float3(-1e30, -1e30, -1e30);
+        // Reproject the 8 corners + 6 face centers + 12 edge midpoints with
+        // THIS frame's camera. A cube viewed obliquely has a hexagonal
+        // silhouette, so a bounding rect's own synthetic corners aren't
+        // necessarily real points on the object - sampling there can land
+        // on a different, genuinely-nearer neighbor and falsely cull an
+        // object that has a clear line of sight everywhere except that one
+        // synthetic point. Sampling at the object's real surface points
+        // instead guarantees every tested position is legitimately part of
+        // this object's own footprint; the extra face/edge points add
+        // coverage beyond just the 8 extremal corners, catching thin
+        // visible slivers the corners alone would miss.
+        float nearest_ndc_z = 1e30;
+        float2 sample_uv[26];
         bool behind_camera = false;
-        for (int j = 0; j < 8; ++j) {
-            float4 clip = mul(float4(world_corners[j], 1.0), current_view_projection);
+        for (int j = 0; j < 26; ++j) {
+            float4 clip = mul(float4(world_samples[j], 1.0), current_view_projection);
             if (clip.w <= 0.0) {
                 behind_camera = true;
                 break;
             }
             float3 ndc = clip.xyz / clip.w;
-            screen_min = min(screen_min, ndc);
-            screen_max = max(screen_max, ndc);
-        }
-
-        // clip.w <= 0 means a corner is behind the camera (e.g. an object
-        // straddling the near plane) - reprojection is unreliable there, so
-        // conservatively treat the instance as visible rather than risk a
-        // false occlusion cull.
-        if (!behind_camera) {
+            nearest_ndc_z = min(nearest_ndc_z, ndc.z);
             // NDC xy in [-1,1] -> UV in [0,1] (uv.y=0 at the top, matching
             // fullscreen_vert.hlsl's own inverse mapping).
-            float2 uv_min = float2(screen_min.x * 0.5 + 0.5, 0.5 - screen_max.y * 0.5);
-            float2 uv_max = float2(screen_max.x * 0.5 + 0.5, 0.5 - screen_min.y * 0.5);
+            sample_uv[j] = float2(ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5);
+        }
 
-            float2 rect_texels = (uv_max - uv_min) * hiz_pyramid_size;
-            float mip = clamp(
-                ceil(log2(max(rect_texels.x, rect_texels.y))), 0.0,
-                float(hiz_mip_levels - 1)
-            );
-
-            // Sample all 4 corners of the rect (not just one point) and
-            // take the max. The chosen mip's texel size is >= the rect's
-            // screen size, so the four corner texels jointly cover the
-            // whole rect regardless of grid alignment - this is what
-            // guarantees we're testing against everything actually stored
-            // across the object's own footprint, not an arbitrary
-            // unrelated neighboring pixel.
-            float stored_depth = max(
-                max(
-                    hiz_pyramid.SampleLevel(hiz_sampler, float2(uv_min.x, uv_min.y), mip).r,
-                    hiz_pyramid.SampleLevel(hiz_sampler, float2(uv_max.x, uv_min.y), mip).r
-                ),
-                max(
-                    hiz_pyramid.SampleLevel(hiz_sampler, float2(uv_min.x, uv_max.y), mip).r,
-                    hiz_pyramid.SampleLevel(hiz_sampler, float2(uv_max.x, uv_max.y), mip).r
-                )
-            );
+        // clip.w <= 0 means a sample point is behind the camera (e.g. an
+        // object straddling the near plane) - reprojection is unreliable
+        // there, so conservatively treat the instance as visible rather
+        // than risk a false occlusion cull.
+        if (!behind_camera) {
+            // Sample at each of the object's 26 real surface points (not
+            // synthetic bounding-rect corners), at mip 0 (the finest
+            // level). This is exact point sampling, not area coverage - a
+            // coarser mip would average over a wide neighborhood around
+            // each point and reintroduce exactly the "pulls in a
+            // neighboring object's depth" problem this approach is meant
+            // to avoid. Take the max stored depth across all samples:
+            // conservative (only culls if EVERYTHING actually stored at
+            // this object's own surface points is nearer than its own
+            // nearest point), and every sample is a genuine point on the
+            // object.
+            float stored_depth = -1e30;
+            for (int k = 0; k < 26; ++k) {
+                stored_depth = max(
+                    stored_depth,
+                    hiz_pyramid.SampleLevel(hiz_sampler, sample_uv[k], 0.0).r
+                );
+            }
 
             // Bias absorbs floating-point noise between the hardware
             // rasterizer's depth write (during the actual render) and this
@@ -189,7 +212,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID) {
             // flickers (classic "depth acne", same class of issue shadow
             // mapping guards against with a bias).
             const float hiz_depth_bias = 0.0005;
-            if (screen_min.z > stored_depth + hiz_depth_bias) {
+            if (nearest_ndc_z > stored_depth + hiz_depth_bias) {
                 return;  // occluded
             }
         }
