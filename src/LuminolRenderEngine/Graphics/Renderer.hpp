@@ -74,6 +74,16 @@ public:
 
     virtual auto draw() -> void = 0;
 
+    // Debug-only hooks for investigating occlusion culling; no-op by default
+    // since not every backend implements occlusion culling.
+    virtual auto set_debug_disable_occlusion_culling(bool disabled) -> void {
+        static_cast<void>(disabled);
+    }
+    virtual auto debug_log_visible_instance_count() -> void {}
+    virtual auto set_debug_visualize_hiz(bool enabled) -> void {
+        static_cast<void>(enabled);
+    }
+
 private:
     std::shared_ptr<GraphicsFactory> graphics_factory;
     LightManager light_manager;

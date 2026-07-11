@@ -8,9 +8,14 @@
 #include <gsl/gsl>
 #include <SDL3/SDL_video.h>
 
+#include <cstring>
+
+#include <SDL3/SDL_log.h>
+
 #include <LuminolRenderEngine/Graphics/Frustum.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCopyPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCullingUtils.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
 #include <LuminolRenderEngine/Utilities/Timer.hpp>
 
@@ -131,6 +136,42 @@ auto make_msaa_color_texture(
     );
 }
 
+auto make_hiz_debug_shader(
+    GPUDevice& device, const std::filesystem::path& path, ShaderStage stage,
+    uint32_t sampler_count, uint32_t uniform_buffer_count
+) -> Shader {
+    return device.create_shader(ShaderInfo{
+        .path = path,
+        .stage = stage,
+        .source_language = ShaderSourceLanguage::Hlsl,
+        .sampler_count = sampler_count,
+        .uniform_buffer_count = uniform_buffer_count,
+    });
+}
+
+// Mirrors cbuffer DebugVisualizeParams in hiz_debug_visualize_frag.hlsl.
+struct HiZDebugVisualizeParams {
+    float near_plane;
+    float far_plane;
+    std::array<float, 2> padding;
+};
+
+auto make_hiz_debug_pipeline(
+    GPUDevice& device, SDL_Window* window, const Shader& vertex_shader,
+    const Shader& fragment_shader
+) -> GraphicsPipeline {
+    return device.create_graphics_pipeline(GraphicsPipelineInfo{
+        .vertex_shader = vertex_shader,
+        .fragment_shader = fragment_shader,
+        .color_target_format = device.get_swapchain_texture_format(window),
+        .primitive_type = PrimitiveType::TriangleList,
+        .vertex_buffer_descriptions = {},
+        .vertex_attributes = {},
+        .enable_depth_test = false,
+        .cull_mode = CullMode::None,
+    });
+}
+
 auto make_msaa_depth_texture(
     GPUDevice& device, uint32_t width, uint32_t height, SampleCount sample_count
 ) -> Texture {
@@ -210,6 +251,8 @@ SDL_GPURenderer::SDL_GPURenderer(
       },
       ao_pass{*this->gpu_device, sdl_window},
       hiz_pass{*this->gpu_device, sdl_window},
+      phase1_cull_pass{*this->gpu_device},
+      occlusion_depth_pass{*this->gpu_device, sdl_window},
       instance_cull_pass{*this->gpu_device},
       cluster_pass{*this->gpu_device},
       shadow_pass{*this->gpu_device},
@@ -242,7 +285,24 @@ SDL_GPURenderer::SDL_GPURenderer(
       )},
       msaa_depth_texture{make_msaa_depth_texture(
           *this->gpu_device, sdl_window, msaa_sample_count
-      )} {}
+      )},
+      hiz_debug_vertex_shader{make_hiz_debug_shader(
+          *this->gpu_device, "res/shaders/sdl_gpu/fullscreen_vert.hlsl",
+          ShaderStage::Vertex, 0U, 0U
+      )},
+      hiz_debug_fragment_shader{make_hiz_debug_shader(
+          *this->gpu_device, "res/shaders/sdl_gpu/hiz_debug_visualize_frag.hlsl",
+          ShaderStage::Fragment, 1U, 1U
+      )},
+      hiz_debug_pipeline{make_hiz_debug_pipeline(
+          *this->gpu_device, sdl_window, hiz_debug_vertex_shader,
+          hiz_debug_fragment_shader
+      )},
+      hiz_debug_sampler{this->gpu_device->create_sampler(SamplerInfo{
+          .filter = SamplerFilter::Nearest,
+          .address_mode_u = SamplerAddressMode::ClampToEdge,
+          .address_mode_v = SamplerAddressMode::ClampToEdge,
+      })} {}
 
 auto SDL_GPURenderer::set_view_matrix(const Maths::Matrix4x4f& view_matrix)
     -> void {
@@ -309,6 +369,9 @@ auto SDL_GPURenderer::draw() -> void {
         );
         ao_pass.resize(*gpu_device, swapchain->width, swapchain->height);
         hiz_pass.resize(*gpu_device, swapchain->width, swapchain->height);
+        occlusion_depth_pass.resize(
+            *gpu_device, swapchain->width, swapchain->height
+        );
         has_valid_previous_depth = false;
     }
 
@@ -340,24 +403,106 @@ auto SDL_GPURenderer::draw() -> void {
         );
     }
 
+    const auto current_view_projection = view_matrix * projection_matrix;
     const auto camera_frustum_planes =
-        extract_frustum_planes(view_matrix * projection_matrix);
+        extract_frustum_planes(current_view_projection);
 
-    // Must happen before any render pass is opened this frame, and before
-    // depth_texture is overwritten below - it reads depth_texture while it
-    // still holds last frame's contents (ao_pass.draw() hasn't run yet this
-    // frame) and builds a Hi-Z pyramid from it for the occlusion test below.
+    // Phase 1: cheap early-out cull against LAST FRAME's Hi-Z (built from
+    // depth_texture, which still holds last frame's contents - nothing has
+    // written it yet this frame), using THIS frame's camera. Its result only
+    // bootstraps occlusion_depth_pass's same-frame depth below and is never
+    // used for final shading, so any staleness here only costs extra draws
+    // in phase 2, never incorrect final visibility. Must happen before any
+    // render pass is opened this frame - it uploads via a copy pass and
+    // dispatches compute passes, and SDL_GPU forbids beginning either while
+    // a render pass is active.
     hiz_pass.build(command_buffer, depth_texture, point_sampler);
 
-    // Must happen before any render pass is opened this frame - it uploads
-    // via a copy pass and dispatches compute passes, and SDL_GPU forbids
-    // beginning either while a render pass is active.
+    const auto phase1_cull_layout = phase1_cull_pass.cull(
+        *this->sdl_gpu_factory, command_buffer,
+        mesh_render_pass.get_instance_buffer_cache(), instance_batches,
+        camera_frustum_planes, current_view_projection,
+        hiz_pass.get_pyramid_texture(), hiz_pass.get_pyramid_sampler(),
+        (has_valid_previous_depth && !debug_disable_occlusion_culling)
+            ? hiz_pass.get_mip_levels()
+            : 0U
+    );
+
+    occlusion_depth_pass.draw(
+        *this->sdl_gpu_factory, command_buffer,
+        mesh_render_pass.get_instance_buffer_cache(), instance_batches,
+        view_matrix, projection_matrix,
+        phase1_cull_pass.get_indirect_command_buffer(),
+        phase1_cull_pass.get_visible_instance_indices_buffer(),
+        phase1_cull_layout
+    );
+
+    // Phase 2: rebuild the Hi-Z pyramid from THIS FRAME's own (phase 1)
+    // depth - same camera, no cross-frame mismatch, so this cull is always
+    // correct regardless of camera speed or scene density (no
+    // has_valid_previous_depth gate needed - occlusion_depth_pass's draw
+    // above always produces a complete, accurate, same-frame depth to
+    // build from, even if phase 1 itself under-culled on a cold-start
+    // frame).
+    hiz_pass.build(
+        command_buffer, occlusion_depth_pass.get_depth_texture(), point_sampler
+    );
+
+    // Debug-only: short-circuit the rest of the frame and blit the Hi-Z
+    // pyramid's mip 0 straight to the screen instead of the normal scene, to
+    // visually sanity-check its contents. Inspects the phase-2 (same-frame)
+    // pyramid, since that's the one the final cull below actually uses.
+    if (debug_visualize_hiz) {
+        const auto visualize_color_targets = std::array{ColorTargetInfo{
+            .texture = &swapchain->texture,
+            .load_op = LoadOp::DontCare,
+            .store_op = StoreOp::Store,
+        }};
+
+        {
+            auto visualize_render_pass =
+                command_buffer.begin_render_pass(visualize_color_targets);
+            visualize_render_pass.bind_graphics_pipeline(hiz_debug_pipeline);
+
+            const auto debug_camera_params =
+                extract_camera_params(projection_matrix);
+            const auto debug_visualize_params = HiZDebugVisualizeParams{
+                .near_plane = debug_camera_params.near_plane,
+                .far_plane = debug_camera_params.far_plane,
+                .padding = {0.0F, 0.0F},
+            };
+            command_buffer.push_fragment_uniform_data(
+                0,
+                gsl::span{
+                    reinterpret_cast<const std::byte*>(&debug_visualize_params),
+                    sizeof(debug_visualize_params)
+                }
+            );
+
+            const auto hiz_sampler_bindings = std::array{TextureSamplerBinding{
+                .texture = &hiz_pass.get_pyramid_texture(),
+                .sampler = &hiz_debug_sampler,
+            }};
+            visualize_render_pass.bind_fragment_samplers(
+                0, hiz_sampler_bindings
+            );
+
+            visualize_render_pass.draw_primitives(3, 1, 0, 0);
+        }
+
+        command_buffer.submit();
+        queued_draws.clear();
+        return;
+    }
+
+    // Phase 2 cull: the final, always-correct visible set, consumed by every
+    // downstream pass below exactly as the single-phase design did before.
     const auto instance_cull_layout = instance_cull_pass.cull(
         *this->sdl_gpu_factory, command_buffer,
         mesh_render_pass.get_instance_buffer_cache(), instance_batches,
-        camera_frustum_planes, previous_view_projection,
+        camera_frustum_planes, current_view_projection,
         hiz_pass.get_pyramid_texture(), hiz_pass.get_pyramid_sampler(),
-        has_valid_previous_depth ? hiz_pass.get_mip_levels() : 0U
+        debug_disable_occlusion_culling ? 0U : hiz_pass.get_mip_levels()
     );
 
     ao_pass.draw(
@@ -563,13 +708,73 @@ auto SDL_GPURenderer::draw() -> void {
     command_buffer.submit();
     queued_draws.clear();
 
-    previous_view_projection = view_matrix * projection_matrix;
     has_valid_previous_depth = true;
 
     performance_logger.record(
         "frame", Units::Seconds{frame_timer.elapsed_seconds()}
     );
     performance_logger.end_frame();
+}
+
+auto SDL_GPURenderer::set_debug_disable_occlusion_culling(bool disabled)
+    -> void {
+    debug_disable_occlusion_culling = disabled;
+}
+
+auto SDL_GPURenderer::set_debug_visualize_hiz(bool enabled) -> void {
+    debug_visualize_hiz = enabled;
+}
+
+auto SDL_GPURenderer::debug_log_visible_instance_count() -> void {
+    const auto& indirect_buffer = instance_cull_pass.get_indirect_command_buffer();
+    const auto buffer_size = indirect_buffer.get_size();
+    if (buffer_size == 0) {
+        SDL_Log("[OcclusionDebug] no indirect commands recorded yet");
+        return;
+    }
+
+    // Debug-only readback: forces a full GPU sync twice, never do this on a
+    // per-frame basis (see GPUDevice::wait_for_idle's doc comment).
+    gpu_device->wait_for_idle();
+
+    auto download_buffer = gpu_device->create_transfer_buffer(TransferBufferInfo{
+        .usage = TransferBufferUsage::Download,
+        .size = buffer_size,
+    });
+
+    {
+        auto command_buffer = gpu_device->create_command_buffer();
+        {
+            auto copy_pass = command_buffer.begin_copy_pass();
+            copy_pass.download_from_buffer(
+                indirect_buffer, 0, download_buffer, 0, buffer_size
+            );
+        }
+        command_buffer.submit();
+    }
+
+    gpu_device->wait_for_idle();
+
+    const auto mapped = download_buffer.map(false);
+    const auto command_count =
+        static_cast<uint32_t>(buffer_size / sizeof(IndirectDrawCommand));
+    auto total_visible_instances = uint32_t{0};
+    for (auto i = uint32_t{0}; i < command_count; ++i) {
+        auto command = IndirectDrawCommand{};
+        std::memcpy(
+            &command, mapped.data() + (i * sizeof(IndirectDrawCommand)),
+            sizeof(IndirectDrawCommand)
+        );
+        total_visible_instances += command.num_instances;
+    }
+    download_buffer.unmap();
+
+    SDL_Log(
+        "[OcclusionDebug] occlusion_disabled=%d visible_instances=%u "
+        "(across %u indirect commands)",
+        debug_disable_occlusion_culling ? 1 : 0, total_visible_instances,
+        command_count
+    );
 }
 
 auto SDL_GPURenderer::queue_draw_text(

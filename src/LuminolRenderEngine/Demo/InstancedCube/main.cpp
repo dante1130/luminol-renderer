@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <vector>
 
 #include <LuminolMaths/Transform.hpp>
@@ -32,6 +33,45 @@ auto handle_key_events(
     if (engine.get_window().is_key_event('q', KeyEvent::Press)) {
         engine.get_window().close();
     }
+}
+
+// Debug-only: 'o' toggles the occlusion test on/off (frustum culling still
+// applies) for A/B comparison, 'p' logs the current visible instance count.
+// is_key_event is level-triggered (true every frame the key is held), so
+// both need press-edge tracking to fire once per physical key press.
+auto handle_debug_occlusion_keys(
+    RenderEngine& engine, bool& occlusion_disabled, bool& o_key_was_down,
+    bool& p_key_was_down, bool& hiz_visible, bool& v_key_was_down
+) -> void {
+    const auto o_key_down = engine.get_window().is_key_event('o', KeyEvent::Press);
+    if (o_key_down && !o_key_was_down) {
+        occlusion_disabled = !occlusion_disabled;
+        engine.get_renderer().set_debug_disable_occlusion_culling(
+            occlusion_disabled
+        );
+        std::printf(
+            "[OcclusionDebug] occlusion culling %s\n",
+            occlusion_disabled ? "DISABLED" : "enabled"
+        );
+    }
+    o_key_was_down = o_key_down;
+
+    const auto p_key_down = engine.get_window().is_key_event('p', KeyEvent::Press);
+    if (p_key_down && !p_key_was_down) {
+        engine.get_renderer().debug_log_visible_instance_count();
+    }
+    p_key_was_down = p_key_down;
+
+    const auto v_key_down = engine.get_window().is_key_event('v', KeyEvent::Press);
+    if (v_key_down && !v_key_was_down) {
+        hiz_visible = !hiz_visible;
+        engine.get_renderer().set_debug_visualize_hiz(hiz_visible);
+        std::printf(
+            "[OcclusionDebug] Hi-Z pyramid visualization %s\n",
+            hiz_visible ? "ON" : "off"
+        );
+    }
+    v_key_was_down = v_key_down;
 }
 
 constexpr auto grid_size = 100;
@@ -100,6 +140,12 @@ auto main() -> int {
 
     auto last_frame_time_seconds = 0.0;
 
+    auto occlusion_disabled = false;
+    auto o_key_was_down = false;
+    auto p_key_was_down = false;
+    auto hiz_visible = false;
+    auto v_key_was_down = false;
+
     while (!luminol_engine.get_window().should_close()) {
         const auto current_frame_time_seconds = timer.elapsed_seconds();
         const auto delta_time_seconds =
@@ -110,6 +156,11 @@ auto main() -> int {
 
         handle_key_events(
             luminol_engine, camera, gsl::narrow_cast<float>(delta_time_seconds)
+        );
+
+        handle_debug_occlusion_keys(
+            luminol_engine, occlusion_disabled, o_key_was_down, p_key_was_down,
+            hiz_visible, v_key_was_down
         );
 
         const auto mouse_delta = luminol_engine.get_window().get_mouse_delta();

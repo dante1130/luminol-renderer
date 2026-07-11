@@ -2,13 +2,20 @@
 // Transforms the submesh's local-space AABB by that instance's model matrix,
 // tests it against the camera frustum (Gribb/Hartmann planes, see
 // Frustum.cpp), then against a Hi-Z depth pyramid built from LAST FRAME's
-// depth buffer (reprojected with last frame's view-projection - see
-// SDL_GPUHiZPass), and for survivors atomically appends the instance's
+// depth buffer, and for survivors atomically appends the instance's
 // original index into visible_instance_indices and increments the
 // corresponding IndirectDrawCommand's num_instances. This replaces an
 // O(instance count) CPU loop (SDL_GPUCullingUtils::compute_batch_mesh_world_bounds)
 // with one GPU dispatch per submesh, so cost no longer scales with instance
 // count on the CPU (see SDL_GPUInstanceCullPass).
+//
+// The staleness lives entirely in the Hi-Z pyramid's depth values (built
+// from last frame's render), NOT in where on screen we look: objects are
+// projected with THIS frame's view-projection (current_view_projection), so
+// we always sample last frame's depth at the object's actual current screen
+// position. Projecting with a stale view-projection would additionally get
+// the screen location wrong on any camera motion, compounding a second error
+// on top of the intentional one-frame-stale depth data.
 //
 // The occlusion test has ~1 frame of latency (an object exposed by a moving
 // occluder may still be drawn one frame late) - an accepted tradeoff to
@@ -40,10 +47,12 @@ RWStructuredBuffer<IndirectDrawCommand> indirect_commands : register(u0, space1)
 RWStructuredBuffer<uint> visible_instance_indices : register(u1, space1);
 
 // frustum_planes: left, right, bottom, top, near, far. local_bounds_min/max:
-// this submesh's local-space AABB. previous_view_projection: last frame's
-// view * projection, for reprojecting this frame's world AABB into last
-// frame's Hi-Z pyramid. command_index: this submesh's slot in
-// indirect_commands. instance_base_offset: this submesh's slice base in
+// this submesh's local-space AABB. current_view_projection: THIS frame's
+// view * projection - same matrix used to build camera_frustum_planes -
+// for projecting this frame's world AABB to its actual current screen
+// position (only the sampled Hi-Z depth data is last-frame-stale, not the
+// screen location). command_index: this submesh's slot in indirect_commands.
+// instance_base_offset: this submesh's slice base in
 // visible_instance_indices. instance_count: this batch's instance count
 // (thread count ceiling). hiz_mip_levels: 0 disables the occlusion test
 // (first frame / just resized, no valid previous depth).
@@ -52,7 +61,7 @@ cbuffer InstanceCullParams : register(b0, space2) {
     float4 frustum_planes[6];
     float4 local_bounds_min;
     float4 local_bounds_max;
-    row_major float4x4 previous_view_projection;
+    row_major float4x4 current_view_projection;
     uint command_index;
     uint instance_base_offset;
     uint instance_count;
@@ -114,13 +123,21 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID) {
     }
 
     if (hiz_mip_levels > 0) {
-        // Reproject the same 8 world corners with LAST FRAME's
-        // view-projection.
+        // Reproject the same 8 world corners with THIS frame's camera to
+        // get the object's actual current screen-space bounding rect (a
+        // single point - even the object's own nearest corner - is not a
+        // valid occlusion proxy in a dense scene: that one sampled pixel
+        // can legitimately belong to a different, nearby object, causing a
+        // false occlusion that has nothing to do with the object's own
+        // visibility). Testing the whole rect and taking the max stored
+        // depth over it is the conservative, correct test: only cull if
+        // the object's nearest point is farther than EVERYTHING stored
+        // across its whole footprint.
         float3 screen_min = float3(1e30, 1e30, 1e30);
         float3 screen_max = float3(-1e30, -1e30, -1e30);
         bool behind_camera = false;
         for (int j = 0; j < 8; ++j) {
-            float4 clip = mul(float4(world_corners[j], 1.0), previous_view_projection);
+            float4 clip = mul(float4(world_corners[j], 1.0), current_view_projection);
             if (clip.w <= 0.0) {
                 behind_camera = true;
                 break;
@@ -130,13 +147,13 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID) {
             screen_max = max(screen_max, ndc);
         }
 
-        // clip.w <= 0 means this corner was behind last frame's camera (e.g.
-        // an object newly entering the frustum) - reprojection is unreliable,
-        // so conservatively treat the instance as visible rather than risk a
+        // clip.w <= 0 means a corner is behind the camera (e.g. an object
+        // straddling the near plane) - reprojection is unreliable there, so
+        // conservatively treat the instance as visible rather than risk a
         // false occlusion cull.
         if (!behind_camera) {
-            // NDC xy in [-1,1] -> UV in [0,1], matching fullscreen_vert.hlsl's
-            // convention (uv.y=0 at the top, NDC y=+1 at the top).
+            // NDC xy in [-1,1] -> UV in [0,1] (uv.y=0 at the top, matching
+            // fullscreen_vert.hlsl's own inverse mapping).
             float2 uv_min = float2(screen_min.x * 0.5 + 0.5, 0.5 - screen_max.y * 0.5);
             float2 uv_max = float2(screen_max.x * 0.5 + 0.5, 0.5 - screen_min.y * 0.5);
 
@@ -146,11 +163,33 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID) {
                 float(hiz_mip_levels - 1)
             );
 
-            float stored_depth = hiz_pyramid.SampleLevel(
-                hiz_sampler, (uv_min + uv_max) * 0.5, mip
-            ).r;
+            // Sample all 4 corners of the rect (not just one point) and
+            // take the max. The chosen mip's texel size is >= the rect's
+            // screen size, so the four corner texels jointly cover the
+            // whole rect regardless of grid alignment - this is what
+            // guarantees we're testing against everything actually stored
+            // across the object's own footprint, not an arbitrary
+            // unrelated neighboring pixel.
+            float stored_depth = max(
+                max(
+                    hiz_pyramid.SampleLevel(hiz_sampler, float2(uv_min.x, uv_min.y), mip).r,
+                    hiz_pyramid.SampleLevel(hiz_sampler, float2(uv_max.x, uv_min.y), mip).r
+                ),
+                max(
+                    hiz_pyramid.SampleLevel(hiz_sampler, float2(uv_min.x, uv_max.y), mip).r,
+                    hiz_pyramid.SampleLevel(hiz_sampler, float2(uv_max.x, uv_max.y), mip).r
+                )
+            );
 
-            if (screen_min.z > stored_depth) {
+            // Bias absorbs floating-point noise between the hardware
+            // rasterizer's depth write (during the actual render) and this
+            // shader's independent software reprojection of the same
+            // point - without it, an object sitting exactly on its own
+            // previously-written depth is a coin-flip self-comparison and
+            // flickers (classic "depth acne", same class of issue shadow
+            // mapping guards against with a bias).
+            const float hiz_depth_bias = 0.0005;
+            if (screen_min.z > stored_depth + hiz_depth_bias) {
                 return;  // occluded
             }
         }

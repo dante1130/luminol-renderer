@@ -64,7 +64,7 @@ public:
         const SDL_GPUInstanceBufferCache& instance_buffer_cache,
         gsl::span<const InstanceBatch> instance_batches,
         const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
-        const Maths::Matrix4x4f& previous_view_projection,
+        const Maths::Matrix4x4f& current_view_projection,
         const Texture& hiz_pyramid,
         const Sampler& hiz_sampler,
         uint32_t hiz_mip_levels

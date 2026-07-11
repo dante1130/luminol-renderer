@@ -33,7 +33,7 @@ struct InstanceCullParams {
     std::array<Vector4f, 6> frustum_planes;
     Vector4f local_bounds_min;
     Vector4f local_bounds_max;
-    Matrix4x4f previous_view_projection;
+    Matrix4x4f current_view_projection;
     uint32_t command_index;
     uint32_t instance_base_offset;
     uint32_t instance_count;
@@ -104,7 +104,7 @@ auto SDL_GPUInstanceCullPass::cull(
     const SDL_GPUInstanceBufferCache& instance_buffer_cache,
     gsl::span<const InstanceBatch> instance_batches,
     const std::array<Vector4f, 6>& camera_frustum_planes,
-    const Matrix4x4f& previous_view_projection,
+    const Matrix4x4f& current_view_projection,
     const Texture& hiz_pyramid,
     const Sampler& hiz_sampler,
     uint32_t hiz_mip_levels
@@ -228,7 +228,7 @@ auto SDL_GPUInstanceCullPass::cull(
                     info.local_bounds.max.x(), info.local_bounds.max.y(),
                     info.local_bounds.max.z(), 0.0F
                 },
-                .previous_view_projection = previous_view_projection,
+                .current_view_projection = current_view_projection,
                 .command_index = info.command_index,
                 .instance_base_offset = info.instance_base_offset,
                 .instance_count = info.instance_count,

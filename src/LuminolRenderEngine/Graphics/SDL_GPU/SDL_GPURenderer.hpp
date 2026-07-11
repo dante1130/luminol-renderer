@@ -16,6 +16,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUIBLRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceCullPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUOcclusionDepthPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUPointSpotShadowPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShadowPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUSkyboxRenderPass.hpp>
@@ -63,6 +64,10 @@ public:
 
     auto draw() -> void override;
 
+    auto set_debug_disable_occlusion_culling(bool disabled) -> void override;
+    auto debug_log_visible_instance_count() -> void override;
+    auto set_debug_visualize_hiz(bool enabled) -> void override;
+
 private:
     SDL_Window* sdl_window = nullptr;
 
@@ -72,6 +77,16 @@ private:
     SDL_GPUMeshRenderPass mesh_render_pass;
     SDL_GPUAmbientOcclusionPass ao_pass;
     SDL_GPUHiZPass hiz_pass;
+    // Phase 1: cheap early-out cull against last frame's Hi-Z, current
+    // camera. Only feeds occlusion_depth_pass's bootstrap draw - never used
+    // for final shading, so any staleness here only costs extra draws in
+    // phase 2, never incorrect final visibility.
+    SDL_GPUInstanceCullPass phase1_cull_pass;
+    SDL_GPUOcclusionDepthPass occlusion_depth_pass;
+    // Phase 2: final cull, against a Hi-Z rebuilt from occlusion_depth_pass's
+    // same-frame depth - always correct regardless of camera speed/scene
+    // density, since there's no cross-frame data in this decision. Feeds
+    // every downstream pass (AO, shadows, main pass) exactly as before.
     SDL_GPUInstanceCullPass instance_cull_pass;
     SDL_GPUClusterPass cluster_pass;
     SDL_GPUShadowPass shadow_pass;
@@ -93,6 +108,15 @@ private:
     Texture msaa_color_texture;
     Texture msaa_depth_texture;
 
+    // Debug-only: when true, draw() renders the Hi-Z pyramid's mip 0 to the
+    // swapchain instead of the normal scene, to visually sanity-check its
+    // contents. See Renderer::set_debug_visualize_hiz.
+    Shader hiz_debug_vertex_shader;
+    Shader hiz_debug_fragment_shader;
+    GraphicsPipeline hiz_debug_pipeline;
+    Sampler hiz_debug_sampler;
+    bool debug_visualize_hiz = false;
+
     Utilities::PerformanceLogger performance_logger;
 
     std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>
@@ -101,13 +125,15 @@ private:
     Maths::Matrix4x4f view_matrix = Maths::Matrix4x4f::identity();
     Maths::Matrix4x4f projection_matrix = Maths::Matrix4x4f::identity();
 
-    // Last frame's view * projection, for reprojecting this frame's Hi-Z
-    // occlusion test into the depth buffer hiz_pass was built from.
-    Maths::Matrix4x4f previous_view_projection = Maths::Matrix4x4f::identity();
     // False on the first frame and immediately after a resize, when
     // depth_texture/hiz_pass hold no valid previous-frame data - disables
     // the occlusion test for that one frame.
     bool has_valid_previous_depth = false;
+
+    // Debug-only: forces the occlusion test off (frustum culling still
+    // applies) for A/B comparison while investigating occlusion-culling
+    // correctness. See Renderer::set_debug_disable_occlusion_culling.
+    bool debug_disable_occlusion_culling = false;
 
     mutable Maths::Vector4f clear_color_value = {0.0F, 0.0F, 0.0F, 1.0F};
     float exposure = 1.0F;
