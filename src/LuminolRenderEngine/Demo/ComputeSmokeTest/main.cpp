@@ -71,7 +71,7 @@ auto main() -> int {
                     .buffer = &output_buffer, .cycle = false
                 }
             };
-        auto compute_pass = command_buffer.begin_compute_pass(storage_bindings);
+        auto compute_pass = command_buffer.begin_compute_pass({}, storage_bindings);
         compute_pass.bind_compute_pipeline(pipeline);
         compute_pass.dispatch(thread_count / threads_per_group, 1, 1);
     }

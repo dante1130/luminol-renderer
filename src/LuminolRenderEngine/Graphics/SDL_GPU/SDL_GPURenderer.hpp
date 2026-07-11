@@ -12,6 +12,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUClusterPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFont.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUHiZPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUIBLRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceCullPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
@@ -70,6 +71,7 @@ private:
 
     SDL_GPUMeshRenderPass mesh_render_pass;
     SDL_GPUAmbientOcclusionPass ao_pass;
+    SDL_GPUHiZPass hiz_pass;
     SDL_GPUInstanceCullPass instance_cull_pass;
     SDL_GPUClusterPass cluster_pass;
     SDL_GPUShadowPass shadow_pass;
@@ -81,6 +83,7 @@ private:
 
     Texture depth_texture;
     Texture hdr_color_texture;
+    Sampler point_sampler;
 
     // Dedicated multisampled targets for the main forward pass only,
     // resolved into hdr_color_texture at the end of the pass. Decoupled from
@@ -97,6 +100,14 @@ private:
 
     Maths::Matrix4x4f view_matrix = Maths::Matrix4x4f::identity();
     Maths::Matrix4x4f projection_matrix = Maths::Matrix4x4f::identity();
+
+    // Last frame's view * projection, for reprojecting this frame's Hi-Z
+    // occlusion test into the depth buffer hiz_pass was built from.
+    Maths::Matrix4x4f previous_view_projection = Maths::Matrix4x4f::identity();
+    // False on the first frame and immediately after a resize, when
+    // depth_texture/hiz_pass hold no valid previous-frame data - disables
+    // the occlusion test for that one frame.
+    bool has_valid_previous_depth = false;
 
     mutable Maths::Vector4f clear_color_value = {0.0F, 0.0F, 0.0F, 1.0F};
     float exposure = 1.0F;

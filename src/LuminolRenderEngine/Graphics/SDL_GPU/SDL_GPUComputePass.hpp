@@ -10,6 +10,8 @@ namespace Luminol::Graphics::SDL_GPU {
 
 class Buffer;
 class ComputePipeline;
+class Texture;
+struct TextureSamplerBinding;
 
 class ComputePass {
 public:
@@ -27,6 +29,17 @@ public:
     // Read-only storage buffers (BufferUsage::ComputeStorageRead).
     auto bind_storage_buffers(
         uint32_t first_slot, gsl::span<const Buffer* const> buffers
+    ) -> void;
+
+    // Read-only storage textures (TextureUsage::ComputeStorageRead).
+    auto bind_storage_textures(
+        uint32_t first_slot, gsl::span<const Texture* const> textures
+    ) -> void;
+
+    // Sampled textures (TextureUsage::Sampler) for compute shaders that
+    // sample with an arbitrary/computed LOD (e.g. SampleLevel).
+    auto bind_samplers(
+        uint32_t first_slot, gsl::span<const TextureSamplerBinding> bindings
     ) -> void;
 
     auto dispatch(

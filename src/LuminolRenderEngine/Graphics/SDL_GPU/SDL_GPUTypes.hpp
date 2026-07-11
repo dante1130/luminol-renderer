@@ -61,12 +61,16 @@ enum class TextureFormat : uint8_t {
     R8G8B8A8_Unorm_Srgb,
     D24_Unorm,
     R16G16B16A16_Float,
+    R32_Float,
 };
 
 enum class TextureUsage : uint8_t {
     Sampler = 1U << 0U,
     ColorTarget = 1U << 1U,
     DepthStencilTarget = 1U << 2U,
+    ComputeStorageRead = 1U << 3U,
+    ComputeStorageWrite = 1U << 4U,
+    ComputeStorageSimultaneousReadWrite = 1U << 5U,
 };
 
 constexpr auto operator|(TextureUsage lhs, TextureUsage rhs) -> TextureUsage {

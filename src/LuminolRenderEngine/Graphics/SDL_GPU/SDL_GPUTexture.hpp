@@ -85,6 +85,11 @@ struct SamplerInfo {
     // unbounded). Only meaningful for textures created with
     // TextureInfo::generate_mipmaps = true.
     bool enable_mipmap_filtering = false;
+    // Highest mip level accessible when enable_mipmap_filtering is false
+    // (mipmap_mode stays NEAREST, so an explicit SampleLevel/LOD picks one
+    // mip exactly with no blending - needed for conservative Hi-Z reads).
+    // Ignored when enable_mipmap_filtering is true (max_lod is unbounded).
+    uint32_t max_lod = 0;
 };
 
 class Sampler {

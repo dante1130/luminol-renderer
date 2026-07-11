@@ -7,6 +7,8 @@
 #include <gsl/gsl>
 #include <LuminolMaths/Vector.hpp>
 
+#include <LuminolMaths/Matrix.hpp>
+
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUComputePipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBatch.hpp>
@@ -18,6 +20,8 @@ class GPUDevice;
 class CommandBuffer;
 class SDL_GPUFactory;
 class SDL_GPUInstanceBufferCache;
+class Texture;
+class Sampler;
 
 // Where one submesh's culled draw lives: indirect_command_byte_offset
 // indexes into get_indirect_command_buffer() (pass straight to
@@ -52,12 +56,18 @@ public:
     // Must be called after instance data is uploaded (SDL_GPUInstanceBufferCache)
     // and before any render pass is opened on command_buffer this frame -
     // it opens its own copy pass and compute pass(es).
+    // hiz_mip_levels = 0 disables the occlusion test (first frame after
+    // construction/resize, when there is no valid previous-frame depth).
     [[nodiscard]] auto cull(
         const SDL_GPUFactory& graphics_factory,
         CommandBuffer& command_buffer,
         const SDL_GPUInstanceBufferCache& instance_buffer_cache,
         gsl::span<const InstanceBatch> instance_batches,
-        const std::array<Maths::Vector4f, 6>& camera_frustum_planes
+        const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
+        const Maths::Matrix4x4f& previous_view_projection,
+        const Texture& hiz_pyramid,
+        const Sampler& hiz_sampler,
+        uint32_t hiz_mip_levels
     ) -> InstanceCullLayout;
 
     [[nodiscard]] auto get_indirect_command_buffer() const -> const Buffer&;

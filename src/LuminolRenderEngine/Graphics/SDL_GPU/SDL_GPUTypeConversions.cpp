@@ -44,6 +44,8 @@ auto from_sdl_texture_format(SDL_GPUTextureFormat format)
             return TextureFormat::D24_Unorm;
         case SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT:
             return TextureFormat::R16G16B16A16_Float;
+        case SDL_GPU_TEXTUREFORMAT_R32_FLOAT:
+            return TextureFormat::R32_Float;
         default:
             return TextureFormat::Invalid;
     }
@@ -103,6 +105,8 @@ auto to_sdl_texture_format(TextureFormat format)
             return SDL_GPU_TEXTUREFORMAT_D24_UNORM;
         case TextureFormat::R16G16B16A16_Float:
             return SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT;
+        case TextureFormat::R32_Float:
+            return SDL_GPU_TEXTUREFORMAT_R32_FLOAT;
     }
     throw std::runtime_error{"Invalid texture format"};
 }
@@ -119,6 +123,18 @@ auto to_sdl_texture_usage(TextureUsage usage) -> SDL_GPUTextureUsageFlags {
     if ((usage & TextureUsage::DepthStencilTarget) ==
         TextureUsage::DepthStencilTarget) {
         flags |= SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
+    }
+    if ((usage & TextureUsage::ComputeStorageRead) ==
+        TextureUsage::ComputeStorageRead) {
+        flags |= SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_READ;
+    }
+    if ((usage & TextureUsage::ComputeStorageWrite) ==
+        TextureUsage::ComputeStorageWrite) {
+        flags |= SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE;
+    }
+    if ((usage & TextureUsage::ComputeStorageSimultaneousReadWrite) ==
+        TextureUsage::ComputeStorageSimultaneousReadWrite) {
+        flags |= SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_SIMULTANEOUS_READ_WRITE;
     }
 
     return flags;

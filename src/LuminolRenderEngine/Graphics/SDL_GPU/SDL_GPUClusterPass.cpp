@@ -186,7 +186,7 @@ auto SDL_GPUClusterPass::build_cluster_grid(
             .buffer = &cluster_aabb_buffer, .cycle = false
         }
     };
-    auto compute_pass = command_buffer.begin_compute_pass(storage_bindings);
+    auto compute_pass = command_buffer.begin_compute_pass({}, storage_bindings);
     command_buffer.push_compute_uniform_data(
         0,
         gsl::span<const std::byte>{
@@ -246,7 +246,7 @@ auto SDL_GPUClusterPass::cull_lights(
                     .buffer = &cluster_light_grid_buffer, .cycle = false
                 },
             };
-        auto compute_pass = command_buffer.begin_compute_pass(storage_bindings);
+        auto compute_pass = command_buffer.begin_compute_pass({}, storage_bindings);
         compute_pass.bind_storage_buffers(0, point_light_buffers);
         command_buffer.push_compute_uniform_data(
             0,
@@ -269,7 +269,7 @@ auto SDL_GPUClusterPass::cull_lights(
                     .buffer = &cluster_light_grid_buffer, .cycle = false
                 },
             };
-        auto compute_pass = command_buffer.begin_compute_pass(storage_bindings);
+        auto compute_pass = command_buffer.begin_compute_pass({}, storage_bindings);
         command_buffer.push_compute_uniform_data(
             0,
             gsl::span<const std::byte>{
@@ -294,7 +294,7 @@ auto SDL_GPUClusterPass::cull_lights(
                     .buffer = &global_light_index_list_buffer, .cycle = false
                 },
             };
-        auto compute_pass = command_buffer.begin_compute_pass(storage_bindings);
+        auto compute_pass = command_buffer.begin_compute_pass({}, storage_bindings);
         compute_pass.bind_storage_buffers(0, point_light_buffers);
         command_buffer.push_compute_uniform_data(
             0,

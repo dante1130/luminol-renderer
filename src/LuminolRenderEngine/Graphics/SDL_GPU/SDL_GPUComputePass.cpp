@@ -8,6 +8,8 @@
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUComputePipeline.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
 
@@ -54,6 +56,49 @@ auto ComputePass::bind_storage_buffers(
         first_slot,
         sdl_buffers.data(),
         static_cast<uint32_t>(sdl_buffers.size())
+    );
+}
+
+auto ComputePass::bind_storage_textures(
+    uint32_t first_slot, gsl::span<const Texture* const> textures
+) -> void {
+    Expects(compute_pass != nullptr);
+
+    auto sdl_textures = std::vector<SDL_GPUTexture*>(textures.size());
+    for (auto i = size_t{0}; i < textures.size(); ++i) {
+        Expects(textures[i] != nullptr);
+        sdl_textures[i] = textures[i]->native_handle();
+    }
+
+    SDL_BindGPUComputeStorageTextures(
+        compute_pass,
+        first_slot,
+        sdl_textures.data(),
+        static_cast<uint32_t>(sdl_textures.size())
+    );
+}
+
+auto ComputePass::bind_samplers(
+    uint32_t first_slot, gsl::span<const TextureSamplerBinding> bindings
+) -> void {
+    Expects(compute_pass != nullptr);
+
+    auto sdl_bindings =
+        std::vector<SDL_GPUTextureSamplerBinding>(bindings.size());
+    for (auto i = size_t{0}; i < bindings.size(); ++i) {
+        Expects(bindings[i].texture != nullptr);
+        Expects(bindings[i].sampler != nullptr);
+        sdl_bindings[i] = SDL_GPUTextureSamplerBinding{
+            .texture = bindings[i].texture->native_handle(),
+            .sampler = bindings[i].sampler->native_handle(),
+        };
+    }
+
+    SDL_BindGPUComputeSamplers(
+        compute_pass,
+        first_slot,
+        sdl_bindings.data(),
+        static_cast<uint32_t>(sdl_bindings.size())
     );
 }
 

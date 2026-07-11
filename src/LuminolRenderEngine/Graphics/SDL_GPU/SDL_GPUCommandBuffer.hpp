@@ -33,6 +33,15 @@ struct StorageBufferReadWriteBinding {
     bool cycle = false;
 };
 
+struct StorageTextureReadWriteBinding {
+    // Required; asserted non-null in begin_compute_pass. Pointer (not
+    // reference) so callers can use designated-initializer syntax.
+    const Texture* texture = nullptr;
+    uint32_t mip_level = 0;
+    uint32_t layer = 0;
+    bool cycle = false;
+};
+
 struct ColorTargetInfo {
     // Required; asserted non-null in begin_render_pass. Pointer (not
     // reference) so callers can use designated-initializer syntax.
@@ -90,10 +99,12 @@ public:
 
     [[nodiscard]] auto begin_copy_pass() -> CopyPass;
 
-    // storage_buffer_bindings buffers must have been created with
-    // BufferUsage::ComputeStorageReadWrite; asserted non-null in
-    // begin_compute_pass.
+    // storage_texture_bindings textures must have been created with a
+    // TextureUsage::ComputeStorage* flag; storage_buffer_bindings buffers
+    // must have been created with BufferUsage::ComputeStorageReadWrite.
+    // Asserted non-null in begin_compute_pass.
     [[nodiscard]] auto begin_compute_pass(
+        gsl::span<const StorageTextureReadWriteBinding> storage_texture_bindings,
         gsl::span<const StorageBufferReadWriteBinding> storage_buffer_bindings
     ) -> ComputePass;
 

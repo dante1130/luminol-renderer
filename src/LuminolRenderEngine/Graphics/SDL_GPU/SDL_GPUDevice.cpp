@@ -628,7 +628,8 @@ auto GPUDevice::create_sampler(const SamplerInfo& info) -> Sampler {
             ? SDL_GPU_COMPAREOP_LESS_OR_EQUAL
             : SDL_GPU_COMPAREOP_INVALID,
         .min_lod = 0.0F,
-        .max_lod = info.enable_mipmap_filtering ? FLT_MAX : 0.0F,
+        .max_lod = info.enable_mipmap_filtering ? FLT_MAX
+                                                 : static_cast<float>(info.max_lod),
         .enable_anisotropy = false,
         .enable_compare = info.enable_compare,
         .padding1 = 0,

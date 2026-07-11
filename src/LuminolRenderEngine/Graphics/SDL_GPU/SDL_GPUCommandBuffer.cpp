@@ -8,6 +8,7 @@
 #include <SDL3/SDL_log.h>
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 
 namespace {
 
@@ -194,9 +195,27 @@ auto CommandBuffer::begin_copy_pass() -> CopyPass {
 }
 
 auto CommandBuffer::begin_compute_pass(
+    gsl::span<const StorageTextureReadWriteBinding> storage_texture_bindings,
     gsl::span<const StorageBufferReadWriteBinding> storage_buffer_bindings
 ) -> ComputePass {
     Expects(command_buffer != nullptr);
+
+    auto sdl_texture_bindings =
+        std::vector<SDL_GPUStorageTextureReadWriteBinding>(
+            storage_texture_bindings.size()
+        );
+    for (auto i = size_t{0}; i < storage_texture_bindings.size(); ++i) {
+        Expects(storage_texture_bindings[i].texture != nullptr);
+        sdl_texture_bindings[i] = SDL_GPUStorageTextureReadWriteBinding{
+            .texture = storage_texture_bindings[i].texture->native_handle(),
+            .mip_level = storage_texture_bindings[i].mip_level,
+            .layer = storage_texture_bindings[i].layer,
+            .cycle = storage_texture_bindings[i].cycle,
+            .padding1 = 0,
+            .padding2 = 0,
+            .padding3 = 0,
+        };
+    }
 
     auto sdl_bindings = std::vector<SDL_GPUStorageBufferReadWriteBinding>(
         storage_buffer_bindings.size()
@@ -214,8 +233,8 @@ auto CommandBuffer::begin_compute_pass(
 
     auto* compute_pass = SDL_BeginGPUComputePass(
         command_buffer,
-        nullptr,
-        0,
+        sdl_texture_bindings.data(),
+        static_cast<uint32_t>(sdl_texture_bindings.size()),
         sdl_bindings.data(),
         static_cast<uint32_t>(sdl_bindings.size())
     );

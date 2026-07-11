@@ -13,6 +13,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBufferCache.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMesh.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
 
@@ -32,10 +33,13 @@ struct InstanceCullParams {
     std::array<Vector4f, 6> frustum_planes;
     Vector4f local_bounds_min;
     Vector4f local_bounds_max;
+    Matrix4x4f previous_view_projection;
     uint32_t command_index;
     uint32_t instance_base_offset;
     uint32_t instance_count;
-    uint32_t padding;
+    uint32_t hiz_mip_levels;
+    std::array<float, 2> hiz_pyramid_size;
+    std::array<float, 2> padding;
 };
 
 // One submesh's culling dispatch inputs, built once per frame (cost
@@ -52,6 +56,7 @@ auto make_instance_cull_pipeline(GPUDevice& device) -> ComputePipeline {
     return device.create_compute_pipeline(ComputePipelineInfo{
         .path = "res/shaders/sdl_gpu/instance_cull.hlsl",
         .source_language = ShaderSourceLanguage::Hlsl,
+        .sampler_count = 1,
         .readonly_storage_buffer_count = 1,
         .readwrite_storage_buffer_count = 2,
         .uniform_buffer_count = 1,
@@ -98,7 +103,11 @@ auto SDL_GPUInstanceCullPass::cull(
     CommandBuffer& command_buffer,
     const SDL_GPUInstanceBufferCache& instance_buffer_cache,
     gsl::span<const InstanceBatch> instance_batches,
-    const std::array<Vector4f, 6>& camera_frustum_planes
+    const std::array<Vector4f, 6>& camera_frustum_planes,
+    const Matrix4x4f& previous_view_projection,
+    const Texture& hiz_pyramid,
+    const Sampler& hiz_sampler,
+    uint32_t hiz_mip_levels
 ) -> InstanceCullLayout {
     auto layout = InstanceCullLayout{};
     layout.reserve(instance_batches.size());
@@ -189,8 +198,18 @@ auto SDL_GPUInstanceCullPass::cull(
                 .buffer = &visible_instance_indices_buffer, .cycle = false
             },
         };
-        auto compute_pass = command_buffer.begin_compute_pass(storage_bindings);
+        auto compute_pass = command_buffer.begin_compute_pass({}, storage_bindings);
         compute_pass.bind_compute_pipeline(instance_cull_pipeline);
+
+        const auto hiz_sampler_bindings = std::array{TextureSamplerBinding{
+            .texture = &hiz_pyramid, .sampler = &hiz_sampler
+        }};
+        compute_pass.bind_samplers(0, hiz_sampler_bindings);
+
+        const auto hiz_pyramid_size = std::array<float, 2>{
+            static_cast<float>(hiz_pyramid.get_width()),
+            static_cast<float>(hiz_pyramid.get_height()),
+        };
 
         for (const auto& info : dispatch_infos) {
             const auto& instance_models_buffer =
@@ -209,10 +228,13 @@ auto SDL_GPUInstanceCullPass::cull(
                     info.local_bounds.max.x(), info.local_bounds.max.y(),
                     info.local_bounds.max.z(), 0.0F
                 },
+                .previous_view_projection = previous_view_projection,
                 .command_index = info.command_index,
                 .instance_base_offset = info.instance_base_offset,
                 .instance_count = info.instance_count,
-                .padding = 0U,
+                .hiz_mip_levels = hiz_mip_levels,
+                .hiz_pyramid_size = hiz_pyramid_size,
+                .padding = {0.0F, 0.0F},
             };
             command_buffer.push_compute_uniform_data(
                 0,

@@ -209,6 +209,7 @@ SDL_GPURenderer::SDL_GPURenderer(
           )
       },
       ao_pass{*this->gpu_device, sdl_window},
+      hiz_pass{*this->gpu_device, sdl_window},
       instance_cull_pass{*this->gpu_device},
       cluster_pass{*this->gpu_device},
       shadow_pass{*this->gpu_device},
@@ -228,6 +229,11 @@ SDL_GPURenderer::SDL_GPURenderer(
       text_render_pass{*this->gpu_device, sdl_window},
       depth_texture{make_depth_texture(*this->gpu_device, sdl_window)},
       hdr_color_texture{make_hdr_color_texture(*this->gpu_device, sdl_window)},
+      point_sampler{this->gpu_device->create_sampler(SamplerInfo{
+          .filter = SamplerFilter::Nearest,
+          .address_mode_u = SamplerAddressMode::ClampToEdge,
+          .address_mode_v = SamplerAddressMode::ClampToEdge,
+      })},
       msaa_sample_count{clamp_supported_sample_count(
           *this->gpu_device, requested_msaa_sample_count
       )},
@@ -302,6 +308,8 @@ auto SDL_GPURenderer::draw() -> void {
             *gpu_device, swapchain->width, swapchain->height, msaa_sample_count
         );
         ao_pass.resize(*gpu_device, swapchain->width, swapchain->height);
+        hiz_pass.resize(*gpu_device, swapchain->width, swapchain->height);
+        has_valid_previous_depth = false;
     }
 
     const auto hdr_color_texture_view =
@@ -335,13 +343,21 @@ auto SDL_GPURenderer::draw() -> void {
     const auto camera_frustum_planes =
         extract_frustum_planes(view_matrix * projection_matrix);
 
+    // Must happen before any render pass is opened this frame, and before
+    // depth_texture is overwritten below - it reads depth_texture while it
+    // still holds last frame's contents (ao_pass.draw() hasn't run yet this
+    // frame) and builds a Hi-Z pyramid from it for the occlusion test below.
+    hiz_pass.build(command_buffer, depth_texture, point_sampler);
+
     // Must happen before any render pass is opened this frame - it uploads
     // via a copy pass and dispatches compute passes, and SDL_GPU forbids
     // beginning either while a render pass is active.
     const auto instance_cull_layout = instance_cull_pass.cull(
         *this->sdl_gpu_factory, command_buffer,
         mesh_render_pass.get_instance_buffer_cache(), instance_batches,
-        camera_frustum_planes
+        camera_frustum_planes, previous_view_projection,
+        hiz_pass.get_pyramid_texture(), hiz_pass.get_pyramid_sampler(),
+        has_valid_previous_depth ? hiz_pass.get_mip_levels() : 0U
     );
 
     ao_pass.draw(
@@ -546,6 +562,9 @@ auto SDL_GPURenderer::draw() -> void {
 
     command_buffer.submit();
     queued_draws.clear();
+
+    previous_view_projection = view_matrix * projection_matrix;
+    has_valid_previous_depth = true;
 
     performance_logger.record(
         "frame", Units::Seconds{frame_timer.elapsed_seconds()}
