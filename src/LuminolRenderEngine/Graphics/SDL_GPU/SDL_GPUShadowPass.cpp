@@ -68,6 +68,12 @@ constexpr auto up_fallback = Vector3f{0.0F, 0.0F, 1.0F};
 // Row-major, left-handed orthographic projection with a [0, 1] depth range,
 // matching the D3D-style convention used by
 // Transform::left_handed_perspective_projection_matrix.
+// Mirrors cbuffer UBO in pbr_vert.hlsl.
+struct VertexUBO {
+    Matrix4x4f light_space_matrix;
+    std::array<uint32_t, 4> instance_base_offset;
+};
+
 auto left_handed_orthographic_projection_matrix(
     float half_width, float half_height, float near_plane, float far_plane
 ) -> Matrix4x4f {
@@ -186,7 +192,7 @@ SDL_GPUShadowPass::SDL_GPUShadowPass(GPUDevice& device)
           "res/shaders/sdl_gpu/pbr_vert.hlsl",
           ShaderStage::Vertex,
           1U,
-          1U
+          2U
       )},
       shadow_fragment_shader{make_shader(
           device,
@@ -235,18 +241,24 @@ auto SDL_GPUShadowPass::draw(
         command_buffer.begin_render_pass({}, &depth_stencil_target);
     render_pass.bind_graphics_pipeline(shadow_pipeline);
 
+    const auto vertex_ubo = VertexUBO{
+        .light_space_matrix = light_space_matrix,
+        .instance_base_offset = {0, 0, 0, 0},
+    };
     command_buffer.push_vertex_uniform_data(
         0,
         gsl::span{
-            reinterpret_cast<const std::byte*>(&light_space_matrix),
-            sizeof(light_space_matrix)
+            reinterpret_cast<const std::byte*>(&vertex_ubo), sizeof(vertex_ubo)
         }
     );
 
     for (const auto& batch : instance_batches) {
         const auto& instance_buffer =
             instance_buffer_cache.get(batch.renderable_id);
-        const auto storage_buffer_bindings = std::array{&instance_buffer};
+        const auto& identity_indices_buffer =
+            instance_buffer_cache.get_identity_indices_buffer();
+        const auto storage_buffer_bindings =
+            std::array{&instance_buffer, &identity_indices_buffer};
         render_pass.bind_vertex_storage_buffers(0, storage_buffer_bindings);
 
         const auto vertex_bindings = std::array{VertexBufferBinding{

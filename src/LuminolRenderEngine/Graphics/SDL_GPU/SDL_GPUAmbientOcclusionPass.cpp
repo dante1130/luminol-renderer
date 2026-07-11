@@ -59,6 +59,12 @@ constexpr auto mesh_vertex_attributes = std::array{
 constexpr auto depth_texture_format = TextureFormat::D24_Unorm;
 constexpr auto ao_texture_format = TextureFormat::R8G8B8A8_Unorm;
 
+// Mirrors cbuffer UBO in pbr_vert.hlsl.
+struct VertexUBO {
+    Matrix4x4f view_proj;
+    std::array<uint32_t, 4> instance_base_offset;
+};
+
 struct SSAOUniforms {
     Matrix4x4f projection_matrix;
     Matrix4x4f inverse_projection_matrix;
@@ -157,7 +163,7 @@ SDL_GPUAmbientOcclusionPass::SDL_GPUAmbientOcclusionPass(
           ShaderStage::Vertex,
           0U,
           1U,
-          1U
+          2U
       )},
       normal_prepass_fragment_shader{make_shader(
           device,
@@ -224,6 +230,9 @@ auto SDL_GPUAmbientOcclusionPass::draw(
     gsl::span<const InstanceBatch> instance_batches,
     const Maths::Matrix4x4f& view_matrix,
     const Maths::Matrix4x4f& projection_matrix,
+    const Buffer& indirect_command_buffer,
+    const Buffer& visible_instance_indices_buffer,
+    const InstanceCullLayout& instance_cull_layout,
     const Texture& depth_texture,
     Utilities::PerformanceLogger& performance_logger
 ) -> void {
@@ -259,13 +268,6 @@ auto SDL_GPUAmbientOcclusionPass::draw(
         render_pass.bind_graphics_pipeline(normal_prepass_pipeline);
 
         const auto view_proj = view_matrix * projection_matrix;
-        command_buffer.push_vertex_uniform_data(
-            0,
-            gsl::span{
-                reinterpret_cast<const std::byte*>(&view_proj),
-                sizeof(view_proj)
-            }
-        );
         command_buffer.push_fragment_uniform_data(
             0,
             gsl::span{
@@ -274,10 +276,17 @@ auto SDL_GPUAmbientOcclusionPass::draw(
             }
         );
 
-        for (const auto& batch : instance_batches) {
+        for (auto batch_index = std::size_t{0};
+             batch_index < instance_batches.size(); ++batch_index) {
+            const auto& batch = instance_batches[batch_index];
+            const auto& submesh_infos = instance_cull_layout[batch_index];
+            const auto meshes = graphics_factory.get_meshes(batch.renderable_id);
+
             const auto& instance_buffer =
                 instance_buffer_cache.get(batch.renderable_id);
-            const auto storage_buffer_bindings = std::array{&instance_buffer};
+            const auto storage_buffer_bindings = std::array{
+                &instance_buffer, &visible_instance_indices_buffer
+            };
             render_pass.bind_vertex_storage_buffers(
                 0, storage_buffer_bindings
             );
@@ -293,10 +302,24 @@ auto SDL_GPUAmbientOcclusionPass::draw(
                 IndexElementSize::Bits32, 0
             );
 
-            for (const auto& mesh :
-                 graphics_factory.get_meshes(batch.renderable_id)) {
-                mesh.draw_instanced_geometry_only(
-                    static_cast<int32_t>(batch.instance_count), render_pass
+            for (auto mesh_index = std::size_t{0}; mesh_index < meshes.size();
+                 ++mesh_index) {
+                const auto& info = submesh_infos[mesh_index];
+                const auto vertex_ubo = VertexUBO{
+                    .view_proj = view_proj,
+                    .instance_base_offset = {info.instance_base_offset, 0, 0, 0},
+                };
+                command_buffer.push_vertex_uniform_data(
+                    0,
+                    gsl::span{
+                        reinterpret_cast<const std::byte*>(&vertex_ubo),
+                        sizeof(vertex_ubo)
+                    }
+                );
+
+                meshes[mesh_index].draw_indirect_geometry_only(
+                    render_pass, indirect_command_buffer,
+                    info.indirect_command_byte_offset
                 );
             }
         }

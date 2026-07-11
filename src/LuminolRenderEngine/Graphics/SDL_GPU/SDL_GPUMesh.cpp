@@ -461,6 +461,42 @@ auto SDL_GPUMesh::draw_instanced_geometry_only(
     );
 }
 
+auto SDL_GPUMesh::draw_indirect(
+    RenderPass& sdl_gpu_pass,
+    const Buffer& indirect_buffer,
+    uint32_t byte_offset
+) const -> void {
+    const auto sampler_bindings = std::array{
+        TextureSamplerBinding{
+            .texture = &diffuse_texture, .sampler = &diffuse_sampler
+        },
+        TextureSamplerBinding{
+            .texture = &normal_texture, .sampler = &normal_sampler
+        },
+        TextureSamplerBinding{
+            .texture = &metallic_texture, .sampler = &metallic_sampler
+        },
+        TextureSamplerBinding{
+            .texture = &roughness_texture, .sampler = &roughness_sampler
+        },
+        TextureSamplerBinding{
+            .texture = &ambient_occlusion_texture,
+            .sampler = &ambient_occlusion_sampler
+        },
+    };
+    sdl_gpu_pass.bind_fragment_samplers(0, sampler_bindings);
+
+    sdl_gpu_pass.draw_indexed_primitives_indirect(indirect_buffer, byte_offset, 1);
+}
+
+auto SDL_GPUMesh::draw_indirect_geometry_only(
+    RenderPass& sdl_gpu_pass,
+    const Buffer& indirect_buffer,
+    uint32_t byte_offset
+) const -> void {
+    sdl_gpu_pass.draw_indexed_primitives_indirect(indirect_buffer, byte_offset, 1);
+}
+
 auto SDL_GPUMesh::alpha_mode() const -> Utilities::ModelLoader::AlphaMode {
     return mesh_alpha_mode;
 }

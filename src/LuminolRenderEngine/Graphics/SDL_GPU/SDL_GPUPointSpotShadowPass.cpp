@@ -15,6 +15,7 @@
 #include <LuminolRenderEngine/Graphics/Frustum.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCopyPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCullingUtils.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
@@ -96,6 +97,12 @@ constexpr auto point_atlas_height = point_atlas_rows * point_shadow_resolution;
 constexpr auto spot_atlas_width = spot_atlas_cols * spot_shadow_resolution;
 constexpr auto spot_atlas_height = spot_atlas_rows * spot_shadow_resolution;
 
+// Mirrors cbuffer UBO in pbr_vert.hlsl.
+struct VertexUBO {
+    Matrix4x4f view_projection;
+    std::array<uint32_t, 4> instance_base_offset;
+};
+
 struct AtlasTileRect {
     uint32_t x;
     uint32_t y;
@@ -123,23 +130,6 @@ constexpr auto spot_shadow_matrix_buffer_size =
     Luminol::Graphics::max_shadow_casting_spot_lights *
     static_cast<uint32_t>(sizeof(Matrix4x4f));
 
-// Memory layout must exactly match SDL_GPUIndexedIndirectDrawCommand (see
-// SDL_gpu.h) - SDL_GPU only requires the buffer's bytes to match that
-// layout, not the C++ type name, so this local struct avoids leaking a raw
-// SDL3 include into this file.
-struct IndirectDrawCommand {
-    uint32_t num_indices;
-    uint32_t num_instances;
-    uint32_t first_index;
-    int32_t vertex_offset;
-    uint32_t first_instance;
-};
-
-struct IndirectDrawRange {
-    uint32_t offset;
-    uint32_t count;
-};
-
 // Generous upper bound on (tile, batch) draw commands in a single frame:
 // (max_shadow_casting_point_lights * 6 faces + max_shadow_casting_spot_lights)
 // tiles, times an assumed-generous max of distinct renderable batches drawn
@@ -153,42 +143,6 @@ constexpr auto max_indirect_draw_commands =
     assumed_max_batches_per_frame;
 constexpr auto indirect_draw_buffer_size =
     max_indirect_draw_commands * static_cast<uint32_t>(sizeof(IndirectDrawCommand));
-
-// Appends one IndirectDrawCommand per mesh (in this batch) that survives the
-// frustum test, and records where in out_commands this batch's commands
-// start/how many there are (0 if none survive - callers skip the indirect
-// draw call entirely in that case).
-auto append_batch_indirect_commands(
-    const SDL_GPUFactory& graphics_factory,
-    const InstanceBatch& batch,
-    const std::vector<Luminol::Graphics::BoundingBox>& mesh_bounds,
-    const std::array<Vector4f, 6>& frustum_planes,
-    std::vector<IndirectDrawCommand>& out_commands
-) -> IndirectDrawRange {
-    const auto meshes = graphics_factory.get_meshes(batch.renderable_id);
-    const auto range_offset = static_cast<uint32_t>(out_commands.size());
-    auto range_count = uint32_t{0};
-
-    for (auto mesh_index = std::size_t{0}; mesh_index < meshes.size();
-         ++mesh_index) {
-        const auto& bounds = mesh_bounds[mesh_index];
-        if (!aabb_in_frustum(frustum_planes, bounds.min, bounds.max)) {
-            continue;
-        }
-
-        const auto& mesh = meshes[mesh_index];
-        out_commands.push_back(IndirectDrawCommand{
-            .num_indices = mesh.get_index_count(),
-            .num_instances = batch.instance_count,
-            .first_index = mesh.get_first_index(),
-            .vertex_offset = mesh.get_vertex_offset(),
-            .first_instance = 0U,
-        });
-        ++range_count;
-    }
-
-    return IndirectDrawRange{.offset = range_offset, .count = range_count};
-}
 
 struct CubeFace {
     Vector3f target_offset;
@@ -364,103 +318,6 @@ auto make_shadow_pipeline(
     });
 }
 
-// Transforms a local-space point by a row-major matrix under row-vector
-// convention (p * M, see pbr_vert.hlsl's mul(pos, vp)).
-auto transform_point(const Matrix4x4f& matrix, const Vector3f& point)
-    -> Vector3f {
-    return Vector3f{
-        (point.x() * matrix[0][0]) + (point.y() * matrix[1][0]) +
-            (point.z() * matrix[2][0]) + matrix[3][0],
-        (point.x() * matrix[0][1]) + (point.y() * matrix[1][1]) +
-            (point.z() * matrix[2][1]) + matrix[3][1],
-        (point.x() * matrix[0][2]) + (point.y() * matrix[1][2]) +
-            (point.z() * matrix[2][2]) + matrix[3][2],
-    };
-}
-
-// One world-space AABB per mesh (submesh) within a batch, covering the union
-// of all of that batch's current-frame instances. Computed once per frame
-// and reused across every light-face pass, since it doesn't depend on the
-// light.
-using BatchMeshBounds = std::vector<std::vector<Luminol::Graphics::BoundingBox>>;
-
-auto compute_batch_mesh_world_bounds(
-    const SDL_GPUFactory& graphics_factory,
-    gsl::span<const InstanceBatch> instance_batches,
-    const std::unordered_map<RenderableId, std::vector<Matrix4x4f>>&
-        queued_draws
-) -> BatchMeshBounds {
-    auto result = BatchMeshBounds{};
-    result.reserve(instance_batches.size());
-
-    for (const auto& batch : instance_batches) {
-        const auto meshes = graphics_factory.get_meshes(batch.renderable_id);
-        auto mesh_bounds = std::vector<Luminol::Graphics::BoundingBox>{};
-        mesh_bounds.reserve(meshes.size());
-
-        const auto transforms_it = queued_draws.find(batch.renderable_id);
-        const auto has_transforms = transforms_it != queued_draws.end() &&
-            !transforms_it->second.empty();
-
-        for (const auto& mesh : meshes) {
-            const auto& local_bounds = mesh.get_local_bounds();
-
-            if (!has_transforms) {
-                mesh_bounds.push_back(local_bounds);
-                continue;
-            }
-
-            const auto local_corners = std::array{
-                Vector3f{local_bounds.min.x(), local_bounds.min.y(), local_bounds.min.z()},
-                Vector3f{local_bounds.max.x(), local_bounds.min.y(), local_bounds.min.z()},
-                Vector3f{local_bounds.min.x(), local_bounds.max.y(), local_bounds.min.z()},
-                Vector3f{local_bounds.max.x(), local_bounds.max.y(), local_bounds.min.z()},
-                Vector3f{local_bounds.min.x(), local_bounds.min.y(), local_bounds.max.z()},
-                Vector3f{local_bounds.max.x(), local_bounds.min.y(), local_bounds.max.z()},
-                Vector3f{local_bounds.min.x(), local_bounds.max.y(), local_bounds.max.z()},
-                Vector3f{local_bounds.max.x(), local_bounds.max.y(), local_bounds.max.z()},
-            };
-
-            auto world_min = Vector3f{0.0F, 0.0F, 0.0F};
-            auto world_max = Vector3f{0.0F, 0.0F, 0.0F};
-            auto bounds_initialized = false;
-
-            for (const auto& transform : transforms_it->second) {
-                for (const auto& corner : local_corners) {
-                    const auto world_corner = transform_point(transform, corner);
-
-                    if (!bounds_initialized) {
-                        world_min = world_corner;
-                        world_max = world_corner;
-                        bounds_initialized = true;
-                        continue;
-                    }
-
-                    world_min = Vector3f{
-                        std::min(world_min.x(), world_corner.x()),
-                        std::min(world_min.y(), world_corner.y()),
-                        std::min(world_min.z(), world_corner.z()),
-                    };
-                    world_max = Vector3f{
-                        std::max(world_max.x(), world_corner.x()),
-                        std::max(world_max.y(), world_corner.y()),
-                        std::max(world_max.z(), world_corner.z()),
-                    };
-                }
-            }
-
-            mesh_bounds.push_back(Luminol::Graphics::BoundingBox{
-                .min = world_min,
-                .max = world_max,
-            });
-        }
-
-        result.push_back(std::move(mesh_bounds));
-    }
-
-    return result;
-}
-
 struct SelectedPointLight {
     uint32_t slot;
     Vector3f position;
@@ -533,7 +390,7 @@ SDL_GPUPointSpotShadowPass::SDL_GPUPointSpotShadowPass(GPUDevice& device)
           "res/shaders/sdl_gpu/pbr_vert.hlsl",
           ShaderStage::Vertex,
           1U,
-          1U
+          2U
       )},
       shadow_fragment_shader{make_shader(
           device,
@@ -578,12 +435,19 @@ auto SDL_GPUPointSpotShadowPass::draw(
 ) -> void {
     const auto pass_timer = Utilities::Timer{};
 
-    const auto batch_mesh_world_bounds = compute_batch_mesh_world_bounds(
-        graphics_factory, instance_batches, queued_draws
-    );
-
     const auto selected_point_lights = collect_selected_point_lights(light_data);
     const auto selected_spot_lights = collect_selected_spot_lights(light_data);
+
+    // Skip the O(instance count) CPU AABB computation entirely when no
+    // point/spot light is shadow-casting this frame - it's only consumed by
+    // append_batch_indirect_commands in the per-light loops below, which are
+    // empty in that case, so an empty BatchMeshBounds is never indexed.
+    const auto batch_mesh_world_bounds =
+        (selected_point_lights.empty() && selected_spot_lights.empty())
+        ? BatchMeshBounds{}
+        : compute_batch_mesh_world_bounds(
+              graphics_factory, instance_batches, queued_draws
+          );
 
     auto spot_shadow_matrices = std::vector<Maths::Matrix4x4f>(
         max_shadow_casting_spot_lights, Maths::Matrix4x4f::identity()
@@ -644,7 +508,7 @@ auto SDL_GPUPointSpotShadowPass::draw(
                 point_ranges.push_back(append_batch_indirect_commands(
                     graphics_factory, instance_batches[batch_index],
                     batch_mesh_world_bounds[batch_index], frustum_planes,
-                    indirect_commands
+                    std::nullopt, indirect_commands
                 ));
             }
         }
@@ -664,7 +528,7 @@ auto SDL_GPUPointSpotShadowPass::draw(
             spot_ranges.push_back(append_batch_indirect_commands(
                 graphics_factory, instance_batches[batch_index],
                 batch_mesh_world_bounds[batch_index], frustum_planes,
-                indirect_commands
+                std::nullopt, indirect_commands
             ));
         }
     }
@@ -736,11 +600,15 @@ auto SDL_GPUPointSpotShadowPass::draw(
                         static_cast<int32_t>(tile.size),
                         static_cast<int32_t>(tile.size)
                     );
+                    const auto vertex_ubo = VertexUBO{
+                        .view_projection = view_projection,
+                        .instance_base_offset = {0, 0, 0, 0},
+                    };
                     command_buffer.push_vertex_uniform_data(
                         0,
                         gsl::span{
-                            reinterpret_cast<const std::byte*>(&view_projection),
-                            sizeof(view_projection)
+                            reinterpret_cast<const std::byte*>(&vertex_ubo),
+                            sizeof(vertex_ubo)
                         }
                     );
 
@@ -770,8 +638,11 @@ auto SDL_GPUPointSpotShadowPass::draw(
 
                         const auto& instance_buffer =
                             instance_buffer_cache.get(batch.renderable_id);
-                        const auto storage_buffer_bindings =
-                            std::array{&instance_buffer};
+                        const auto& identity_indices_buffer =
+                            instance_buffer_cache.get_identity_indices_buffer();
+                        const auto storage_buffer_bindings = std::array{
+                            &instance_buffer, &identity_indices_buffer
+                        };
                         render_pass.bind_vertex_storage_buffers(
                             0, storage_buffer_bindings
                         );
@@ -829,13 +700,15 @@ auto SDL_GPUPointSpotShadowPass::draw(
                     static_cast<int32_t>(tile.x), static_cast<int32_t>(tile.y),
                     static_cast<int32_t>(tile.size), static_cast<int32_t>(tile.size)
                 );
+                const auto vertex_ubo = VertexUBO{
+                    .view_projection = spot_shadow_matrices[spot_light.slot],
+                    .instance_base_offset = {0, 0, 0, 0},
+                };
                 command_buffer.push_vertex_uniform_data(
                     0,
                     gsl::span{
-                        reinterpret_cast<const std::byte*>(
-                            &spot_shadow_matrices[spot_light.slot]
-                        ),
-                        sizeof(Maths::Matrix4x4f)
+                        reinterpret_cast<const std::byte*>(&vertex_ubo),
+                        sizeof(vertex_ubo)
                     }
                 );
 
@@ -862,8 +735,11 @@ auto SDL_GPUPointSpotShadowPass::draw(
 
                     const auto& instance_buffer =
                         instance_buffer_cache.get(batch.renderable_id);
-                    const auto storage_buffer_bindings =
-                        std::array{&instance_buffer};
+                    const auto& identity_indices_buffer =
+                        instance_buffer_cache.get_identity_indices_buffer();
+                    const auto storage_buffer_bindings = std::array{
+                        &instance_buffer, &identity_indices_buffer
+                    };
                     render_pass.bind_vertex_storage_buffers(
                         0, storage_buffer_bindings
                     );

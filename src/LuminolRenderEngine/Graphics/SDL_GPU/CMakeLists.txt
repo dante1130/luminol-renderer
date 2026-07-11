@@ -18,7 +18,9 @@ add_library(Luminol.Graphics.SDL_GPU
     SDL_GPUMeshRenderPass.cpp
     SDL_GPUAmbientOcclusionPass.cpp
     SDL_GPUClusterPass.cpp
+    SDL_GPUInstanceCullPass.cpp
     SDL_GPUShadowPass.cpp
+    SDL_GPUCullingUtils.cpp
     SDL_GPUPointSpotShadowPass.cpp
     SDL_GPUTonemapPass.cpp
     SDL_GPUSkybox.cpp

@@ -75,6 +75,25 @@ public:
         int32_t instance_count, RenderPass& sdl_gpu_pass
     ) const -> void;
 
+    // Binds this mesh's material samplers, then issues one indirect draw
+    // command read from indirect_buffer at byte_offset (see
+    // SDL_GPUInstanceCullPass - the command's num_instances is written by a
+    // GPU culling compute pass, not known on the CPU). Caller must have
+    // already bound this mesh's renderable's shared vertex/index buffers.
+    auto draw_indirect(
+        RenderPass& sdl_gpu_pass,
+        const Buffer& indirect_buffer,
+        uint32_t byte_offset
+    ) const -> void;
+
+    // Same as draw_indirect, but without binding material samplers (see
+    // draw_instanced_geometry_only).
+    auto draw_indirect_geometry_only(
+        RenderPass& sdl_gpu_pass,
+        const Buffer& indirect_buffer,
+        uint32_t byte_offset
+    ) const -> void;
+
     [[nodiscard]] auto alpha_mode() const -> Utilities::ModelLoader::AlphaMode;
 
     [[nodiscard]] auto get_first_index() const -> uint32_t;

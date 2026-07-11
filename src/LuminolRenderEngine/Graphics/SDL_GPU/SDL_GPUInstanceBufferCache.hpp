@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <unordered_map>
 
 #include <gsl/gsl>
@@ -28,9 +29,21 @@ public:
 
     [[nodiscard]] auto get(RenderableId renderable_id) const -> const Buffer&;
 
+    // Shared identity mapping buffer (element i == i), grown lazily in
+    // upload() to cover the largest instance count seen so far. pbr_vert.hlsl
+    // always indexes instance_models through a visible_instance_indices
+    // indirection (see SDL_GPUInstanceCullPass, which populates a *culled*
+    // mapping); passes that draw every instance uncompacted (the shadow
+    // passes) bind this identity buffer instead, making that indirection a
+    // no-op.
+    [[nodiscard]] auto get_identity_indices_buffer() const -> const Buffer&;
+
 private:
     std::unordered_map<RenderableId, Buffer> instance_buffers;
     std::unordered_map<RenderableId, TransferBuffer> instance_transfer_buffers;
+
+    std::optional<Buffer> identity_indices_buffer;
+    std::optional<TransferBuffer> identity_indices_transfer_buffer;
 };
 
 }  // namespace Luminol::Graphics::SDL_GPU

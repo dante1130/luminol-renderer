@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <unordered_map>
 #include <vector>
 
@@ -10,7 +11,9 @@
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBatch.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBufferCache.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceCullPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 
@@ -21,11 +24,6 @@ class CopyPass;
 class CommandBuffer;
 class RenderPass;
 class SDL_GPUFactory;
-
-struct InstanceBatch {
-    RenderableId renderable_id;
-    uint32_t instance_count;
-};
 
 // Layout matches the LightBuffer cbuffer in pbr_frag.hlsl (register b0,
 // space3): five float4s then a row_major float4x4, no manual padding needed
@@ -107,6 +105,10 @@ public:
         const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
             queued_draws,
         const Maths::Matrix4x4f& view_proj,
+        const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
+        const Buffer& indirect_command_buffer,
+        const Buffer& visible_instance_indices_buffer,
+        const InstanceCullLayout& instance_cull_layout,
         LightData light_data,
         const Texture& ssao_texture,
         const Sampler& ssao_sampler,

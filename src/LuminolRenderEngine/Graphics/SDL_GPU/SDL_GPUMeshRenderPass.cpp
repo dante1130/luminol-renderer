@@ -3,8 +3,12 @@
 #include <algorithm>
 #include <array>
 #include <optional>
+#include <vector>
 
+#include <LuminolRenderEngine/Graphics/Frustum.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCopyPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCullingUtils.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
@@ -85,11 +89,17 @@ auto make_mesh_shader(
         .sampler_count =
             (stage == ShaderStage::Fragment) ? fragment_sampler_count : 0U,
         .uniform_buffer_count = 1U,
-        .storage_buffer_count = stage == ShaderStage::Vertex ? 1U
+        .storage_buffer_count = stage == ShaderStage::Vertex ? 2U
             : stage == ShaderStage::Fragment  ? fragment_storage_buffer_count
                                                : 0U,
     });
 }
+
+// Mirrors cbuffer UBO in pbr_vert.hlsl.
+struct VertexUBO {
+    Luminol::Maths::Matrix4x4f view_proj;
+    std::array<uint32_t, 4> instance_base_offset;
+};
 
 struct TransparentDrawItem {
     Luminol::Graphics::RenderableId renderable_id;
@@ -259,6 +269,10 @@ auto SDL_GPUMeshRenderPass::draw(
     const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
         queued_draws,
     const Maths::Matrix4x4f& view_proj,
+    const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
+    const Buffer& indirect_command_buffer,
+    const Buffer& visible_instance_indices_buffer,
+    const InstanceCullLayout& instance_cull_layout,
     LightData light_data,
     const Texture& ssao_texture,
     const Sampler& ssao_sampler,
@@ -270,13 +284,6 @@ auto SDL_GPUMeshRenderPass::draw(
 ) -> void {
     light_data.shadow_params.z() =
         static_cast<float>(ibl_textures.prefiltered_mip_count - 1);
-
-    command_buffer.push_vertex_uniform_data(
-        0,
-        gsl::span{
-            reinterpret_cast<const std::byte*>(&view_proj), sizeof(view_proj)
-        }
-    );
 
     command_buffer.push_fragment_uniform_data(
         0,
@@ -355,13 +362,26 @@ auto SDL_GPUMeshRenderPass::draw(
         spot_shadow_matrix_buffer_slot, spot_shadow_matrix_buffer_bindings
     );
 
+    // Each submesh is drawn indirectly with a GPU-culled, per-instance-
+    // compacted num_instances (see SDL_GPUInstanceCullPass) - one indirect
+    // draw call per submesh, since each needs its own material samplers
+    // bound (SDL_GPUMesh::draw_indirect) and its own instance_base_offset
+    // uniform, so submeshes can't be collapsed into one indirect multi-draw
+    // call sharing a single bind state.
     const auto draw_batches_matching =
         [&](Utilities::ModelLoader::AlphaMode mode) {
-            for (const auto& batch : instance_batches) {
+            for (auto batch_index = std::size_t{0};
+                 batch_index < instance_batches.size(); ++batch_index) {
+                const auto& batch = instance_batches[batch_index];
+                const auto& submesh_infos = instance_cull_layout[batch_index];
+                const auto meshes =
+                    graphics_factory.get_meshes(batch.renderable_id);
+
                 const auto& instance_buffer =
                     instance_buffer_cache.get(batch.renderable_id);
-                const auto storage_buffer_bindings =
-                    std::array{&instance_buffer};
+                const auto storage_buffer_bindings = std::array{
+                    &instance_buffer, &visible_instance_indices_buffer
+                };
                 render_pass.bind_vertex_storage_buffers(
                     0, storage_buffer_bindings
                 );
@@ -378,14 +398,30 @@ auto SDL_GPUMeshRenderPass::draw(
                     IndexElementSize::Bits32, 0
                 );
 
-                for (const auto& mesh :
-                     graphics_factory.get_meshes(batch.renderable_id)) {
+                for (auto mesh_index = std::size_t{0};
+                     mesh_index < meshes.size(); ++mesh_index) {
+                    const auto& mesh = meshes[mesh_index];
                     if (mesh.alpha_mode() != mode) {
                         continue;
                     }
 
-                    mesh.draw_instanced(
-                        static_cast<int32_t>(batch.instance_count), render_pass
+                    const auto& info = submesh_infos[mesh_index];
+                    const auto vertex_ubo = VertexUBO{
+                        .view_proj = view_proj,
+                        .instance_base_offset =
+                            {info.instance_base_offset, 0, 0, 0},
+                    };
+                    command_buffer.push_vertex_uniform_data(
+                        0,
+                        gsl::span{
+                            reinterpret_cast<const std::byte*>(&vertex_ubo),
+                            sizeof(vertex_ubo)
+                        }
+                    );
+
+                    mesh.draw_indirect(
+                        render_pass, indirect_command_buffer,
+                        info.indirect_command_byte_offset
                     );
                 }
             }
@@ -399,7 +435,9 @@ auto SDL_GPUMeshRenderPass::draw(
 
     auto transparent_items = std::vector<TransparentDrawItem>{};
 
-    for (const auto& batch : instance_batches) {
+    for (auto batch_index = std::size_t{0}; batch_index < instance_batches.size();
+         ++batch_index) {
+        const auto& batch = instance_batches[batch_index];
         const auto meshes = graphics_factory.get_meshes(batch.renderable_id);
         const auto has_transparent_mesh = std::ranges::any_of(
             meshes,
@@ -419,6 +457,11 @@ auto SDL_GPUMeshRenderPass::draw(
 
         for (const auto& mesh : meshes) {
             if (mesh.alpha_mode() != Utilities::ModelLoader::AlphaMode::Blend) {
+                continue;
+            }
+
+            const auto bounds = compute_mesh_world_bounds(mesh, model_matrices);
+            if (!aabb_in_frustum(camera_frustum_planes, bounds.min, bounds.max)) {
                 continue;
             }
 
@@ -446,12 +489,32 @@ auto SDL_GPUMeshRenderPass::draw(
 
     render_pass.bind_graphics_pipeline(mesh_transparent_pipeline);
 
+    // Transparent items are drawn individually in sorted order (not
+    // GPU-culled/compacted - see the comment above draw_batches_matching),
+    // so each covers the full 0..instance_count-1 range: bind the identity
+    // indices buffer to make pbr_vert.hlsl's visible_instance_indices
+    // indirection a no-op.
+    const auto identity_vertex_ubo = VertexUBO{
+        .view_proj = view_proj,
+        .instance_base_offset = {0, 0, 0, 0},
+    };
+    command_buffer.push_vertex_uniform_data(
+        0,
+        gsl::span{
+            reinterpret_cast<const std::byte*>(&identity_vertex_ubo),
+            sizeof(identity_vertex_ubo)
+        }
+    );
+
     auto bound_renderable_id = std::optional<RenderableId>{};
     for (const auto& item : transparent_items) {
         if (bound_renderable_id != item.renderable_id) {
             const auto& instance_buffer =
                 instance_buffer_cache.get(item.renderable_id);
-            const auto storage_buffer_bindings = std::array{&instance_buffer};
+            const auto& identity_indices_buffer =
+                instance_buffer_cache.get_identity_indices_buffer();
+            const auto storage_buffer_bindings =
+                std::array{&instance_buffer, &identity_indices_buffer};
             render_pass.bind_vertex_storage_buffers(0, storage_buffer_bindings);
 
             const auto vertex_bindings = std::array{VertexBufferBinding{

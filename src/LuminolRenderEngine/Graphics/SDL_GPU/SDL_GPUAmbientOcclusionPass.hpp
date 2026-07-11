@@ -4,10 +4,12 @@
 
 #include <gsl/gsl>
 #include <LuminolMaths/Matrix.hpp>
+#include <LuminolMaths/Vector.hpp>
 
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBufferCache.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceCullPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 #include <LuminolRenderEngine/Utilities/PerformanceLogger.hpp>
@@ -38,6 +40,9 @@ public:
         gsl::span<const InstanceBatch> instance_batches,
         const Maths::Matrix4x4f& view_matrix,
         const Maths::Matrix4x4f& projection_matrix,
+        const Buffer& indirect_command_buffer,
+        const Buffer& visible_instance_indices_buffer,
+        const InstanceCullLayout& instance_cull_layout,
         const Texture& depth_texture,
         Utilities::PerformanceLogger& performance_logger
     ) -> void;

@@ -8,6 +8,7 @@
 #include <gsl/gsl>
 #include <SDL3/SDL_video.h>
 
+#include <LuminolRenderEngine/Graphics/Frustum.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCopyPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
@@ -208,6 +209,7 @@ SDL_GPURenderer::SDL_GPURenderer(
           )
       },
       ao_pass{*this->gpu_device, sdl_window},
+      instance_cull_pass{*this->gpu_device},
       cluster_pass{*this->gpu_device},
       shadow_pass{*this->gpu_device},
       point_spot_shadow_pass{*this->gpu_device},
@@ -330,6 +332,18 @@ auto SDL_GPURenderer::draw() -> void {
         );
     }
 
+    const auto camera_frustum_planes =
+        extract_frustum_planes(view_matrix * projection_matrix);
+
+    // Must happen before any render pass is opened this frame - it uploads
+    // via a copy pass and dispatches compute passes, and SDL_GPU forbids
+    // beginning either while a render pass is active.
+    const auto instance_cull_layout = instance_cull_pass.cull(
+        *this->sdl_gpu_factory, command_buffer,
+        mesh_render_pass.get_instance_buffer_cache(), instance_batches,
+        camera_frustum_planes
+    );
+
     ao_pass.draw(
         *this->sdl_gpu_factory,
         command_buffer,
@@ -337,6 +351,9 @@ auto SDL_GPURenderer::draw() -> void {
         instance_batches,
         view_matrix,
         projection_matrix,
+        instance_cull_pass.get_indirect_command_buffer(),
+        instance_cull_pass.get_visible_instance_indices_buffer(),
+        instance_cull_layout,
         depth_texture,
         performance_logger
     );
@@ -450,6 +467,10 @@ auto SDL_GPURenderer::draw() -> void {
             instance_batches,
             queued_draws,
             view_matrix * projection_matrix,
+            camera_frustum_planes,
+            instance_cull_pass.get_indirect_command_buffer(),
+            instance_cull_pass.get_visible_instance_indices_buffer(),
+            instance_cull_layout,
             light_data,
             ao_pass.get_ao_texture(),
             ao_pass.get_sampler(),
