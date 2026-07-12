@@ -103,6 +103,10 @@ float4 main(PSInput input) : SV_Target {
     const float pixel_length = max(abs(pixel_delta.x), abs(pixel_delta.y));
     const int steps = clamp((int)pixel_length, 1, max_steps);
 
+    // Full-step jitter decorrelates the march phase between neighbouring
+    // pixels, breaking the coherent step-quantized silhouette (the "comb" along
+    // thin-geometry edges) into fine noise. With the fine stepping above that
+    // noise is small-amplitude, so the resolve (denoise) pass smooths it away.
     const float jitter =
         interleaved_gradient_noise(input.uv * viewport_size.xy);
 
@@ -146,7 +150,7 @@ float4 main(PSInput input) : SV_Target {
                 float lo = previous_t;
                 float hi = t;
                 [unroll]
-                for (int r = 0; r < 5; ++r) {
+                for (int r = 0; r < 8; ++r) {
                     const float mid = (lo + hi) * 0.5f;
                     const float2 mid_uv = lerp(uv_start, uv_end, mid);
                     const float mid_inv_w = lerp(inv_w_start, inv_w_end, mid);
@@ -168,12 +172,13 @@ float4 main(PSInput input) : SV_Target {
                     previous_color_texture.Sample(color_sampler, hit_uv).rgb;
 
                 // Fade out as the hit approaches the screen edges (off-screen
-                // data is unavailable) and as the ray length grows (less
-                // reliable far hits).
+                // data is unavailable). Only fade with ray length near the very
+                // end of the march, so reflections of taller objects (which
+                // need longer rays) stay full strength instead of washing out.
                 const float2 edge = smoothstep(0.0f, 0.15f, hit_uv) *
                     smoothstep(0.0f, 0.15f, 1.0f - hit_uv);
                 const float edge_fade = edge.x * edge.y;
-                const float distance_fade = saturate(1.0f - hi);
+                const float distance_fade = 1.0f - smoothstep(0.7f, 1.0f, hi);
 
                 return float4(hit_color, edge_fade * distance_fade);
             }

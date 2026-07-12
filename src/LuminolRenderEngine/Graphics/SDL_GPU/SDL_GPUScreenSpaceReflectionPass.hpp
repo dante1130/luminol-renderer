@@ -46,14 +46,27 @@ private:
     Shader ssr_fragment_shader;
     GraphicsPipeline ssr_pipeline;
 
+    // Confidence-weighted blur that denoises the jittered trace result.
+    Shader resolve_fragment_shader;
+    GraphicsPipeline resolve_pipeline;
+
+    // Raw trace output; resolved (denoised) output consumed by the forward
+    // pass. Kept separate since the resolve pass reads the raw texture while
+    // writing the resolved one.
     Texture ssr_texture;
+    Texture ssr_resolved_texture;
     Sampler clamp_sampler;
 
     static constexpr auto default_max_distance = 8.0F;
-    static constexpr auto default_thickness = 0.5F;
-    // Upper bound on the screen-space march samples (the pass walks ~one pixel
-    // per step, capped here for long/grazing rays).
-    static constexpr auto default_max_steps = 96.0F;
+    // View-space depth tolerance for a hit. Kept tight so the reflection of
+    // thin geometry (e.g. a knife blade) doesn't smear along the ray - a large
+    // tolerance registers a "hit" anywhere in a thick band behind the front
+    // surface, stretching the thin object's colour downward in the reflection.
+    static constexpr auto default_thickness = 0.25F;
+    // Upper bound on the screen-space march samples. The pass walks ~one pixel
+    // per step; a high cap keeps long reflection rays (tall objects, grazing
+    // angles) finely sampled so the hit silhouette doesn't staircase.
+    static constexpr auto default_max_steps = 256.0F;
 
     float max_distance = default_max_distance;
     float thickness = default_thickness;
