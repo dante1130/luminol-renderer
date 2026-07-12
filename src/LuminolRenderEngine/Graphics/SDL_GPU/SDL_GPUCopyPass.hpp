@@ -48,6 +48,16 @@ public:
         uint32_t layer = 0
     ) -> void;
 
+    auto download_from_texture(
+        const Texture& source,
+        uint32_t mip_level,
+        uint32_t width,
+        uint32_t height,
+        const TransferBuffer& destination,
+        uint32_t destination_offset,
+        uint32_t layer = 0
+    ) -> void;
+
     [[nodiscard]] auto native_handle() const -> SDL_GPUCopyPass*;
 
 private:

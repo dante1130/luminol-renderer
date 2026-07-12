@@ -113,6 +113,41 @@ auto CopyPass::upload_to_texture(
     );
 }
 
+auto CopyPass::download_from_texture(
+    const Texture& source,
+    uint32_t mip_level,
+    uint32_t width,
+    uint32_t height,
+    const TransferBuffer& destination,
+    uint32_t destination_offset,
+    uint32_t layer
+) -> void {
+    Expects(copy_pass != nullptr);
+
+    const auto source_region = SDL_GPUTextureRegion{
+        .texture = source.native_handle(),
+        .mip_level = mip_level,
+        .layer = layer,
+        .x = 0,
+        .y = 0,
+        .z = 0,
+        .w = width,
+        .h = height,
+        .d = 1,
+    };
+
+    const auto destination_location = SDL_GPUTextureTransferInfo{
+        .transfer_buffer = destination.native_handle(),
+        .offset = destination_offset,
+        .pixels_per_row = width,
+        .rows_per_layer = height,
+    };
+
+    SDL_DownloadFromGPUTexture(
+        copy_pass, &source_region, &destination_location
+    );
+}
+
 auto CopyPass::native_handle() const -> SDL_GPUCopyPass* { return copy_pass; }
 
 auto CopyPass::end() noexcept -> void {
