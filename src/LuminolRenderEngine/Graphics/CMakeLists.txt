@@ -1,7 +1,6 @@
 add_library(Luminol.Graphics
     Camera.cpp
     Frustum.cpp
-    GraphicsFactory.cpp
     LightManager.cpp
     Renderer.cpp
     RenderableManager.cpp

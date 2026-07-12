@@ -117,9 +117,7 @@ auto main() -> int {
     constexpr auto camera_translation_speed = 40.0f;
     constexpr auto camera_far_plane = 500.0f;
 
-    auto luminol_engine = Luminol::RenderEngine(Luminol::Properties{
-        .graphics_api = Graphics::GraphicsApi::SDL_GPU,
-    });
+    auto luminol_engine = Luminol::RenderEngine(Luminol::Properties{});
 
     auto camera = Graphics::Camera{CameraProperties{
         .position = camera_initial_position,

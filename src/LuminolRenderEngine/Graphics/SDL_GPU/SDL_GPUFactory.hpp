@@ -1,22 +1,27 @@
 #pragma once
 
+#include <filesystem>
 #include <memory>
 #include <unordered_map>
 
-#include <LuminolRenderEngine/Graphics/GraphicsFactory.hpp>
+#include <gsl/gsl>
+
+#include <LuminolRenderEngine/Graphics/Renderer.hpp>
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
+#include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFont.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMesh.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
+#include <LuminolRenderEngine/Window/Window.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
 
 class GPUDevice;
 
-class SDL_GPUFactory : public GraphicsFactory {
+class SDL_GPUFactory : public std::enable_shared_from_this<SDL_GPUFactory> {
 public:
     explicit SDL_GPUFactory(uint32_t msaa_sample_count = 4);
-    ~SDL_GPUFactory() override;
+    ~SDL_GPUFactory();
 
     SDL_GPUFactory(const SDL_GPUFactory&) = delete;
     SDL_GPUFactory(SDL_GPUFactory&&) = delete;
@@ -24,20 +29,18 @@ public:
     auto operator=(SDL_GPUFactory&&) -> SDL_GPUFactory& = delete;
 
     [[nodiscard]] auto create_renderer(Window& window)
-        -> std::unique_ptr<Renderer> override;
+        -> std::unique_ptr<Renderer>;
 
     [[nodiscard]] auto create_mesh(
         gsl::span<const float> vertices,
         gsl::span<const uint32_t> indices,
         const TexturePaths& texture_paths
-    ) -> RenderableId override;
+    ) -> RenderableId;
 
     [[nodiscard]] auto create_model(const std::filesystem::path& model_path)
-        -> RenderableId override;
+        -> RenderableId;
 
-    auto remove_renderable(RenderableId renderable_id) -> void override;
-
-    [[nodiscard]] auto get_graphics_api() const -> GraphicsApi override;
+    auto remove_renderable(RenderableId renderable_id) -> void;
 
     [[nodiscard]] auto get_gpu_device() const -> std::shared_ptr<GPUDevice>;
 
@@ -53,7 +56,7 @@ public:
 
     [[nodiscard]] auto create_font(
         const std::filesystem::path& font_path, float point_size
-    ) -> FontId override;
+    ) -> FontId;
 
     [[nodiscard]] auto get_font(FontId font_id) const -> const SDL_GPUFont&;
 

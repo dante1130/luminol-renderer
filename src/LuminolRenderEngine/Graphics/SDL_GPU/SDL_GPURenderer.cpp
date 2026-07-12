@@ -17,6 +17,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCopyPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCullingUtils.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUResourceBuilders.hpp>
 #include <LuminolRenderEngine/Utilities/Timer.hpp>
 
 namespace {
@@ -97,13 +98,8 @@ auto make_depth_texture(GPUDevice& device, uint32_t width, uint32_t height)
 }
 
 auto make_depth_texture(GPUDevice& device, SDL_Window* window) -> Texture {
-    auto width = int{0};
-    auto height = int{0};
-    SDL_GetWindowSizeInPixels(window, &width, &height);
-
-    return make_depth_texture(
-        device, static_cast<uint32_t>(width), static_cast<uint32_t>(height)
-    );
+    const auto [width, height] = get_window_size_in_pixels(window);
+    return make_depth_texture(device, width, height);
 }
 
 auto make_hdr_color_texture(GPUDevice& device, uint32_t width, uint32_t height)
@@ -117,13 +113,8 @@ auto make_hdr_color_texture(GPUDevice& device, uint32_t width, uint32_t height)
 }
 
 auto make_hdr_color_texture(GPUDevice& device, SDL_Window* window) -> Texture {
-    auto width = int{0};
-    auto height = int{0};
-    SDL_GetWindowSizeInPixels(window, &width, &height);
-
-    return make_hdr_color_texture(
-        device, static_cast<uint32_t>(width), static_cast<uint32_t>(height)
-    );
+    const auto [width, height] = get_window_size_in_pixels(window);
+    return make_hdr_color_texture(device, width, height);
 }
 
 auto make_msaa_color_texture(
@@ -141,27 +132,8 @@ auto make_msaa_color_texture(
 auto make_msaa_color_texture(
     GPUDevice& device, SDL_Window* window, SampleCount sample_count
 ) -> Texture {
-    auto width = int{0};
-    auto height = int{0};
-    SDL_GetWindowSizeInPixels(window, &width, &height);
-
-    return make_msaa_color_texture(
-        device, static_cast<uint32_t>(width), static_cast<uint32_t>(height),
-        sample_count
-    );
-}
-
-auto make_hiz_debug_shader(
-    GPUDevice& device, const std::filesystem::path& path, ShaderStage stage,
-    uint32_t sampler_count, uint32_t uniform_buffer_count
-) -> Shader {
-    return device.create_shader(ShaderInfo{
-        .path = path,
-        .stage = stage,
-        .source_language = ShaderSourceLanguage::Hlsl,
-        .sampler_count = sampler_count,
-        .uniform_buffer_count = uniform_buffer_count,
-    });
+    const auto [width, height] = get_window_size_in_pixels(window);
+    return make_msaa_color_texture(device, width, height, sample_count);
 }
 
 // Mirrors cbuffer DebugVisualizeParams in hiz_debug_visualize_frag.hlsl.
@@ -170,22 +142,6 @@ struct HiZDebugVisualizeParams {
     float far_plane;
     std::array<float, 2> padding;
 };
-
-auto make_hiz_debug_pipeline(
-    GPUDevice& device, SDL_Window* window, const Shader& vertex_shader,
-    const Shader& fragment_shader
-) -> GraphicsPipeline {
-    return device.create_graphics_pipeline(GraphicsPipelineInfo{
-        .vertex_shader = vertex_shader,
-        .fragment_shader = fragment_shader,
-        .color_target_format = device.get_swapchain_texture_format(window),
-        .primitive_type = PrimitiveType::TriangleList,
-        .vertex_buffer_descriptions = {},
-        .vertex_attributes = {},
-        .enable_depth_test = false,
-        .cull_mode = CullMode::None,
-    });
-}
 
 auto make_msaa_depth_texture(
     GPUDevice& device, uint32_t width, uint32_t height, SampleCount sample_count
@@ -202,14 +158,8 @@ auto make_msaa_depth_texture(
 auto make_msaa_depth_texture(
     GPUDevice& device, SDL_Window* window, SampleCount sample_count
 ) -> Texture {
-    auto width = int{0};
-    auto height = int{0};
-    SDL_GetWindowSizeInPixels(window, &width, &height);
-
-    return make_msaa_depth_texture(
-        device, static_cast<uint32_t>(width), static_cast<uint32_t>(height),
-        sample_count
-    );
+    const auto [width, height] = get_window_size_in_pixels(window);
+    return make_msaa_depth_texture(device, width, height, sample_count);
 }
 
 // Steps down from the requested sample count until one is supported by the
@@ -305,17 +255,17 @@ SDL_GPURenderer::SDL_GPURenderer(
       msaa_depth_texture{make_msaa_depth_texture(
           *this->gpu_device, sdl_window, msaa_sample_count
       )},
-      hiz_debug_vertex_shader{make_hiz_debug_shader(
+      hiz_debug_vertex_shader{make_hlsl_shader(
           *this->gpu_device, "res/shaders/sdl_gpu/fullscreen_vert.hlsl",
-          ShaderStage::Vertex, 0U, 0U
+          ShaderStage::Vertex
       )},
-      hiz_debug_fragment_shader{make_hiz_debug_shader(
+      hiz_debug_fragment_shader{make_hlsl_shader(
           *this->gpu_device, "res/shaders/sdl_gpu/hiz_debug_visualize_frag.hlsl",
           ShaderStage::Fragment, 1U, 1U
       )},
-      hiz_debug_pipeline{make_hiz_debug_pipeline(
-          *this->gpu_device, sdl_window, hiz_debug_vertex_shader,
-          hiz_debug_fragment_shader
+      hiz_debug_pipeline{make_fullscreen_pipeline(
+          *this->gpu_device, hiz_debug_vertex_shader, hiz_debug_fragment_shader,
+          this->gpu_device->get_swapchain_texture_format(sdl_window)
       )},
       hiz_debug_sampler{this->gpu_device->create_sampler(SamplerInfo{
           .filter = SamplerFilter::Nearest,
@@ -355,65 +305,34 @@ auto SDL_GPURenderer::queue_draw_instanced(
     batch.insert(batch.end(), model_matrices.begin(), model_matrices.end());
 }
 
-auto SDL_GPURenderer::draw() -> void {
-    const auto frame_timer = Utilities::Timer{};
-
-    auto command_buffer = gpu_device->create_command_buffer();
-
-    const auto acquire_timer = Utilities::Timer{};
-    const auto swapchain = command_buffer.acquire_swapchain_texture(sdl_window);
-    performance_logger.record(
-        "acquire_swapchain", Units::Seconds{acquire_timer.elapsed_seconds()}
-    );
-
-    if (!swapchain.has_value()) {
-        command_buffer.submit();
-        queued_draws.clear();
+auto SDL_GPURenderer::handle_resize(const SwapchainTexture& swapchain) -> void {
+    if (depth_texture.get_width() == swapchain.width &&
+        depth_texture.get_height() == swapchain.height) {
         return;
     }
 
-    if (depth_texture.get_width() != swapchain->width ||
-        depth_texture.get_height() != swapchain->height) {
-        depth_texture = make_depth_texture(
-            *gpu_device, swapchain->width, swapchain->height
-        );
-        hdr_color_texture = make_hdr_color_texture(
-            *gpu_device, swapchain->width, swapchain->height
-        );
-        previous_hdr_color_texture = make_hdr_color_texture(
-            *gpu_device, swapchain->width, swapchain->height
-        );
-        has_valid_previous_hdr = false;
-        msaa_color_texture = make_msaa_color_texture(
-            *gpu_device, swapchain->width, swapchain->height, msaa_sample_count
-        );
-        msaa_depth_texture = make_msaa_depth_texture(
-            *gpu_device, swapchain->width, swapchain->height, msaa_sample_count
-        );
-        ao_pass.resize(*gpu_device, swapchain->width, swapchain->height);
-        ssr_pass.resize(*gpu_device, swapchain->width, swapchain->height);
-        hiz_pass.resize(*gpu_device, swapchain->width, swapchain->height);
-        occlusion_depth_pass.resize(
-            *gpu_device, swapchain->width, swapchain->height
-        );
-        has_valid_previous_depth = false;
-    }
+    depth_texture = make_depth_texture(*gpu_device, swapchain.width, swapchain.height);
+    hdr_color_texture =
+        make_hdr_color_texture(*gpu_device, swapchain.width, swapchain.height);
+    previous_hdr_color_texture =
+        make_hdr_color_texture(*gpu_device, swapchain.width, swapchain.height);
+    has_valid_previous_hdr = false;
+    msaa_color_texture = make_msaa_color_texture(
+        *gpu_device, swapchain.width, swapchain.height, msaa_sample_count
+    );
+    msaa_depth_texture = make_msaa_depth_texture(
+        *gpu_device, swapchain.width, swapchain.height, msaa_sample_count
+    );
+    ao_pass.resize(*gpu_device, swapchain.width, swapchain.height);
+    ssr_pass.resize(*gpu_device, swapchain.width, swapchain.height);
+    hiz_pass.resize(*gpu_device, swapchain.width, swapchain.height);
+    occlusion_depth_pass.resize(*gpu_device, swapchain.width, swapchain.height);
+    has_valid_previous_depth = false;
+}
 
-    const auto hdr_color_texture_view =
-        TextureView{hdr_color_texture.native_handle()};
-    const auto msaa_color_texture_view =
-        TextureView{msaa_color_texture.native_handle()};
-    const auto msaa_depth_texture_view =
-        TextureView{msaa_depth_texture.native_handle()};
-
-    const auto color_targets = std::array{ColorTargetInfo{
-        .texture = &msaa_color_texture_view,
-        .clear_color = clear_color_value,
-        .load_op = LoadOp::Clear,
-        .store_op = StoreOp::Resolve,
-        .resolve_texture = &hdr_color_texture_view,
-    }};
-
+auto SDL_GPURenderer::upload_instances_and_compute_frustum(
+    CommandBuffer& command_buffer
+) -> FramePrepData {
     auto instance_batches = std::vector<InstanceBatch>{};
     {
         const auto pass_timer = Utilities::Timer{};
@@ -431,6 +350,19 @@ auto SDL_GPURenderer::draw() -> void {
     const auto camera_frustum_planes =
         extract_frustum_planes(current_view_projection);
 
+    return FramePrepData{
+        .instance_batches = std::move(instance_batches),
+        .camera_frustum_planes = camera_frustum_planes,
+        .current_view_projection = current_view_projection,
+    };
+}
+
+auto SDL_GPURenderer::run_occlusion_prepass(
+    CommandBuffer& command_buffer,
+    gsl::span<const InstanceBatch> instance_batches,
+    const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
+    const Maths::Matrix4x4f& current_view_projection
+) -> void {
     // Phase 1: cheap early-out cull against LAST FRAME's Hi-Z (built from
     // depth_texture, which still holds last frame's contents - nothing has
     // written it yet this frame), using THIS frame's camera. Its result only
@@ -471,64 +403,61 @@ auto SDL_GPURenderer::draw() -> void {
     hiz_pass.build(
         command_buffer, occlusion_depth_pass.get_depth_texture(), point_sampler
     );
+}
 
+auto SDL_GPURenderer::record_debug_hiz_visualize(
+    CommandBuffer& command_buffer, const SwapchainTexture& swapchain
+) -> bool {
     // Debug-only: short-circuit the rest of the frame and blit the Hi-Z
     // pyramid's mip 0 straight to the screen instead of the normal scene, to
     // visually sanity-check its contents. Inspects the phase-2 (same-frame)
     // pyramid, since that's the one the final cull below actually uses.
-    if (debug_visualize_hiz) {
-        const auto visualize_color_targets = std::array{ColorTargetInfo{
-            .texture = &swapchain->texture,
-            .load_op = LoadOp::DontCare,
-            .store_op = StoreOp::Store,
-        }};
-
-        {
-            auto visualize_render_pass =
-                command_buffer.begin_render_pass(visualize_color_targets);
-            visualize_render_pass.bind_graphics_pipeline(hiz_debug_pipeline);
-
-            const auto debug_camera_params =
-                extract_camera_params(projection_matrix);
-            const auto debug_visualize_params = HiZDebugVisualizeParams{
-                .near_plane = debug_camera_params.near_plane,
-                .far_plane = debug_camera_params.far_plane,
-                .padding = {0.0F, 0.0F},
-            };
-            command_buffer.push_fragment_uniform_data(
-                0,
-                gsl::span{
-                    reinterpret_cast<const std::byte*>(&debug_visualize_params),
-                    sizeof(debug_visualize_params)
-                }
-            );
-
-            const auto hiz_sampler_bindings = std::array{TextureSamplerBinding{
-                .texture = &hiz_pass.get_pyramid_texture(),
-                .sampler = &hiz_debug_sampler,
-            }};
-            visualize_render_pass.bind_fragment_samplers(
-                0, hiz_sampler_bindings
-            );
-
-            visualize_render_pass.draw_primitives(3, 1, 0, 0);
-        }
-
-        command_buffer.submit();
-        queued_draws.clear();
-        return;
+    if (!debug_visualize_hiz) {
+        return false;
     }
 
-    // Phase 2 cull: the final, always-correct visible set, consumed by every
-    // downstream pass below exactly as the single-phase design did before.
-    const auto instance_cull_layout = instance_cull_pass.cull(
-        *this->sdl_gpu_factory, command_buffer,
-        mesh_render_pass.get_instance_buffer_cache(), instance_batches,
-        camera_frustum_planes, current_view_projection,
-        hiz_pass.get_pyramid_texture(), hiz_pass.get_pyramid_sampler(),
-        debug_disable_occlusion_culling ? 0U : hiz_pass.get_mip_levels()
-    );
+    const auto visualize_color_targets = std::array{ColorTargetInfo{
+        .texture = &swapchain.texture,
+        .load_op = LoadOp::DontCare,
+        .store_op = StoreOp::Store,
+    }};
 
+    {
+        auto visualize_render_pass =
+            command_buffer.begin_render_pass(visualize_color_targets);
+        visualize_render_pass.bind_graphics_pipeline(hiz_debug_pipeline);
+
+        const auto debug_camera_params = extract_camera_params(projection_matrix);
+        const auto debug_visualize_params = HiZDebugVisualizeParams{
+            .near_plane = debug_camera_params.near_plane,
+            .far_plane = debug_camera_params.far_plane,
+            .padding = {0.0F, 0.0F},
+        };
+        command_buffer.push_fragment_uniform_data(
+            0,
+            gsl::span{
+                reinterpret_cast<const std::byte*>(&debug_visualize_params),
+                sizeof(debug_visualize_params)
+            }
+        );
+
+        const auto hiz_sampler_bindings = std::array{TextureSamplerBinding{
+            .texture = &hiz_pass.get_pyramid_texture(),
+            .sampler = &hiz_debug_sampler,
+        }};
+        visualize_render_pass.bind_fragment_samplers(0, hiz_sampler_bindings);
+
+        visualize_render_pass.draw_primitives(3, 1, 0, 0);
+    }
+
+    return true;
+}
+
+auto SDL_GPURenderer::record_ao_and_ssr(
+    CommandBuffer& command_buffer,
+    gsl::span<const InstanceBatch> instance_batches,
+    const InstanceCullLayout& instance_cull_layout
+) -> void {
     ao_pass.draw(
         *this->sdl_gpu_factory,
         command_buffer,
@@ -555,7 +484,11 @@ auto SDL_GPURenderer::draw() -> void {
         has_valid_previous_hdr,
         performance_logger
     );
+}
 
+auto SDL_GPURenderer::record_shadows(
+    CommandBuffer& command_buffer, gsl::span<const InstanceBatch> instance_batches
+) -> const Light& {
     const auto camera_position = get_view_position(view_matrix);
     const auto camera_params = extract_camera_params(projection_matrix);
 
@@ -616,6 +549,36 @@ auto SDL_GPURenderer::draw() -> void {
         performance_logger
     );
 
+    return light_manager_data;
+}
+
+auto SDL_GPURenderer::record_main_pass(
+    CommandBuffer& command_buffer,
+    const SwapchainTexture& swapchain,
+    gsl::span<const InstanceBatch> instance_batches,
+    const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
+    const InstanceCullLayout& instance_cull_layout,
+    const Light& light_manager_data
+) -> void {
+    const auto& directional_light = light_manager_data.directional_light;
+    const auto camera_position = get_view_position(view_matrix);
+    const auto camera_params = extract_camera_params(projection_matrix);
+
+    const auto hdr_color_texture_view =
+        TextureView{hdr_color_texture.native_handle()};
+    const auto msaa_color_texture_view =
+        TextureView{msaa_color_texture.native_handle()};
+    const auto msaa_depth_texture_view =
+        TextureView{msaa_depth_texture.native_handle()};
+
+    const auto color_targets = std::array{ColorTargetInfo{
+        .texture = &msaa_color_texture_view,
+        .clear_color = clear_color_value,
+        .load_op = LoadOp::Clear,
+        .store_op = StoreOp::Resolve,
+        .resolve_texture = &hdr_color_texture_view,
+    }};
+
     const auto depth_stencil_target = DepthStencilTargetInfo{
         .texture = &msaa_depth_texture_view,
         .clear_depth = 1.0F,
@@ -623,128 +586,176 @@ auto SDL_GPURenderer::draw() -> void {
         .store_op = StoreOp::DontCare,
     };
 
-    {
-        const auto pass_timer = Utilities::Timer{};
+    const auto pass_timer = Utilities::Timer{};
 
-        auto render_pass = command_buffer.begin_render_pass(
-            color_targets, &depth_stencil_target
-        );
+    auto render_pass =
+        command_buffer.begin_render_pass(color_targets, &depth_stencil_target);
 
-        auto light_data = LightData{
-            .direction = directional_light.direction,
-            .color = directional_light.color,
-            .view_position = camera_position,
-            .screen_size = Maths::Vector4f{
-                static_cast<float>(swapchain->width),
-                static_cast<float>(swapchain->height),
-                0.0F,
-                0.0F,
-            },
-            .shadow_params = Maths::Vector4f{
-                static_cast<float>(
-                    shadow_pass.get_shadow_map_texture().get_width()
-                ),
-                shadow_normal_offset_bias,
-                0.0F,
-                0.0F,
-            },
-            .cluster_params = Maths::Vector4f{
-                camera_params.near_plane,
-                camera_params.far_plane,
-                0.0F,
-                0.0F,
-            },
-            .cascade_light_space_matrices =
-                shadow_pass.get_cascade_light_space_matrices(),
-            .cascade_split_depths = shadow_pass.get_cascade_split_depths(),
-            .camera_forward = get_camera_forward(view_matrix),
-        };
+    auto light_data = LightData{
+        .direction = directional_light.direction,
+        .color = directional_light.color,
+        .view_position = camera_position,
+        .screen_size = Maths::Vector4f{
+            static_cast<float>(swapchain.width),
+            static_cast<float>(swapchain.height),
+            0.0F,
+            0.0F,
+        },
+        .shadow_params = Maths::Vector4f{
+            static_cast<float>(shadow_pass.get_shadow_map_texture().get_width()),
+            shadow_normal_offset_bias,
+            0.0F,
+            0.0F,
+        },
+        .cluster_params = Maths::Vector4f{
+            camera_params.near_plane,
+            camera_params.far_plane,
+            0.0F,
+            0.0F,
+        },
+        .cascade_light_space_matrices =
+            shadow_pass.get_cascade_light_space_matrices(),
+        .cascade_split_depths = shadow_pass.get_cascade_split_depths(),
+        .camera_forward = get_camera_forward(view_matrix),
+    };
 
-        mesh_render_pass.draw(
-            *this->sdl_gpu_factory,
-            command_buffer,
-            render_pass,
-            instance_batches,
-            queued_draws,
-            view_matrix * projection_matrix,
-            camera_frustum_planes,
-            instance_cull_pass.get_indirect_command_buffer(),
-            instance_cull_pass.get_visible_instance_indices_buffer(),
-            instance_cull_layout,
-            light_data,
-            ao_pass.get_ao_texture(),
-            ao_pass.get_sampler(),
-            shadow_pass.get_shadow_map_texture(),
-            shadow_pass.get_sampler(),
-            IBLTextures{
-                .irradiance_texture = &ibl_render_pass.get_irradiance_texture(),
-                .irradiance_sampler = &ibl_render_pass.get_irradiance_sampler(),
-                .prefiltered_texture = &ibl_render_pass.get_prefiltered_texture(),
-                .prefiltered_sampler = &ibl_render_pass.get_prefiltered_sampler(),
-                .prefiltered_mip_count =
-                    ibl_render_pass.get_prefiltered_mip_count(),
-                .brdf_lut_texture = &ibl_render_pass.get_brdf_lut_texture(),
-                .brdf_lut_sampler = &ibl_render_pass.get_brdf_lut_sampler(),
-            },
-            ClusteredLightBuffers{
-                .point_lights = &cluster_pass.get_point_light_buffer(),
-                .spot_lights = &cluster_pass.get_spot_light_buffer(),
-                .cluster_light_grid = &cluster_pass.get_cluster_light_grid_buffer(),
-                .global_light_index_list =
-                    &cluster_pass.get_global_light_index_list_buffer(),
-            },
-            PointSpotShadowTextures{
-                .point_shadow_texture =
-                    &point_spot_shadow_pass.get_point_shadow_texture(),
-                .point_shadow_sampler =
-                    &point_spot_shadow_pass.get_point_shadow_sampler(),
-                .spot_shadow_texture =
-                    &point_spot_shadow_pass.get_spot_shadow_texture(),
-                .spot_shadow_sampler =
-                    &point_spot_shadow_pass.get_spot_shadow_sampler(),
-                .spot_shadow_matrices =
-                    &point_spot_shadow_pass.get_spot_shadow_matrix_buffer(),
-            },
-            ssr_pass.get_ssr_texture(),
-            ssr_pass.get_sampler()
-        );
+    mesh_render_pass.draw(
+        *this->sdl_gpu_factory,
+        command_buffer,
+        render_pass,
+        instance_batches,
+        queued_draws,
+        view_matrix * projection_matrix,
+        camera_frustum_planes,
+        instance_cull_pass.get_indirect_command_buffer(),
+        instance_cull_pass.get_visible_instance_indices_buffer(),
+        instance_cull_layout,
+        light_data,
+        ao_pass.get_ao_texture(),
+        ao_pass.get_sampler(),
+        shadow_pass.get_shadow_map_texture(),
+        shadow_pass.get_sampler(),
+        IBLTextures{
+            .irradiance_texture = &ibl_render_pass.get_irradiance_texture(),
+            .irradiance_sampler = &ibl_render_pass.get_irradiance_sampler(),
+            .prefiltered_texture = &ibl_render_pass.get_prefiltered_texture(),
+            .prefiltered_sampler = &ibl_render_pass.get_prefiltered_sampler(),
+            .prefiltered_mip_count = ibl_render_pass.get_prefiltered_mip_count(),
+            .brdf_lut_texture = &ibl_render_pass.get_brdf_lut_texture(),
+            .brdf_lut_sampler = &ibl_render_pass.get_brdf_lut_sampler(),
+        },
+        ClusteredLightBuffers{
+            .point_lights = &cluster_pass.get_point_light_buffer(),
+            .spot_lights = &cluster_pass.get_spot_light_buffer(),
+            .cluster_light_grid = &cluster_pass.get_cluster_light_grid_buffer(),
+            .global_light_index_list =
+                &cluster_pass.get_global_light_index_list_buffer(),
+        },
+        PointSpotShadowTextures{
+            .point_shadow_texture =
+                &point_spot_shadow_pass.get_point_shadow_texture(),
+            .point_shadow_sampler =
+                &point_spot_shadow_pass.get_point_shadow_sampler(),
+            .spot_shadow_texture =
+                &point_spot_shadow_pass.get_spot_shadow_texture(),
+            .spot_shadow_sampler =
+                &point_spot_shadow_pass.get_spot_shadow_sampler(),
+            .spot_shadow_matrices =
+                &point_spot_shadow_pass.get_spot_shadow_matrix_buffer(),
+        },
+        ssr_pass.get_ssr_texture(),
+        ssr_pass.get_sampler()
+    );
 
-        skybox_render_pass.draw(
-            command_buffer, render_pass, view_matrix, projection_matrix
-        );
+    skybox_render_pass.draw(
+        command_buffer, render_pass, view_matrix, projection_matrix
+    );
 
-        performance_logger.record(
-            "main_pass", Units::Seconds{pass_timer.elapsed_seconds()}
-        );
+    performance_logger.record(
+        "main_pass", Units::Seconds{pass_timer.elapsed_seconds()}
+    );
+}
+
+auto SDL_GPURenderer::record_tonemap_and_text(
+    CommandBuffer& command_buffer, const SwapchainTexture& swapchain
+) -> void {
+    const auto pass_timer = Utilities::Timer{};
+
+    const auto tonemap_color_targets = std::array{ColorTargetInfo{
+        .texture = &swapchain.texture,
+        .load_op = LoadOp::DontCare,
+        .store_op = StoreOp::Store,
+    }};
+
+    auto tonemap_render_pass =
+        command_buffer.begin_render_pass(tonemap_color_targets);
+
+    tonemap_pass.draw(
+        command_buffer, tonemap_render_pass, hdr_color_texture, exposure
+    );
+
+    text_render_pass.draw(
+        command_buffer, tonemap_render_pass, swapchain.width, swapchain.height
+    );
+
+    performance_logger.record(
+        "tonemap", Units::Seconds{pass_timer.elapsed_seconds()}
+    );
+}
+
+auto SDL_GPURenderer::draw() -> void {
+    const auto frame_timer = Utilities::Timer{};
+
+    auto command_buffer = gpu_device->create_command_buffer();
+
+    const auto acquire_timer = Utilities::Timer{};
+    const auto swapchain = command_buffer.acquire_swapchain_texture(sdl_window);
+    performance_logger.record(
+        "acquire_swapchain", Units::Seconds{acquire_timer.elapsed_seconds()}
+    );
+
+    if (!swapchain.has_value()) {
+        command_buffer.submit();
+        queued_draws.clear();
+        return;
     }
 
-    {
-        const auto pass_timer = Utilities::Timer{};
+    handle_resize(*swapchain);
 
-        const auto tonemap_color_targets = std::array{ColorTargetInfo{
-            .texture = &swapchain->texture,
-            .load_op = LoadOp::DontCare,
-            .store_op = StoreOp::Store,
-        }};
+    auto frame_prep = upload_instances_and_compute_frustum(command_buffer);
 
-        auto tonemap_render_pass =
-            command_buffer.begin_render_pass(tonemap_color_targets);
+    run_occlusion_prepass(
+        command_buffer, frame_prep.instance_batches,
+        frame_prep.camera_frustum_planes, frame_prep.current_view_projection
+    );
 
-        tonemap_pass.draw(
-            command_buffer, tonemap_render_pass, hdr_color_texture, exposure
-        );
-
-        text_render_pass.draw(
-            command_buffer,
-            tonemap_render_pass,
-            swapchain->width,
-            swapchain->height
-        );
-
-        performance_logger.record(
-            "tonemap", Units::Seconds{pass_timer.elapsed_seconds()}
-        );
+    if (record_debug_hiz_visualize(command_buffer, *swapchain)) {
+        command_buffer.submit();
+        queued_draws.clear();
+        return;
     }
+
+    // Phase 2 cull: the final, always-correct visible set, consumed by every
+    // downstream pass below exactly as the single-phase design did before.
+    const auto instance_cull_layout = instance_cull_pass.cull(
+        *this->sdl_gpu_factory, command_buffer,
+        mesh_render_pass.get_instance_buffer_cache(), frame_prep.instance_batches,
+        frame_prep.camera_frustum_planes, frame_prep.current_view_projection,
+        hiz_pass.get_pyramid_texture(), hiz_pass.get_pyramid_sampler(),
+        debug_disable_occlusion_culling ? 0U : hiz_pass.get_mip_levels()
+    );
+
+    record_ao_and_ssr(command_buffer, frame_prep.instance_batches, instance_cull_layout);
+
+    const auto& light_manager_data =
+        record_shadows(command_buffer, frame_prep.instance_batches);
+
+    record_main_pass(
+        command_buffer, *swapchain, frame_prep.instance_batches,
+        frame_prep.camera_frustum_planes, instance_cull_layout, light_manager_data
+    );
+
+    record_tonemap_and_text(command_buffer, *swapchain);
 
     command_buffer.submit();
     queued_draws.clear();

@@ -10,6 +10,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUResourceBuilders.hpp>
 
 namespace {
 
@@ -63,38 +64,6 @@ auto cube_face_inv_view_proj(uint32_t face) -> Matrix4x4f {
     return (view * projection).inverse();
 }
 
-auto make_shader(
-    GPUDevice& device,
-    const std::filesystem::path& path,
-    ShaderStage stage,
-    uint32_t sampler_count,
-    uint32_t uniform_buffer_count
-) -> Shader {
-    return device.create_shader(ShaderInfo{
-        .path = path,
-        .stage = stage,
-        .source_language = ShaderSourceLanguage::Hlsl,
-        .sampler_count = sampler_count,
-        .uniform_buffer_count = uniform_buffer_count,
-        .storage_buffer_count = 0U,
-    });
-}
-
-auto make_cube_pipeline(
-    GPUDevice& device, const Shader& vertex_shader, const Shader& fragment_shader
-) -> GraphicsPipeline {
-    return device.create_graphics_pipeline(GraphicsPipelineInfo{
-        .vertex_shader = vertex_shader,
-        .fragment_shader = fragment_shader,
-        .color_target_format = ibl_texture_format,
-        .primitive_type = PrimitiveType::TriangleList,
-        .vertex_buffer_descriptions = {},
-        .vertex_attributes = {},
-        .enable_depth_test = false,
-        .cull_mode = CullMode::None,
-    });
-}
-
 auto make_cube_texture(GPUDevice& device, uint32_t size, uint32_t mip_levels)
     -> Texture {
     return device.create_texture(TextureInfo{
@@ -126,57 +95,47 @@ SDL_GPUIBLRenderPass::SDL_GPUIBLRenderPass(
     const Texture& skybox_texture,
     const Sampler& skybox_sampler
 )
-    : cubemap_face_vertex_shader{make_shader(
+    : cubemap_face_vertex_shader{make_hlsl_shader(
           device,
           "res/shaders/sdl_gpu/skybox_vert.hlsl",
           ShaderStage::Vertex,
           0U,
           1U
       )},
-      irradiance_fragment_shader{make_shader(
+      irradiance_fragment_shader{make_hlsl_shader(
           device,
           "res/shaders/sdl_gpu/irradiance_convolve_frag.hlsl",
           ShaderStage::Fragment,
           1U,
           0U
       )},
-      prefilter_fragment_shader{make_shader(
+      prefilter_fragment_shader{make_hlsl_shader(
           device,
           "res/shaders/sdl_gpu/prefilter_specular_frag.hlsl",
           ShaderStage::Fragment,
           1U,
           1U
       )},
-      irradiance_pipeline{make_cube_pipeline(
-          device, cubemap_face_vertex_shader, irradiance_fragment_shader
+      irradiance_pipeline{make_fullscreen_pipeline(
+          device, cubemap_face_vertex_shader, irradiance_fragment_shader,
+          ibl_texture_format
       )},
-      prefilter_pipeline{make_cube_pipeline(
-          device, cubemap_face_vertex_shader, prefilter_fragment_shader
+      prefilter_pipeline{make_fullscreen_pipeline(
+          device, cubemap_face_vertex_shader, prefilter_fragment_shader,
+          ibl_texture_format
       )},
-      fullscreen_vertex_shader{make_shader(
-          device,
-          "res/shaders/sdl_gpu/fullscreen_vert.hlsl",
-          ShaderStage::Vertex,
-          0U,
-          0U
+      fullscreen_vertex_shader{make_hlsl_shader(
+          device, "res/shaders/sdl_gpu/fullscreen_vert.hlsl",
+          ShaderStage::Vertex
       )},
-      brdf_lut_fragment_shader{make_shader(
-          device,
-          "res/shaders/sdl_gpu/brdf_lut_frag.hlsl",
-          ShaderStage::Fragment,
-          0U,
-          0U
+      brdf_lut_fragment_shader{make_hlsl_shader(
+          device, "res/shaders/sdl_gpu/brdf_lut_frag.hlsl",
+          ShaderStage::Fragment
       )},
-      brdf_lut_pipeline{device.create_graphics_pipeline(GraphicsPipelineInfo{
-          .vertex_shader = fullscreen_vertex_shader,
-          .fragment_shader = brdf_lut_fragment_shader,
-          .color_target_format = ibl_texture_format,
-          .primitive_type = PrimitiveType::TriangleList,
-          .vertex_buffer_descriptions = {},
-          .vertex_attributes = {},
-          .enable_depth_test = false,
-          .cull_mode = CullMode::None,
-      })},
+      brdf_lut_pipeline{make_fullscreen_pipeline(
+          device, fullscreen_vertex_shader, brdf_lut_fragment_shader,
+          ibl_texture_format
+      )},
       irradiance_texture{make_cube_texture(device, irradiance_size, 1U)},
       irradiance_sampler{make_clamp_sampler(device, false)},
       prefiltered_texture{make_cube_texture(

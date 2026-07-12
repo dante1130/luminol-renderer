@@ -11,6 +11,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUResourceBuilders.hpp>
 #include <LuminolRenderEngine/Utilities/Timer.hpp>
 
 namespace {
@@ -46,47 +47,8 @@ auto make_ssr_texture(GPUDevice& device, uint32_t width, uint32_t height)
 }
 
 auto make_ssr_texture(GPUDevice& device, SDL_Window* window) -> Texture {
-    auto width = int{0};
-    auto height = int{0};
-    SDL_GetWindowSizeInPixels(window, &width, &height);
-
-    return make_ssr_texture(
-        device, static_cast<uint32_t>(width), static_cast<uint32_t>(height)
-    );
-}
-
-auto make_shader(
-    GPUDevice& device,
-    const std::filesystem::path& path,
-    ShaderStage stage,
-    uint32_t sampler_count,
-    uint32_t uniform_buffer_count
-) -> Shader {
-    return device.create_shader(ShaderInfo{
-        .path = path,
-        .stage = stage,
-        .source_language = ShaderSourceLanguage::Hlsl,
-        .sampler_count = sampler_count,
-        .uniform_buffer_count = uniform_buffer_count,
-        .storage_buffer_count = 0U,
-    });
-}
-
-auto make_ssr_pipeline(
-    GPUDevice& device,
-    const Shader& vertex_shader,
-    const Shader& fragment_shader
-) -> GraphicsPipeline {
-    return device.create_graphics_pipeline(GraphicsPipelineInfo{
-        .vertex_shader = vertex_shader,
-        .fragment_shader = fragment_shader,
-        .color_target_format = ssr_texture_format,
-        .primitive_type = PrimitiveType::TriangleList,
-        .vertex_buffer_descriptions = {},
-        .vertex_attributes = {},
-        .enable_depth_test = false,
-        .cull_mode = CullMode::None,
-    });
+    const auto [width, height] = get_window_size_in_pixels(window);
+    return make_ssr_texture(device, width, height);
 }
 
 }  // namespace
@@ -96,32 +58,31 @@ namespace Luminol::Graphics::SDL_GPU {
 SDL_GPUScreenSpaceReflectionPass::SDL_GPUScreenSpaceReflectionPass(
     GPUDevice& device, SDL_Window* window
 )
-    : fullscreen_vertex_shader{make_shader(
-          device,
-          "res/shaders/sdl_gpu/fullscreen_vert.hlsl",
-          ShaderStage::Vertex,
-          0U,
-          0U
+    : fullscreen_vertex_shader{make_hlsl_shader(
+          device, "res/shaders/sdl_gpu/fullscreen_vert.hlsl",
+          ShaderStage::Vertex
       )},
-      ssr_fragment_shader{make_shader(
+      ssr_fragment_shader{make_hlsl_shader(
           device,
           "res/shaders/sdl_gpu/ssr_frag.hlsl",
           ShaderStage::Fragment,
           3U,
           1U
       )},
-      ssr_pipeline{make_ssr_pipeline(
-          device, fullscreen_vertex_shader, ssr_fragment_shader
+      ssr_pipeline{make_fullscreen_pipeline(
+          device, fullscreen_vertex_shader, ssr_fragment_shader,
+          ssr_texture_format
       )},
-      resolve_fragment_shader{make_shader(
+      resolve_fragment_shader{make_hlsl_shader(
           device,
           "res/shaders/sdl_gpu/ssr_resolve_frag.hlsl",
           ShaderStage::Fragment,
           1U,
           1U
       )},
-      resolve_pipeline{make_ssr_pipeline(
-          device, fullscreen_vertex_shader, resolve_fragment_shader
+      resolve_pipeline{make_fullscreen_pipeline(
+          device, fullscreen_vertex_shader, resolve_fragment_shader,
+          ssr_texture_format
       )},
       ssr_texture{make_ssr_texture(device, window)},
       ssr_resolved_texture{make_ssr_texture(device, window)},

@@ -14,13 +14,15 @@
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 #include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
 
-namespace Luminol::Graphics {
+namespace Luminol::Graphics::SDL_GPU {
+class SDL_GPUFactory;
+}  // namespace Luminol::Graphics::SDL_GPU
 
-class GraphicsFactory;
+namespace Luminol::Graphics {
 
 class Renderer {
 public:
-    Renderer(std::shared_ptr<GraphicsFactory> graphics_factory);
+    Renderer(std::shared_ptr<SDL_GPU::SDL_GPUFactory> graphics_factory);
     virtual ~Renderer() = default;
     Renderer(const Renderer&) = delete;
     Renderer(Renderer&&) = delete;
@@ -85,7 +87,7 @@ public:
     }
 
 private:
-    std::shared_ptr<GraphicsFactory> graphics_factory;
+    std::shared_ptr<SDL_GPU::SDL_GPUFactory> graphics_factory;
     LightManager light_manager;
 };
 

@@ -8,7 +8,6 @@
 #include <LuminolRenderEngine/Graphics/Camera.hpp>
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
-#include <LuminolRenderEngine/Graphics/GraphicsFactory.hpp>
 
 namespace Luminol {
 
@@ -19,7 +18,6 @@ struct Properties {
     int32_t width = {default_width};
     int32_t height = {default_height};
     std::string title = {"Luminol Engine"};
-    Graphics::GraphicsApi graphics_api = {Graphics::GraphicsApi::SDL_GPU};
     // MSAA sample count; rounded down to the nearest supported power of
     // two, clamped further by device capability.
     uint32_t msaa_sample_count = 4;

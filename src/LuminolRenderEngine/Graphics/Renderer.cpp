@@ -1,10 +1,10 @@
 #include "Renderer.hpp"
 
-#include <LuminolRenderEngine/Graphics/GraphicsFactory.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
 
 namespace Luminol::Graphics {
 
-Renderer::Renderer(std::shared_ptr<GraphicsFactory> graphics_factory)
+Renderer::Renderer(std::shared_ptr<SDL_GPU::SDL_GPUFactory> graphics_factory)
     : graphics_factory{std::move(graphics_factory)} {}
 
 auto Renderer::create_renderable(

@@ -1,18 +1,14 @@
 #include "LuminolRenderEngine.hpp"
 
 #include <LuminolRenderEngine/Graphics/Light.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
 
 namespace Luminol {
 
 RenderEngine::RenderEngine(const Properties& properties)
-    : window(
-          properties.width,
-          properties.height,
-          properties.title,
-          properties.graphics_api
-      ),
-      renderer(Graphics::GraphicsFactory::create(
-                   properties.graphics_api, properties.msaa_sample_count
+    : window(properties.width, properties.height, properties.title),
+      renderer(std::make_shared<Graphics::SDL_GPU::SDL_GPUFactory>(
+                   properties.msaa_sample_count
                )
                    ->create_renderer(this->window)) {}
 

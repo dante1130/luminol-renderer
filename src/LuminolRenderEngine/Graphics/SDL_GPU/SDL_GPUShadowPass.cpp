@@ -11,6 +11,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUResourceBuilders.hpp>
 #include <LuminolRenderEngine/Utilities/Timer.hpp>
 
 namespace {
@@ -18,44 +19,6 @@ namespace {
 using namespace Luminol::Graphics::SDL_GPU;
 using namespace Luminol::Graphics;
 using namespace Luminol::Maths;
-
-constexpr auto vertex_stride_in_floats = 11U;
-constexpr auto vertex_stride_in_bytes =
-    sizeof(float) * vertex_stride_in_floats;
-
-constexpr auto mesh_vertex_buffer_descriptions = std::array{
-    VertexBufferDescription{
-        .slot = 0,
-        .pitch = vertex_stride_in_bytes,
-    },
-};
-
-constexpr auto mesh_vertex_attributes = std::array{
-    VertexAttribute{
-        .location = 0,
-        .buffer_slot = 0,
-        .format = VertexElementFormat::Float3,
-        .offset = 0,
-    },
-    VertexAttribute{
-        .location = 1,
-        .buffer_slot = 0,
-        .format = VertexElementFormat::Float2,
-        .offset = sizeof(float) * 3,
-    },
-    VertexAttribute{
-        .location = 2,
-        .buffer_slot = 0,
-        .format = VertexElementFormat::Float3,
-        .offset = sizeof(float) * 5,
-    },
-    VertexAttribute{
-        .location = 3,
-        .buffer_slot = 0,
-        .format = VertexElementFormat::Float3,
-        .offset = sizeof(float) * 8,
-    },
-};
 
 constexpr auto shadow_map_format = TextureFormat::D24_Unorm;
 
@@ -254,63 +217,22 @@ auto make_shadow_map_texture(GPUDevice& device) -> Texture {
     });
 }
 
-auto make_shader(
-    GPUDevice& device,
-    const std::filesystem::path& path,
-    ShaderStage stage,
-    uint32_t uniform_buffer_count,
-    uint32_t storage_buffer_count
-) -> Shader {
-    return device.create_shader(ShaderInfo{
-        .path = path,
-        .stage = stage,
-        .source_language = ShaderSourceLanguage::Hlsl,
-        .sampler_count = 0U,
-        .uniform_buffer_count = uniform_buffer_count,
-        .storage_buffer_count = storage_buffer_count,
-    });
-}
-
-auto make_shadow_pipeline(
-    GPUDevice& device,
-    const Shader& vertex_shader,
-    const Shader& fragment_shader
-) -> GraphicsPipeline {
-    return device.create_graphics_pipeline(GraphicsPipelineInfo{
-        .vertex_shader = vertex_shader,
-        .fragment_shader = fragment_shader,
-        .color_target_format = std::nullopt,
-        .primitive_type = PrimitiveType::TriangleList,
-        .vertex_buffer_descriptions = mesh_vertex_buffer_descriptions,
-        .vertex_attributes = mesh_vertex_attributes,
-        .enable_depth_test = true,
-        .depth_stencil_format = shadow_map_format,
-        .cull_mode = CullMode::Back,
-        .front_face = FrontFace::Clockwise,
-    });
-}
-
 }  // namespace
 
 namespace Luminol::Graphics::SDL_GPU {
 
 SDL_GPUShadowPass::SDL_GPUShadowPass(GPUDevice& device)
-    : shadow_vertex_shader{make_shader(
-          device,
-          "res/shaders/sdl_gpu/pbr_vert.hlsl",
-          ShaderStage::Vertex,
-          1U,
-          2U
+    : shadow_vertex_shader{make_hlsl_shader(
+          device, "res/shaders/sdl_gpu/pbr_vert.hlsl", ShaderStage::Vertex,
+          0U, 1U, 2U
       )},
-      shadow_fragment_shader{make_shader(
-          device,
-          "res/shaders/sdl_gpu/shadow_depth_frag.hlsl",
-          ShaderStage::Fragment,
-          0U,
-          0U
+      shadow_fragment_shader{make_hlsl_shader(
+          device, "res/shaders/sdl_gpu/shadow_depth_frag.hlsl",
+          ShaderStage::Fragment
       )},
-      shadow_pipeline{make_shadow_pipeline(
-          device, shadow_vertex_shader, shadow_fragment_shader
+      shadow_pipeline{make_depth_only_mesh_pipeline(
+          device, shadow_vertex_shader, shadow_fragment_shader,
+          shadow_map_format
       )},
       shadow_map_texture{make_shadow_map_texture(device)},
       shadow_map_sampler{device.create_sampler(SamplerInfo{

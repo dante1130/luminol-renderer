@@ -4,7 +4,6 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
-#include <filesystem>
 
 #include <gsl/gsl>
 #include <SDL3/SDL_video.h>
@@ -13,6 +12,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUComputePass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUResourceBuilders.hpp>
 
 namespace {
 
@@ -47,40 +47,8 @@ auto make_pyramid_texture(GPUDevice& device, uint32_t width, uint32_t height)
 }
 
 auto make_pyramid_texture(GPUDevice& device, SDL_Window* window) -> Texture {
-    auto width = int{0};
-    auto height = int{0};
-    SDL_GetWindowSizeInPixels(window, &width, &height);
-
-    return make_pyramid_texture(
-        device, static_cast<uint32_t>(width), static_cast<uint32_t>(height)
-    );
-}
-
-auto make_shader(
-    GPUDevice& device, const std::filesystem::path& path, ShaderStage stage,
-    uint32_t sampler_count
-) -> Shader {
-    return device.create_shader(ShaderInfo{
-        .path = path,
-        .stage = stage,
-        .source_language = ShaderSourceLanguage::Hlsl,
-        .sampler_count = sampler_count,
-    });
-}
-
-auto make_copy_depth_pipeline(
-    GPUDevice& device, const Shader& vertex_shader, const Shader& fragment_shader
-) -> GraphicsPipeline {
-    return device.create_graphics_pipeline(GraphicsPipelineInfo{
-        .vertex_shader = vertex_shader,
-        .fragment_shader = fragment_shader,
-        .color_target_format = pyramid_format,
-        .primitive_type = PrimitiveType::TriangleList,
-        .vertex_buffer_descriptions = {},
-        .vertex_attributes = {},
-        .enable_depth_test = false,
-        .cull_mode = CullMode::None,
-    });
+    const auto [width, height] = get_window_size_in_pixels(window);
+    return make_pyramid_texture(device, width, height);
 }
 
 auto make_downsample_pipeline(GPUDevice& device) -> ComputePipeline {
@@ -109,16 +77,17 @@ auto make_pyramid_sampler(GPUDevice& device, uint32_t mip_levels) -> Sampler {
 namespace Luminol::Graphics::SDL_GPU {
 
 SDL_GPUHiZPass::SDL_GPUHiZPass(GPUDevice& device, SDL_Window* window)
-    : fullscreen_vertex_shader{make_shader(
+    : fullscreen_vertex_shader{make_hlsl_shader(
           device, "res/shaders/sdl_gpu/fullscreen_vert.hlsl",
-          ShaderStage::Vertex, 0U
+          ShaderStage::Vertex
       )},
-      copy_depth_fragment_shader{make_shader(
+      copy_depth_fragment_shader{make_hlsl_shader(
           device, "res/shaders/sdl_gpu/hiz_copy_depth.hlsl",
           ShaderStage::Fragment, 1U
       )},
-      copy_depth_pipeline{make_copy_depth_pipeline(
-          device, fullscreen_vertex_shader, copy_depth_fragment_shader
+      copy_depth_pipeline{make_fullscreen_pipeline(
+          device, fullscreen_vertex_shader, copy_depth_fragment_shader,
+          pyramid_format
       )},
       downsample_pipeline{make_downsample_pipeline(device)},
       pyramid_texture{make_pyramid_texture(device, window)},

@@ -3,9 +3,7 @@
 auto main() -> int {
     using namespace Luminol;
 
-    auto luminol_engine = Luminol::RenderEngine(Luminol::Properties{
-        .graphics_api = Graphics::GraphicsApi::SDL_GPU,
-    });
+    auto luminol_engine = Luminol::RenderEngine(Luminol::Properties{});
 
     const auto font_id = luminol_engine.get_renderer().create_font(
         "res/fonts/RobotoMono-Regular.ttf", 24.0F

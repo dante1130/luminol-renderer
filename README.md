@@ -12,6 +12,11 @@ Features:
   - 1024 spot lights
 - MSAA
 - SSAO
+- Screen-space reflections (SSR)
+- GPU occlusion culling (Hi-Z)
+- Cascaded shadow maps (CSM)
+- Point and spot light shadows
+- Text rendering
 - Model loading
 - Skybox
 - HDR

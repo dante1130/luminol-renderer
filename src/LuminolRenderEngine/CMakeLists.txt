@@ -25,6 +25,10 @@ target_link_libraries(LuminolRenderEngine PUBLIC
     Luminol.Utilities
 )
 
+target_link_libraries(LuminolRenderEngine PRIVATE
+    Luminol.Graphics.SDL_GPU
+)
+
 target_include_directories(LuminolRenderEngine PUBLIC
     ${LUMINOL_RENDER_ENGINE_SRC_DIR}
 )

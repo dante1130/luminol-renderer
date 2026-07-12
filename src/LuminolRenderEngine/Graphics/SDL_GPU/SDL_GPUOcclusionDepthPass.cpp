@@ -2,7 +2,6 @@
 
 #include <array>
 #include <cstddef>
-#include <filesystem>
 
 #include <SDL3/SDL_video.h>
 
@@ -14,49 +13,12 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMesh.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUResourceBuilders.hpp>
 
 namespace {
 
 using namespace Luminol::Graphics::SDL_GPU;
 using namespace Luminol::Maths;
-
-constexpr auto vertex_stride_in_floats = 11U;
-constexpr auto vertex_stride_in_bytes =
-    sizeof(float) * vertex_stride_in_floats;
-
-constexpr auto mesh_vertex_buffer_descriptions = std::array{
-    VertexBufferDescription{
-        .slot = 0,
-        .pitch = vertex_stride_in_bytes,
-    },
-};
-
-constexpr auto mesh_vertex_attributes = std::array{
-    VertexAttribute{
-        .location = 0,
-        .buffer_slot = 0,
-        .format = VertexElementFormat::Float3,
-        .offset = 0,
-    },
-    VertexAttribute{
-        .location = 1,
-        .buffer_slot = 0,
-        .format = VertexElementFormat::Float2,
-        .offset = sizeof(float) * 3,
-    },
-    VertexAttribute{
-        .location = 2,
-        .buffer_slot = 0,
-        .format = VertexElementFormat::Float3,
-        .offset = sizeof(float) * 5,
-    },
-    VertexAttribute{
-        .location = 3,
-        .buffer_slot = 0,
-        .format = VertexElementFormat::Float3,
-        .offset = sizeof(float) * 8,
-    },
-};
 
 constexpr auto depth_format = TextureFormat::D24_Unorm;
 
@@ -77,49 +39,8 @@ auto make_depth_texture(GPUDevice& device, uint32_t width, uint32_t height)
 }
 
 auto make_depth_texture(GPUDevice& device, SDL_Window* window) -> Texture {
-    auto width = int{0};
-    auto height = int{0};
-    SDL_GetWindowSizeInPixels(window, &width, &height);
-
-    return make_depth_texture(
-        device, static_cast<uint32_t>(width), static_cast<uint32_t>(height)
-    );
-}
-
-auto make_shader(
-    GPUDevice& device,
-    const std::filesystem::path& path,
-    ShaderStage stage,
-    uint32_t uniform_buffer_count,
-    uint32_t storage_buffer_count
-) -> Shader {
-    return device.create_shader(ShaderInfo{
-        .path = path,
-        .stage = stage,
-        .source_language = ShaderSourceLanguage::Hlsl,
-        .sampler_count = 0U,
-        .uniform_buffer_count = uniform_buffer_count,
-        .storage_buffer_count = storage_buffer_count,
-    });
-}
-
-auto make_pipeline(
-    GPUDevice& device,
-    const Shader& vertex_shader,
-    const Shader& fragment_shader
-) -> GraphicsPipeline {
-    return device.create_graphics_pipeline(GraphicsPipelineInfo{
-        .vertex_shader = vertex_shader,
-        .fragment_shader = fragment_shader,
-        .color_target_format = std::nullopt,
-        .primitive_type = PrimitiveType::TriangleList,
-        .vertex_buffer_descriptions = mesh_vertex_buffer_descriptions,
-        .vertex_attributes = mesh_vertex_attributes,
-        .enable_depth_test = true,
-        .depth_stencil_format = depth_format,
-        .cull_mode = CullMode::Back,
-        .front_face = FrontFace::Clockwise,
-    });
+    const auto [width, height] = get_window_size_in_pixels(window);
+    return make_depth_texture(device, width, height);
 }
 
 }  // namespace
@@ -129,15 +50,17 @@ namespace Luminol::Graphics::SDL_GPU {
 SDL_GPUOcclusionDepthPass::SDL_GPUOcclusionDepthPass(
     GPUDevice& device, SDL_Window* window
 )
-    : vertex_shader{make_shader(
+    : vertex_shader{make_hlsl_shader(
           device, "res/shaders/sdl_gpu/pbr_vert.hlsl", ShaderStage::Vertex,
-          1U, 2U
+          0U, 1U, 2U
       )},
-      fragment_shader{make_shader(
+      fragment_shader{make_hlsl_shader(
           device, "res/shaders/sdl_gpu/shadow_depth_frag.hlsl",
-          ShaderStage::Fragment, 0U, 0U
+          ShaderStage::Fragment
       )},
-      pipeline{make_pipeline(device, vertex_shader, fragment_shader)},
+      pipeline{
+          make_depth_only_mesh_pipeline(device, vertex_shader, fragment_shader, depth_format)
+      },
       depth_texture{make_depth_texture(device, window)} {}
 
 auto SDL_GPUOcclusionDepthPass::resize(

@@ -7,9 +7,7 @@
 auto main() -> int {
     using namespace Luminol;
 
-    auto luminol_engine = Luminol::RenderEngine(Luminol::Properties{
-        .graphics_api = Graphics::GraphicsApi::SDL_GPU,
-    });
+    auto luminol_engine = Luminol::RenderEngine(Luminol::Properties{});
 
     // position.xyz          uv.xy       normal.xyz      tangent.xyz
     constexpr auto quad_vertices = std::array<float, size_t{11} * 4>{

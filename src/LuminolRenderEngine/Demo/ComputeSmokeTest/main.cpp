@@ -33,9 +33,7 @@ auto main() -> int {
     using namespace Luminol;
     using namespace Luminol::Graphics::SDL_GPU;
 
-    auto window = Window{
-        1, 1, "Luminol Compute Smoke Test", Graphics::GraphicsApi::SDL_GPU
-    };
+    auto window = Window{1, 1, "Luminol Compute Smoke Test"};
     auto gpu_device = std::make_shared<GPUDevice>(
         static_cast<SDL_Window*>(window.get_window_handle())
     );

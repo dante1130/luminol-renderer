@@ -161,9 +161,7 @@ auto main() -> int {
         TestLight{.position = {-30.0F, 0.0F, 10.0F}, .color = {2.0F, 2.0F, 2.0F}},
     };
 
-    auto window = Window{
-        1, 1, "Luminol Cluster Light Cull Smoke Test", Graphics::GraphicsApi::SDL_GPU
-    };
+    auto window = Window{1, 1, "Luminol Cluster Light Cull Smoke Test"};
     auto gpu_device = std::make_shared<GPUDevice>(
         static_cast<SDL_Window*>(window.get_window_handle())
     );

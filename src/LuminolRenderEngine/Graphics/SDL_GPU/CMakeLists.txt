@@ -11,6 +11,7 @@ add_library(Luminol.Graphics.SDL_GPU
     SDL_GPUBuffer.cpp
     SDL_GPUTransferBuffer.cpp
     SDL_GPUFactory.cpp
+    SDL_GPUResourceBuilders.cpp
     SDL_GPUTexture.cpp
     SDL_GPUCopyPass.cpp
     SDL_GPUMesh.cpp

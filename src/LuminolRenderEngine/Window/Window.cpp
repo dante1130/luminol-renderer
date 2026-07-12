@@ -28,14 +28,8 @@ auto create_init_state_handle()
 
 namespace Luminol {
 
-Window::Window(
-    int32_t width,
-    int32_t height,
-    const std::string& title,
-    Graphics::GraphicsApi graphics_api
-)
-    : init_state_handle{create_init_state_handle()},
-      graphics_api{graphics_api} {
+Window::Window(int32_t width, int32_t height, const std::string& title)
+    : init_state_handle{create_init_state_handle()} {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_LogError(
             SDL_LOG_CATEGORY_ERROR,

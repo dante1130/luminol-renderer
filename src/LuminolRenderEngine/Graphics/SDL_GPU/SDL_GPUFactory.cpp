@@ -50,10 +50,7 @@ auto SDL_GPUFactory::create_renderer(Window& window)
     auto* sdl_window = static_cast<SDL_Window*>(window.get_window_handle());
     gpu_device = std::make_shared<GPUDevice>(sdl_window);
     return std::make_unique<SDL_GPURenderer>(
-        window,
-        std::static_pointer_cast<SDL_GPUFactory>(shared_from_this()),
-        gpu_device,
-        requested_msaa_sample_count
+        window, shared_from_this(), gpu_device, requested_msaa_sample_count
     );
 }
 
@@ -170,10 +167,6 @@ auto SDL_GPUFactory::create_model(const std::filesystem::path& model_path)
 auto SDL_GPUFactory::remove_renderable(RenderableId renderable_id) -> void {
     this->meshes_by_id.erase(renderable_id);
     this->renderable_manager.remove_renderable(renderable_id);
-}
-
-auto SDL_GPUFactory::get_graphics_api() const -> GraphicsApi {
-    return GraphicsApi::SDL_GPU;
 }
 
 auto SDL_GPUFactory::get_meshes(RenderableId renderable_id) const

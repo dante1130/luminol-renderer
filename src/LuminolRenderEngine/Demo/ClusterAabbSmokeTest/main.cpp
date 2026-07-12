@@ -113,9 +113,7 @@ auto approx_equal(float lhs, float rhs) -> bool {
 auto main() -> int {
     using namespace Luminol;
 
-    auto window = Window{
-        1, 1, "Luminol Cluster AABB Smoke Test", Graphics::GraphicsApi::SDL_GPU
-    };
+    auto window = Window{1, 1, "Luminol Cluster AABB Smoke Test"};
     auto gpu_device = std::make_shared<GPUDevice>(
         static_cast<SDL_Window*>(window.get_window_handle())
     );
