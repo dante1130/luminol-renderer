@@ -151,7 +151,7 @@ auto SDL_GPUScreenSpaceReflectionPass::draw(
         .params = Vector4f{
             max_distance,
             thickness,
-            step_count,
+            max_steps,
             has_valid_previous_color ? 1.0F : 0.0F,
         },
         .viewport_size = Vector4f{

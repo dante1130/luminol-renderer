@@ -51,11 +51,13 @@ private:
 
     static constexpr auto default_max_distance = 8.0F;
     static constexpr auto default_thickness = 0.5F;
-    static constexpr auto default_step_count = 32.0F;
+    // Upper bound on the screen-space march samples (the pass walks ~one pixel
+    // per step, capped here for long/grazing rays).
+    static constexpr auto default_max_steps = 96.0F;
 
     float max_distance = default_max_distance;
     float thickness = default_thickness;
-    float step_count = default_step_count;
+    float max_steps = default_max_steps;
 };
 
 }  // namespace Luminol::Graphics::SDL_GPU
