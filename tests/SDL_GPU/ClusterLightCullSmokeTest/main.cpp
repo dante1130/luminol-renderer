@@ -106,8 +106,12 @@ auto expected_aabb(uint32_t cluster_index) -> AabbCpu {
     return result;
 }
 
+// Must match the light_cull_radius cutoff in pbr_frag.hlsl /
+// cluster_light_count.hlsl / cluster_light_compact.hlsl /
+// SDL_GPUClusterPass.cpp / SDL_GPUPointSpotShadowPass.cpp / LightManager.cpp
+// exactly.
 auto light_cull_radius(float r, float g, float b) -> float {
-    constexpr auto cutoff = 1.0F / 256.0F;
+    constexpr auto cutoff = 1.0F / 16.0F;
     const auto intensity = std::max(r, std::max(g, b));
     return std::sqrt(std::max(intensity, 0.0F) / cutoff);
 }
