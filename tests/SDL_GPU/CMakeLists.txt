@@ -1,0 +1,3 @@
+add_subdirectory(ComputeSmokeTest)
+add_subdirectory(ClusterAabbSmokeTest)
+add_subdirectory(ClusterLightCullSmokeTest)
