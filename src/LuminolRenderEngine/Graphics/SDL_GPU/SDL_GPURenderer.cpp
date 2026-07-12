@@ -1,5 +1,6 @@
 #include "SDL_GPURenderer.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <numbers>
@@ -337,7 +338,7 @@ auto SDL_GPURenderer::handle_resize(const SwapchainTexture& swapchain) -> void {
 }
 
 auto SDL_GPURenderer::upload_instances_and_compute_frustum(
-    CommandBuffer& command_buffer
+    CommandBuffer& command_buffer, const Maths::Vector4f& camera_position
 ) -> FramePrepData {
     auto instance_batches = std::vector<InstanceBatch>{};
     {
@@ -351,6 +352,31 @@ auto SDL_GPURenderer::upload_instances_and_compute_frustum(
             "instance_upload", Units::Seconds{pass_timer.elapsed_seconds()}
         );
     }
+
+    // Sort front-to-back by an approximate per-batch distance to the camera
+    // (the first queued instance's translation), so the opaque draw loop in
+    // record_main_pass benefits from early-Z rejection. Must happen here,
+    // before any cull pass below - instance_cull_layout is built positionally
+    // aligned to this order, so re-sorting afterward would desync them.
+    const auto batch_distance_squared = [this, &camera_position](
+                                             const InstanceBatch& batch
+                                         ) -> float {
+        const auto it = queued_draws.find(batch.renderable_id);
+        if (it == queued_draws.end() || it->second.empty()) {
+            return 0.0F;
+        }
+        const auto& matrix = it->second.front();
+        const auto delta_x = matrix[3][0] - camera_position.x();
+        const auto delta_y = matrix[3][1] - camera_position.y();
+        const auto delta_z = matrix[3][2] - camera_position.z();
+        return (delta_x * delta_x) + (delta_y * delta_y) + (delta_z * delta_z);
+    };
+    std::sort(
+        instance_batches.begin(), instance_batches.end(),
+        [&batch_distance_squared](
+            const InstanceBatch& lhs, const InstanceBatch& rhs
+        ) { return batch_distance_squared(lhs) < batch_distance_squared(rhs); }
+    );
 
     const auto current_view_projection = view_matrix * projection_matrix;
     const auto camera_frustum_planes =
@@ -543,6 +569,7 @@ auto SDL_GPURenderer::record_shadows(
         command_buffer,
         mesh_render_pass.get_instance_buffer_cache(),
         instance_batches,
+        queued_draws,
         Maths::Vector3f{
             directional_light.direction.x(),
             directional_light.direction.y(),
@@ -737,7 +764,8 @@ auto SDL_GPURenderer::draw() -> void {
 
     const auto camera = compute_camera_frame_data();
 
-    auto frame_prep = upload_instances_and_compute_frustum(command_buffer);
+    auto frame_prep =
+        upload_instances_and_compute_frustum(command_buffer, camera.position);
 
     run_occlusion_prepass(
         command_buffer, frame_prep.instance_batches,

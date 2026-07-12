@@ -31,6 +31,12 @@ constexpr auto point_light_buffer_size =
 constexpr auto spot_light_buffer_size =
     max_spot_lights * static_cast<uint32_t>(sizeof(AlignedSpotLight));
 
+// float4 per light: xyz = view-space position, w = cull radius.
+constexpr auto point_light_culling_buffer_size =
+    max_point_lights * static_cast<uint32_t>(sizeof(Luminol::Maths::Vector4f));
+constexpr auto spot_light_culling_buffer_size =
+    max_spot_lights * static_cast<uint32_t>(sizeof(Luminol::Maths::Vector4f));
+
 constexpr auto threads_per_group = uint32_t{64};
 constexpr auto dispatch_group_count =
     (cluster_count + threads_per_group - 1) / threads_per_group;
@@ -42,9 +48,9 @@ struct ClusterBuildParams {
 };
 
 // Mirrors cbuffer ClusterCullParams in cluster_light_count.hlsl and
-// cluster_light_compact.hlsl.
+// cluster_light_compact.hlsl. view_matrix isn't needed here - lights are
+// pre-transformed to view space on the CPU (see point_light_culling_data).
 struct ClusterCullParams {
-    Luminol::Maths::Matrix4x4f view_matrix;
     std::array<uint32_t, 4> counts;
 };
 
@@ -103,6 +109,31 @@ auto make_light_compact_pipeline(GPUDevice& device) -> ComputePipeline {
     });
 }
 
+// Row-vector transform (mul(pos, matrix) convention, matching
+// SDL_GPUCullingUtils.cpp's transform_point) - only the 3x3+translation part
+// is needed since this is a point, not a direction.
+auto transform_point(
+    const Luminol::Maths::Matrix4x4f& matrix, const Luminol::Maths::Vector3f& point
+) -> Luminol::Maths::Vector3f {
+    return Luminol::Maths::Vector3f{
+        (point.x() * matrix[0][0]) + (point.y() * matrix[1][0]) +
+            (point.z() * matrix[2][0]) + matrix[3][0],
+        (point.x() * matrix[0][1]) + (point.y() * matrix[1][1]) +
+            (point.z() * matrix[2][1]) + matrix[3][1],
+        (point.x() * matrix[0][2]) + (point.y() * matrix[1][2]) +
+            (point.z() * matrix[2][2]) + matrix[3][2],
+    };
+}
+
+// Must match the light_cull_radius cutoff in pbr_frag.hlsl /
+// cluster_light_count.hlsl / cluster_light_compact.hlsl /
+// SDL_GPUPointSpotShadowPass.cpp / LightManager.cpp exactly.
+auto light_cull_radius(const Luminol::Maths::Vector3f& color) -> float {
+    constexpr auto cutoff = 1.0F / 16.0F;
+    const auto intensity = std::max({color.x(), color.y(), color.z()});
+    return std::sqrt(std::max(intensity, 0.0F) / cutoff);
+}
+
 template <typename T>
 auto upload_lights(
     CopyPass& copy_pass,
@@ -158,7 +189,27 @@ SDL_GPUClusterPass::SDL_GPUClusterPass(GPUDevice& device)
       spot_light_transfer_buffer{device.create_transfer_buffer(TransferBufferInfo{
           .usage = TransferBufferUsage::Upload,
           .size = spot_light_buffer_size,
-      })} {}
+      })},
+      point_light_culling_buffer{device.create_buffer(BufferInfo{
+          .usage = BufferUsage::ComputeStorageRead,
+          .size = point_light_culling_buffer_size,
+      })},
+      spot_light_culling_buffer{device.create_buffer(BufferInfo{
+          .usage = BufferUsage::ComputeStorageRead,
+          .size = spot_light_culling_buffer_size,
+      })},
+      point_light_culling_transfer_buffer{
+          device.create_transfer_buffer(TransferBufferInfo{
+              .usage = TransferBufferUsage::Upload,
+              .size = point_light_culling_buffer_size,
+          })
+      },
+      spot_light_culling_transfer_buffer{
+          device.create_transfer_buffer(TransferBufferInfo{
+              .usage = TransferBufferUsage::Upload,
+              .size = spot_light_culling_buffer_size,
+          })
+      } {}
 
 auto SDL_GPUClusterPass::build_cluster_grid(
     CommandBuffer& command_buffer,
@@ -212,6 +263,34 @@ auto SDL_GPUClusterPass::cull_lights(
     const Light& light_data,
     const Maths::Matrix4x4f& view_matrix
 ) -> void {
+    point_light_culling_data.clear();
+    for (auto i = uint32_t{0}; i < light_data.point_light_count; ++i) {
+        const auto& light = light_data.point_lights[i];
+        const auto view_position = transform_point(
+            view_matrix,
+            Maths::Vector3f{light.position.x(), light.position.y(), light.position.z()}
+        );
+        point_light_culling_data.push_back(Maths::Vector4f{
+            view_position.x(), view_position.y(), view_position.z(),
+            light_cull_radius(
+                Maths::Vector3f{light.color.x(), light.color.y(), light.color.z()}
+            )
+        });
+    }
+
+    spot_light_culling_data.clear();
+    for (auto i = uint32_t{0}; i < light_data.spot_light_count; ++i) {
+        const auto& light = light_data.spot_lights[i];
+        const auto view_position = transform_point(
+            view_matrix,
+            Maths::Vector3f{light.position.x(), light.position.y(), light.position.z()}
+        );
+        spot_light_culling_data.push_back(Maths::Vector4f{
+            view_position.x(), view_position.y(), view_position.z(),
+            light_cull_radius(light.color)
+        });
+    }
+
     {
         auto copy_pass = command_buffer.begin_copy_pass();
         upload_lights<AlignedPointLight>(
@@ -226,10 +305,21 @@ auto SDL_GPUClusterPass::cull_lights(
             spot_light_buffer,
             gsl::span{light_data.spot_lights}.first(light_data.spot_light_count)
         );
+        upload_lights<Maths::Vector4f>(
+            copy_pass,
+            point_light_culling_transfer_buffer,
+            point_light_culling_buffer,
+            gsl::span{point_light_culling_data}
+        );
+        upload_lights<Maths::Vector4f>(
+            copy_pass,
+            spot_light_culling_transfer_buffer,
+            spot_light_culling_buffer,
+            gsl::span{spot_light_culling_data}
+        );
     }
 
     const auto cull_params = ClusterCullParams{
-        .view_matrix = view_matrix,
         .counts =
             {light_data.point_light_count,
              light_data.spot_light_count,
@@ -237,8 +327,9 @@ auto SDL_GPUClusterPass::cull_lights(
              0},
     };
 
-    const auto point_light_buffers =
-        std::array<const Buffer* const, 2>{&point_light_buffer, &spot_light_buffer};
+    const auto light_culling_buffers = std::array<const Buffer* const, 2>{
+        &point_light_culling_buffer, &spot_light_culling_buffer
+    };
 
     {
         const auto storage_bindings =
@@ -251,7 +342,7 @@ auto SDL_GPUClusterPass::cull_lights(
                 },
             };
         auto compute_pass = command_buffer.begin_compute_pass({}, storage_bindings);
-        compute_pass.bind_storage_buffers(0, point_light_buffers);
+        compute_pass.bind_storage_buffers(0, light_culling_buffers);
         command_buffer.push_compute_uniform_data(
             0,
             gsl::span<const std::byte>{
@@ -299,7 +390,7 @@ auto SDL_GPUClusterPass::cull_lights(
                 },
             };
         auto compute_pass = command_buffer.begin_compute_pass({}, storage_bindings);
-        compute_pass.bind_storage_buffers(0, point_light_buffers);
+        compute_pass.bind_storage_buffers(0, light_culling_buffers);
         command_buffer.push_compute_uniform_data(
             0,
             gsl::span<const std::byte>{

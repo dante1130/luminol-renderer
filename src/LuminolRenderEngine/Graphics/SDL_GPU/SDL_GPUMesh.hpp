@@ -33,6 +33,14 @@ struct TextureImages {
     Utilities::ModelLoader::TextureWrap ambient_occlusion_texture_wrap;
     Utilities::ModelLoader::AlphaMode alpha_mode =
         Utilities::ModelLoader::AlphaMode::Opaque;
+
+    // True when roughness_texture / ambient_occlusion_texture come from the
+    // same source file as metallic_texture (e.g. glTF's packed
+    // occlusion/roughness/metallic convention) - lets SDL_GPUMesh reuse
+    // metallic_texture's already-uploaded GPU texture instead of uploading
+    // the same pixel data again.
+    bool roughness_shares_metallic_source = false;
+    bool ambient_occlusion_shares_metallic_source = false;
 };
 
 // A submesh's draw parameters into its renderable's shared vertex/index

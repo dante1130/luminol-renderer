@@ -1,6 +1,8 @@
 #pragma once
 
 #include <array>
+#include <unordered_map>
+#include <vector>
 
 #include <gsl/gsl>
 #include <LuminolMaths/Matrix.hpp>
@@ -35,6 +37,8 @@ public:
         CommandBuffer& command_buffer,
         const SDL_GPUInstanceBufferCache& instance_buffer_cache,
         gsl::span<const InstanceBatch> instance_batches,
+        const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
+            queued_draws,
         const Maths::Vector3f& light_direction,
         const Maths::Matrix4x4f& view_matrix,
         const Maths::Matrix4x4f& projection_matrix,

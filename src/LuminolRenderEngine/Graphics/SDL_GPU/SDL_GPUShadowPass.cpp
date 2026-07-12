@@ -8,6 +8,7 @@
 
 #include <LuminolRenderEngine/Graphics/Frustum.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCullingUtils.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
@@ -251,6 +252,8 @@ auto SDL_GPUShadowPass::draw(
     CommandBuffer& command_buffer,
     const SDL_GPUInstanceBufferCache& instance_buffer_cache,
     gsl::span<const InstanceBatch> instance_batches,
+    const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
+        queued_draws,
     const Maths::Vector3f& light_direction,
     const Maths::Matrix4x4f& view_matrix,
     const Maths::Matrix4x4f& projection_matrix,
@@ -261,6 +264,12 @@ auto SDL_GPUShadowPass::draw(
     const auto camera_near_far = extract_camera_near_far(projection_matrix);
     const auto splits = compute_cascade_splits(
         camera_near_far.near_plane, camera_near_far.far_plane
+    );
+
+    // One world-space AABB per (batch, submesh), reused for every cascade's
+    // frustum test below instead of being recomputed per cascade.
+    const auto batch_mesh_world_bounds = compute_batch_mesh_world_bounds(
+        graphics_factory, instance_batches, queued_draws
     );
 
     const auto shadow_map_texture_view =
@@ -277,6 +286,10 @@ auto SDL_GPUShadowPass::draw(
                 split_far
             );
         cascade_split_depths[cascade_index] = split_far;
+
+        const auto cascade_frustum_planes = extract_frustum_planes(
+            cascade_light_space_matrices.at(cascade_index)
+        );
 
         const auto depth_stencil_target = DepthStencilTargetInfo{
             .texture = &shadow_map_texture_view,
@@ -304,7 +317,26 @@ auto SDL_GPUShadowPass::draw(
             }
         );
 
-        for (const auto& batch : instance_batches) {
+        for (auto batch_index = std::size_t{0};
+             batch_index < instance_batches.size(); ++batch_index) {
+            const auto& batch = instance_batches[batch_index];
+
+            // Skip this batch entirely for this cascade if none of its
+            // submeshes' world-space bounds intersect the cascade's
+            // orthographic frustum.
+            const auto& mesh_bounds = batch_mesh_world_bounds[batch_index];
+            const auto batch_in_frustum = std::any_of(
+                mesh_bounds.begin(), mesh_bounds.end(),
+                [&cascade_frustum_planes](const BoundingBox& bounds) {
+                    return aabb_in_frustum(
+                        cascade_frustum_planes, bounds.min, bounds.max
+                    );
+                }
+            );
+            if (!batch_in_frustum) {
+                continue;
+            }
+
             const auto& instance_buffer =
                 instance_buffer_cache.get(batch.renderable_id);
             const auto& identity_indices_buffer =

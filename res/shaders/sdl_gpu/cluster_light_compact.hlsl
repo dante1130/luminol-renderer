@@ -4,28 +4,12 @@
 // global index list at [offset, offset+point_count) for point lights and
 // [offset+point_count, offset+point_count+spot_count) for spot lights.
 //
+// Light view-space position + cull radius are precomputed once per frame on
+// the CPU (SDL_GPUClusterPass::cull_lights) rather than recomputed per
+// cluster here - see cluster_light_count.hlsl.
+//
 // SDL_GPU compute HLSL register convention: space0 = read-only t/s,
 // space1 = read-write u, space2 = uniform b.
-
-struct PointLight {
-    float4 position;
-    float4 color;
-    // x: shadow map slot, unused here but must stay in the struct so the
-    // StructuredBuffer stride matches AlignedPointLight (Light.hpp) exactly.
-    float4 shadow_data;
-};
-
-struct SpotLight {
-    float4 position;
-    float4 direction;
-    float3 color;
-    float cut_off;
-    float outer_cut_off;
-    // Shadow map slot, unused here but must stay in the struct so the
-    // StructuredBuffer stride matches AlignedSpotLight (Light.hpp) exactly.
-    float shadow_slot;
-    float2 padding;
-};
 
 struct ClusterAABB {
     float4 min_view;
@@ -39,8 +23,9 @@ struct ClusterLightGrid {
     uint padding;
 };
 
-StructuredBuffer<PointLight> point_lights : register(t0, space0);
-StructuredBuffer<SpotLight> spot_lights : register(t1, space0);
+// xyz = view-space position, w = cull radius.
+StructuredBuffer<float4> point_light_culling_data : register(t0, space0);
+StructuredBuffer<float4> spot_light_culling_data : register(t1, space0);
 
 // Written by cluster_aabb_build.hlsl; only read here, but bound via the
 // read-write mechanism since it was created with compute-write usage.
@@ -51,14 +36,7 @@ RWStructuredBuffer<uint> global_light_index_list : register(u2, space1);
 
 // x = point_light_count, y = spot_light_count, z = total_clusters, w = unused.
 cbuffer ClusterCullParams : register(b0, space2) {
-    row_major float4x4 view_matrix;
     uint4 counts;
-};
-
-float light_cull_radius(float3 color) {
-    const float cutoff = 1.0 / 16.0;
-    float intensity = max(color.r, max(color.g, color.b));
-    return sqrt(max(intensity, 0.0) / cutoff);
 }
 
 bool sphere_intersects_aabb(float3 center, float radius, float3 box_min, float3 box_max) {
@@ -83,9 +61,8 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID) {
 
     uint point_light_count = counts.x;
     for (uint i = 0; i < point_light_count; ++i) {
-        float3 view_position = mul(float4(point_lights[i].position.xyz, 1.0), view_matrix).xyz;
-        float radius = light_cull_radius(point_lights[i].color.rgb);
-        if (sphere_intersects_aabb(view_position, radius, aabb_min, aabb_max)) {
+        float4 culling_data = point_light_culling_data[i];
+        if (sphere_intersects_aabb(culling_data.xyz, culling_data.w, aabb_min, aabb_max)) {
             global_light_index_list[offset + local_count] = i;
             local_count++;
         }
@@ -93,9 +70,8 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID) {
 
     uint spot_light_count = counts.y;
     for (uint i = 0; i < spot_light_count; ++i) {
-        float3 view_position = mul(float4(spot_lights[i].position.xyz, 1.0), view_matrix).xyz;
-        float radius = light_cull_radius(spot_lights[i].color);
-        if (sphere_intersects_aabb(view_position, radius, aabb_min, aabb_max)) {
+        float4 culling_data = spot_light_culling_data[i];
+        if (sphere_intersects_aabb(culling_data.xyz, culling_data.w, aabb_min, aabb_max)) {
             global_light_index_list[offset + local_count] = i;
             local_count++;
         }

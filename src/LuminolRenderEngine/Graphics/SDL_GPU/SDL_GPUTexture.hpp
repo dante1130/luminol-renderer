@@ -55,6 +55,11 @@ class Texture {
 public:
     using SDL_GPUTextureDeleter = std::function<void(SDL_GPUTexture*)>;
 
+    // Constructed from a unique_ptr (matching GPUDevice::create_texture's
+    // ownership handoff) but stored as a shared_ptr internally so Texture
+    // itself is copyable - lets multiple material slots (e.g. metallic and
+    // roughness, when they share one packed source image) bind the same GPU
+    // texture without a duplicate upload.
     Texture(
         std::unique_ptr<SDL_GPUTexture, SDL_GPUTextureDeleter> texture,
         uint32_t width,
@@ -68,7 +73,7 @@ public:
     [[nodiscard]] auto get_mip_levels() const -> uint32_t;
 
 private:
-    std::unique_ptr<SDL_GPUTexture, SDL_GPUTextureDeleter> texture;
+    std::shared_ptr<SDL_GPUTexture> texture;
     uint32_t width;
     uint32_t height;
     uint32_t mip_levels;

@@ -88,7 +88,7 @@ private:
         Maths::Matrix4x4f current_view_projection;
     };
     [[nodiscard]] auto upload_instances_and_compute_frustum(
-        CommandBuffer& command_buffer
+        CommandBuffer& command_buffer, const Maths::Vector4f& camera_position
     ) -> FramePrepData;
 
     // view_matrix/projection_matrix-derived values needed by multiple stages

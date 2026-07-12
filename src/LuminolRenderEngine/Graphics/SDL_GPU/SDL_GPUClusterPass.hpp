@@ -1,8 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 #include <LuminolMaths/Matrix.hpp>
+#include <LuminolMaths/Vector.hpp>
 
 #include <LuminolRenderEngine/Graphics/Light.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
@@ -78,6 +80,21 @@ private:
     Buffer spot_light_buffer;
     TransferBuffer point_light_transfer_buffer;
     TransferBuffer spot_light_transfer_buffer;
+
+    // Per-light view-space position (xyz) + cull radius (w), precomputed
+    // once per frame on the CPU and read directly by the count/compact
+    // shaders - avoids each of the 3456 clusters redundantly recomputing the
+    // same world-to-view transform and radius for every light. Distinct from
+    // point_light_buffer/spot_light_buffer above, which stay in world space
+    // since they're also bound directly for shading (pbr_frag.hlsl).
+    Buffer point_light_culling_buffer;
+    Buffer spot_light_culling_buffer;
+    TransferBuffer point_light_culling_transfer_buffer;
+    TransferBuffer spot_light_culling_transfer_buffer;
+    // Persisted across frames so their heap capacity carries over instead of
+    // being reallocated every frame.
+    std::vector<Maths::Vector4f> point_light_culling_data;
+    std::vector<Maths::Vector4f> spot_light_culling_data;
 
     bool has_built = false;
     float cached_fov_degrees = 0.0F;

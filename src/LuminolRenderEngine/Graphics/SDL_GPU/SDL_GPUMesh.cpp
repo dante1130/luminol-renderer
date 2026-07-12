@@ -33,6 +33,16 @@ auto load_first_texture_or_nothing(
     return textures_map.at(texture_paths[0]);
 }
 
+// True when both paths lists are non-empty and their first entry is the same
+// file - i.e. this material slot shares a source image with another slot
+// (e.g. glTF's packed occlusion/roughness/metallic convention).
+auto shares_first_path(
+    const std::vector<std::filesystem::path>& lhs_paths,
+    const std::vector<std::filesystem::path>& rhs_paths
+) -> bool {
+    return !lhs_paths.empty() && !rhs_paths.empty() && lhs_paths[0] == rhs_paths[0];
+}
+
 auto to_texture_images(
     const Luminol::Utilities::ModelLoader::MeshData& mesh_data,
     const std::unordered_map<
@@ -62,6 +72,13 @@ auto to_texture_images(
         .ambient_occlusion_texture_wrap =
             mesh_data.ambient_occlusion_texture_wrap,
         .alpha_mode = mesh_data.alpha_mode,
+        .roughness_shares_metallic_source = shares_first_path(
+            mesh_data.roughness_texture_paths, mesh_data.metallic_texture_paths
+        ),
+        .ambient_occlusion_shares_metallic_source = shares_first_path(
+            mesh_data.ambient_occlusion_texture_paths,
+            mesh_data.metallic_texture_paths
+        ),
     };
 }
 
@@ -302,22 +319,37 @@ SDL_GPUMesh::SDL_GPUMesh(
           TextureFormat::R8G8B8A8_Unorm,
           true
       )},
-      roughness_texture{create_texture_from_path(
-          device,
-          copy_pass,
-          texture_paths.roughness_texture_path,
-          create_white_pixel_texture,
-          TextureFormat::R8G8B8A8_Unorm,
-          true
-      )},
-      ambient_occlusion_texture{create_texture_from_path(
-          device,
-          copy_pass,
-          texture_paths.ambient_occlusion_texture_path,
-          create_white_pixel_texture,
-          TextureFormat::R8G8B8A8_Unorm,
-          true
-      )},
+      // Packed ORM (occlusion/roughness/metallic) textures share one source
+      // file across these three material slots - reuse the already-uploaded
+      // metallic_texture instead of uploading the same pixel data again.
+      roughness_texture{
+          texture_paths.metallic_texture_path.has_value() &&
+                  texture_paths.roughness_texture_path ==
+                      texture_paths.metallic_texture_path
+              ? metallic_texture
+              : create_texture_from_path(
+                    device,
+                    copy_pass,
+                    texture_paths.roughness_texture_path,
+                    create_white_pixel_texture,
+                    TextureFormat::R8G8B8A8_Unorm,
+                    true
+                )
+      },
+      ambient_occlusion_texture{
+          texture_paths.metallic_texture_path.has_value() &&
+                  texture_paths.ambient_occlusion_texture_path ==
+                      texture_paths.metallic_texture_path
+              ? metallic_texture
+              : create_texture_from_path(
+                    device,
+                    copy_pass,
+                    texture_paths.ambient_occlusion_texture_path,
+                    create_white_pixel_texture,
+                    TextureFormat::R8G8B8A8_Unorm,
+                    true
+                )
+      },
       diffuse_sampler{device.create_sampler(SamplerInfo{
           .address_mode_u = SamplerAddressMode::Repeat,
           .address_mode_v = SamplerAddressMode::Repeat,
@@ -386,22 +418,33 @@ SDL_GPUMesh::SDL_GPUMesh(
           TextureFormat::R8G8B8A8_Unorm,
           true
       )},
-      roughness_texture{create_texture_from_image(
-          device,
-          copy_pass,
-          texture_images.roughness_texture,
-          create_white_pixel_texture,
-          TextureFormat::R8G8B8A8_Unorm,
-          true
-      )},
-      ambient_occlusion_texture{create_texture_from_image(
-          device,
-          copy_pass,
-          texture_images.ambient_occlusion_texture,
-          create_white_pixel_texture,
-          TextureFormat::R8G8B8A8_Unorm,
-          true
-      )},
+      // Packed ORM (occlusion/roughness/metallic) textures share one source
+      // file across these three material slots - reuse the already-uploaded
+      // metallic_texture instead of uploading the same pixel data again.
+      roughness_texture{
+          texture_images.roughness_shares_metallic_source
+              ? metallic_texture
+              : create_texture_from_image(
+                    device,
+                    copy_pass,
+                    texture_images.roughness_texture,
+                    create_white_pixel_texture,
+                    TextureFormat::R8G8B8A8_Unorm,
+                    true
+                )
+      },
+      ambient_occlusion_texture{
+          texture_images.ambient_occlusion_shares_metallic_source
+              ? metallic_texture
+              : create_texture_from_image(
+                    device,
+                    copy_pass,
+                    texture_images.ambient_occlusion_texture,
+                    create_white_pixel_texture,
+                    TextureFormat::R8G8B8A8_Unorm,
+                    true
+                )
+      },
       diffuse_sampler{make_sampler(device, texture_images.diffuse_texture_wrap)},
       normal_sampler{make_sampler(device, texture_images.normal_texture_wrap)},
       metallic_sampler{
@@ -519,13 +562,35 @@ auto SDL_GPUMesh::generate_mipmaps(CommandBuffer& command_buffer) const
         &ambient_occlusion_texture,
     };
 
+    // Roughness/ambient-occlusion may share metallic_texture's native handle
+    // (see TextureImages::roughness_shares_metallic_source) - skip a handle
+    // already processed this call so its mip chain isn't generated twice.
+    auto processed_handles = std::array<SDL_GPUTexture*, 5>{};
+    auto processed_count = std::size_t{0};
+
     for (const auto* texture : textures) {
         // Default 1x1 fallback textures (used when a material has no path
         // for this slot) only have 1 mip level; SDL asserts if asked to
         // generate mipmaps for those.
-        if (texture->get_mip_levels() > 1) {
-            command_buffer.generate_mipmaps(*texture);
+        if (texture->get_mip_levels() <= 1) {
+            continue;
         }
+
+        auto* const handle = texture->native_handle();
+        auto already_processed = false;
+        for (auto i = std::size_t{0}; i < processed_count; ++i) {
+            if (processed_handles.at(i) == handle) {
+                already_processed = true;
+                break;
+            }
+        }
+        if (already_processed) {
+            continue;
+        }
+
+        command_buffer.generate_mipmaps(*texture);
+        processed_handles.at(processed_count) = handle;
+        ++processed_count;
     }
 }
 
