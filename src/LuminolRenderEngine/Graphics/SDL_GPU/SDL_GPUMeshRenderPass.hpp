@@ -123,7 +123,7 @@ public:
         const Buffer& indirect_command_buffer,
         const Buffer& visible_instance_indices_buffer,
         const InstanceCullLayout& instance_cull_layout,
-        LightData light_data,
+        const LightData& light_data,
         const Texture& ssao_texture,
         const Sampler& ssao_sampler,
         const Texture& shadow_map_texture,

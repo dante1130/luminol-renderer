@@ -73,6 +73,11 @@ public:
     auto set_debug_visualize_hiz(bool enabled) -> void;
 
 private:
+    // Empties queued_draws for the next frame without destroying its
+    // per-renderable vectors, so their heap capacity carries over instead of
+    // being freed and reallocated from scratch every frame.
+    auto clear_queued_draws() -> void;
+
     // Recreates all swapchain-resolution-dependent textures/passes when the
     // window has been resized since last frame.
     auto handle_resize(const SwapchainTexture& swapchain) -> void;
@@ -85,6 +90,19 @@ private:
     [[nodiscard]] auto upload_instances_and_compute_frustum(
         CommandBuffer& command_buffer
     ) -> FramePrepData;
+
+    // view_matrix/projection_matrix-derived values needed by multiple stages
+    // this frame; computed once (matrix inverse and trig are non-trivial) and
+    // threaded through instead of being recomputed per stage.
+    struct CameraFrameData {
+        Maths::Vector4f position;
+        Maths::Vector4f forward;
+        float vertical_fov_degrees;
+        float aspect_ratio;
+        float near_plane;
+        float far_plane;
+    };
+    [[nodiscard]] auto compute_camera_frame_data() const -> CameraFrameData;
 
     // Two-phase GPU occlusion culling prepass (Hi-Z phase 1 build, phase-1
     // cull, occlusion-depth bootstrap draw, Hi-Z phase 2 build). Must run
@@ -103,7 +121,9 @@ private:
     // clear queued_draws, and return without recording the rest of the
     // frame.
     [[nodiscard]] auto record_debug_hiz_visualize(
-        CommandBuffer& command_buffer, const SwapchainTexture& swapchain
+        CommandBuffer& command_buffer,
+        const SwapchainTexture& swapchain,
+        const CameraFrameData& camera
     ) -> bool;
 
     // AO must run before SSR - SSR consumes AO's same-frame normal texture.
@@ -117,7 +137,9 @@ private:
     // shadows. Returns this frame's repacked light data (owned by the
     // renderer's LightManager), consumed by record_main_pass afterward.
     [[nodiscard]] auto record_shadows(
-        CommandBuffer& command_buffer, gsl::span<const InstanceBatch> instance_batches
+        CommandBuffer& command_buffer,
+        gsl::span<const InstanceBatch> instance_batches,
+        const CameraFrameData& camera
     ) -> const Light&;
 
     // Forward mesh pass followed by the skybox, drawn into the same open
@@ -128,7 +150,8 @@ private:
         gsl::span<const InstanceBatch> instance_batches,
         const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
         const InstanceCullLayout& instance_cull_layout,
-        const Light& light_manager_data
+        const Light& light_manager_data,
+        const CameraFrameData& camera
     ) -> void;
 
     // Tonemap followed by text, drawn into the same open render pass.

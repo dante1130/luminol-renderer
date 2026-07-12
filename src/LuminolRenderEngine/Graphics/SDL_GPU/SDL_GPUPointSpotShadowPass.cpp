@@ -262,6 +262,7 @@ struct SelectedSpotLight {
 auto collect_selected_point_lights(const Luminol::Graphics::Light& light_data)
     -> std::vector<SelectedPointLight> {
     auto selected = std::vector<SelectedPointLight>{};
+    selected.reserve(light_data.point_light_count);
 
     for (auto i = uint32_t{0}; i < light_data.point_light_count; ++i) {
         const auto& light = gsl::at(light_data.point_lights, i);
@@ -286,6 +287,7 @@ auto collect_selected_point_lights(const Luminol::Graphics::Light& light_data)
 auto collect_selected_spot_lights(const Luminol::Graphics::Light& light_data)
     -> std::vector<SelectedSpotLight> {
     auto selected = std::vector<SelectedSpotLight>{};
+    selected.reserve(light_data.spot_light_count);
 
     for (auto i = uint32_t{0}; i < light_data.spot_light_count; ++i) {
         const auto& light = gsl::at(light_data.spot_lights, i);
@@ -307,15 +309,21 @@ auto collect_selected_spot_lights(const Luminol::Graphics::Light& light_data)
     return selected;
 }
 
+// Fills the caller-owned spot_shadow_matrices buffer in place (persisted
+// across frames by the caller to avoid a fresh heap allocation every frame)
+// and uploads it to the GPU.
 auto build_and_upload_spot_shadow_matrices(
     CommandBuffer& command_buffer,
     gsl::span<const SelectedSpotLight> selected_spot_lights,
     TransferBuffer& spot_shadow_matrix_transfer_buffer,
-    Buffer& spot_shadow_matrix_buffer
-) -> std::vector<Matrix4x4f> {
-    auto spot_shadow_matrices = std::vector<Matrix4x4f>(
-        max_shadow_casting_spot_lights, Matrix4x4f::identity()
-    );
+    Buffer& spot_shadow_matrix_buffer,
+    std::vector<Matrix4x4f>& spot_shadow_matrices
+) -> void {
+    if (spot_shadow_matrices.empty()) {
+        spot_shadow_matrices.assign(
+            max_shadow_casting_spot_lights, Matrix4x4f::identity()
+        );
+    }
     for (const auto& spot_light : selected_spot_lights) {
         if (spot_light.slot >= max_shadow_casting_spot_lights) {
             continue;
@@ -337,8 +345,6 @@ auto build_and_upload_spot_shadow_matrices(
             size, true
         );
     }
-
-    return spot_shadow_matrices;
 }
 
 struct IndirectCommandResult {
@@ -367,6 +373,15 @@ auto build_indirect_commands(
         instance_batches.size()
     );
     result.spot_ranges.reserve(selected_spot_lights.size() * instance_batches.size());
+    // Rough lower-bound estimate (assumes ~1 surviving command per
+    // (view, batch) pair) - avoids the worst reallocation growth for the
+    // common case without eagerly reserving the full worst-case capacity
+    // (max_indirect_draw_commands) every frame.
+    result.indirect_commands.reserve(
+        (selected_point_lights.size() * cube_faces_per_light +
+         selected_spot_lights.size()) *
+        instance_batches.size()
+    );
 
     for (const auto& point_light : selected_point_lights) {
         if (point_light.slot >= max_shadow_casting_point_lights) {
@@ -698,9 +713,9 @@ auto SDL_GPUPointSpotShadowPass::draw(
               graphics_factory, instance_batches, queued_draws
           );
 
-    const auto spot_shadow_matrices = build_and_upload_spot_shadow_matrices(
+    build_and_upload_spot_shadow_matrices(
         command_buffer, selected_spot_lights, spot_shadow_matrix_transfer_buffer,
-        spot_shadow_matrix_buffer
+        spot_shadow_matrix_buffer, spot_shadow_matrices
     );
 
     const auto point_shadow_texture_view =

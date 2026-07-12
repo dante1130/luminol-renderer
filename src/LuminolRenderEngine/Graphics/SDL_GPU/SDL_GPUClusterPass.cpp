@@ -110,6 +110,10 @@ auto upload_lights(
     const Buffer& destination_buffer,
     gsl::span<const T> lights
 ) -> void {
+    if (lights.empty()) {
+        return;
+    }
+
     const auto size = static_cast<uint32_t>(lights.size() * sizeof(T));
     const auto mapped = transfer_buffer.map(true);
     std::memcpy(mapped.data(), lights.data(), size);
@@ -214,13 +218,13 @@ auto SDL_GPUClusterPass::cull_lights(
             copy_pass,
             point_light_transfer_buffer,
             point_light_buffer,
-            gsl::span{light_data.point_lights}
+            gsl::span{light_data.point_lights}.first(light_data.point_light_count)
         );
         upload_lights<AlignedSpotLight>(
             copy_pass,
             spot_light_transfer_buffer,
             spot_light_buffer,
-            gsl::span{light_data.spot_lights}
+            gsl::span{light_data.spot_lights}.first(light_data.spot_light_count)
         );
     }
 

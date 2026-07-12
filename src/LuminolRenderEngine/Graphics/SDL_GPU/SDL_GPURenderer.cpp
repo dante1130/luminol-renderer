@@ -305,6 +305,12 @@ auto SDL_GPURenderer::queue_draw_instanced(
     batch.insert(batch.end(), model_matrices.begin(), model_matrices.end());
 }
 
+auto SDL_GPURenderer::clear_queued_draws() -> void {
+    for (auto& [renderable_id, model_matrices] : queued_draws) {
+        model_matrices.clear();
+    }
+}
+
 auto SDL_GPURenderer::handle_resize(const SwapchainTexture& swapchain) -> void {
     if (depth_texture.get_width() == swapchain.width &&
         depth_texture.get_height() == swapchain.height) {
@@ -357,6 +363,19 @@ auto SDL_GPURenderer::upload_instances_and_compute_frustum(
     };
 }
 
+auto SDL_GPURenderer::compute_camera_frame_data() const -> CameraFrameData {
+    const auto camera_params = extract_camera_params(projection_matrix);
+
+    return CameraFrameData{
+        .position = get_view_position(view_matrix),
+        .forward = get_camera_forward(view_matrix),
+        .vertical_fov_degrees = camera_params.vertical_fov_degrees,
+        .aspect_ratio = camera_params.aspect_ratio,
+        .near_plane = camera_params.near_plane,
+        .far_plane = camera_params.far_plane,
+    };
+}
+
 auto SDL_GPURenderer::run_occlusion_prepass(
     CommandBuffer& command_buffer,
     gsl::span<const InstanceBatch> instance_batches,
@@ -406,7 +425,9 @@ auto SDL_GPURenderer::run_occlusion_prepass(
 }
 
 auto SDL_GPURenderer::record_debug_hiz_visualize(
-    CommandBuffer& command_buffer, const SwapchainTexture& swapchain
+    CommandBuffer& command_buffer,
+    const SwapchainTexture& swapchain,
+    const CameraFrameData& camera
 ) -> bool {
     // Debug-only: short-circuit the rest of the frame and blit the Hi-Z
     // pyramid's mip 0 straight to the screen instead of the normal scene, to
@@ -427,10 +448,9 @@ auto SDL_GPURenderer::record_debug_hiz_visualize(
             command_buffer.begin_render_pass(visualize_color_targets);
         visualize_render_pass.bind_graphics_pipeline(hiz_debug_pipeline);
 
-        const auto debug_camera_params = extract_camera_params(projection_matrix);
         const auto debug_visualize_params = HiZDebugVisualizeParams{
-            .near_plane = debug_camera_params.near_plane,
-            .far_plane = debug_camera_params.far_plane,
+            .near_plane = camera.near_plane,
+            .far_plane = camera.far_plane,
             .padding = {0.0F, 0.0F},
         };
         command_buffer.push_fragment_uniform_data(
@@ -487,16 +507,13 @@ auto SDL_GPURenderer::record_ao_and_ssr(
 }
 
 auto SDL_GPURenderer::record_shadows(
-    CommandBuffer& command_buffer, gsl::span<const InstanceBatch> instance_batches
+    CommandBuffer& command_buffer,
+    gsl::span<const InstanceBatch> instance_batches,
+    const CameraFrameData& camera
 ) -> const Light& {
-    const auto camera_position = get_view_position(view_matrix);
-    const auto camera_params = extract_camera_params(projection_matrix);
-
     get_light_manager().update_shadow_casters(
         view_matrix * projection_matrix,
-        Maths::Vector3f{
-            camera_position.x(), camera_position.y(), camera_position.z()
-        }
+        Maths::Vector3f{camera.position.x(), camera.position.y(), camera.position.z()}
     );
 
     const auto& light_manager_data = get_light_manager().get_light_data();
@@ -505,11 +522,8 @@ auto SDL_GPURenderer::record_shadows(
     {
         const auto pass_timer = Utilities::Timer{};
         cluster_pass.build_cluster_grid(
-            command_buffer,
-            camera_params.vertical_fov_degrees,
-            camera_params.aspect_ratio,
-            camera_params.near_plane,
-            camera_params.far_plane
+            command_buffer, camera.vertical_fov_degrees, camera.aspect_ratio,
+            camera.near_plane, camera.far_plane
         );
         performance_logger.record(
             "cluster_build", Units::Seconds{pass_timer.elapsed_seconds()}
@@ -558,11 +572,10 @@ auto SDL_GPURenderer::record_main_pass(
     gsl::span<const InstanceBatch> instance_batches,
     const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
     const InstanceCullLayout& instance_cull_layout,
-    const Light& light_manager_data
+    const Light& light_manager_data,
+    const CameraFrameData& camera
 ) -> void {
     const auto& directional_light = light_manager_data.directional_light;
-    const auto camera_position = get_view_position(view_matrix);
-    const auto camera_params = extract_camera_params(projection_matrix);
 
     const auto hdr_color_texture_view =
         TextureView{hdr_color_texture.native_handle()};
@@ -594,7 +607,7 @@ auto SDL_GPURenderer::record_main_pass(
     auto light_data = LightData{
         .direction = directional_light.direction,
         .color = directional_light.color,
-        .view_position = camera_position,
+        .view_position = camera.position,
         .screen_size = Maths::Vector4f{
             static_cast<float>(swapchain.width),
             static_cast<float>(swapchain.height),
@@ -608,15 +621,15 @@ auto SDL_GPURenderer::record_main_pass(
             0.0F,
         },
         .cluster_params = Maths::Vector4f{
-            camera_params.near_plane,
-            camera_params.far_plane,
+            camera.near_plane,
+            camera.far_plane,
             0.0F,
             0.0F,
         },
         .cascade_light_space_matrices =
             shadow_pass.get_cascade_light_space_matrices(),
         .cascade_split_depths = shadow_pass.get_cascade_split_depths(),
-        .camera_forward = get_camera_forward(view_matrix),
+        .camera_forward = camera.forward,
     };
 
     mesh_render_pass.draw(
@@ -716,11 +729,13 @@ auto SDL_GPURenderer::draw() -> void {
 
     if (!swapchain.has_value()) {
         command_buffer.submit();
-        queued_draws.clear();
+        clear_queued_draws();
         return;
     }
 
     handle_resize(*swapchain);
+
+    const auto camera = compute_camera_frame_data();
 
     auto frame_prep = upload_instances_and_compute_frustum(command_buffer);
 
@@ -729,9 +744,9 @@ auto SDL_GPURenderer::draw() -> void {
         frame_prep.camera_frustum_planes, frame_prep.current_view_projection
     );
 
-    if (record_debug_hiz_visualize(command_buffer, *swapchain)) {
+    if (record_debug_hiz_visualize(command_buffer, *swapchain, camera)) {
         command_buffer.submit();
-        queued_draws.clear();
+        clear_queued_draws();
         return;
     }
 
@@ -748,17 +763,18 @@ auto SDL_GPURenderer::draw() -> void {
     record_ao_and_ssr(command_buffer, frame_prep.instance_batches, instance_cull_layout);
 
     const auto& light_manager_data =
-        record_shadows(command_buffer, frame_prep.instance_batches);
+        record_shadows(command_buffer, frame_prep.instance_batches, camera);
 
     record_main_pass(
         command_buffer, *swapchain, frame_prep.instance_batches,
-        frame_prep.camera_frustum_planes, instance_cull_layout, light_manager_data
+        frame_prep.camera_frustum_planes, instance_cull_layout, light_manager_data,
+        camera
     );
 
     record_tonemap_and_text(command_buffer, *swapchain);
 
     command_buffer.submit();
-    queued_draws.clear();
+    clear_queued_draws();
 
     has_valid_previous_depth = true;
 

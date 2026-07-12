@@ -274,7 +274,7 @@ auto SDL_GPUMeshRenderPass::draw(
     const Buffer& indirect_command_buffer,
     const Buffer& visible_instance_indices_buffer,
     const InstanceCullLayout& instance_cull_layout,
-    LightData light_data,
+    const LightData& light_data,
     const Texture& ssao_texture,
     const Sampler& ssao_sampler,
     const Texture& shadow_map_texture,
@@ -285,13 +285,15 @@ auto SDL_GPUMeshRenderPass::draw(
     const Texture& ssr_texture,
     const Sampler& ssr_sampler
 ) -> void {
-    light_data.shadow_params.z() =
+    auto adjusted_light_data = light_data;
+    adjusted_light_data.shadow_params.z() =
         static_cast<float>(ibl_textures.prefiltered_mip_count - 1);
 
     command_buffer.push_fragment_uniform_data(
         0,
         gsl::span{
-            reinterpret_cast<const std::byte*>(&light_data), sizeof(light_data)
+            reinterpret_cast<const std::byte*>(&adjusted_light_data),
+            sizeof(adjusted_light_data)
         }
     );
 

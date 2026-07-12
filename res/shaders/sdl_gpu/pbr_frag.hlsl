@@ -672,11 +672,16 @@ float4 main(PSInput input) : SV_Target {
     // the SSR pass found a confident on-screen hit, and fall back to the
     // cubemap elsewhere. Rougher surfaces reflect the environment more
     // diffusely, so fade SSR out with roughness to avoid sharp screen-space
-    // reflections on matte materials.
-    const float2 ssr_uv = input.screen_position.xy / screen_size.xy;
-    const float4 ssr = ssr_texture.Sample(ssr_sampler, ssr_uv);
-    const float ssr_weight = ssr.a * (1.0f - roughness);
-    const float3 reflection_color = lerp(prefiltered_color, ssr.rgb, ssr_weight);
+    // reflections on matte materials - skip the sample entirely once the
+    // fade would make its contribution negligible.
+    const float ssr_max_roughness = 0.95f;
+    float3 reflection_color = prefiltered_color;
+    if (roughness < ssr_max_roughness) {
+        const float2 ssr_uv = input.screen_position.xy / screen_size.xy;
+        const float4 ssr = ssr_texture.Sample(ssr_sampler, ssr_uv);
+        const float ssr_weight = ssr.a * (1.0f - roughness);
+        reflection_color = lerp(prefiltered_color, ssr.rgb, ssr_weight);
+    }
     const float3 specular_ibl = reflection_color * (k_s * env_brdf.x + env_brdf.y);
 
     const float3 ambient = (diffuse_ibl + specular_ibl) * ao * ssao;

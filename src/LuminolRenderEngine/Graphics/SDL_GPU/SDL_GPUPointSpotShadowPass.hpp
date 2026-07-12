@@ -70,6 +70,10 @@ private:
 
     Buffer spot_shadow_matrix_buffer;
     TransferBuffer spot_shadow_matrix_transfer_buffer;
+    // Per-slot spot light view-projection matrices, persisted across frames
+    // so its heap capacity doesn't get freed and reallocated every frame;
+    // lazily sized to max_shadow_casting_spot_lights on first use.
+    std::vector<Maths::Matrix4x4f> spot_shadow_matrices;
 
     // Indirect draw commands for both atlases, built and uploaded fresh each
     // frame from CPU-side AABB culling results, so each (tile, batch) can be
