@@ -25,24 +25,38 @@ class CommandBuffer;
 class RenderPass;
 class SDL_GPUFactory;
 
+// Number of cascades the directional shadow map (SDL_GPUShadowPass) is
+// split into. Lives here rather than SDL_GPUShadowPass.hpp so that LightData
+// below can size its cascade arrays without SDL_GPUShadowPass.hpp and this
+// header needing to include each other.
+inline constexpr auto shadow_pass_num_cascades = 4U;
+
 // Layout matches the LightBuffer cbuffer in pbr_frag.hlsl (register b0,
-// space3): five float4s then a row_major float4x4, no manual padding needed
-// beyond what's declared below. Point/spot lights are no longer part of this
-// cbuffer - they're read from storage buffers (see SDL_GPUClusterPass) via
-// the per-cluster light index list built by the clustered light-culling
-// compute passes.
+// space3): six float4s, then shadow_pass_num_cascades row_major float4x4s,
+// then two more float4s, no manual padding needed beyond what's declared
+// below. Point/spot lights are no longer part of this cbuffer - they're read
+// from storage buffers (see SDL_GPUClusterPass) via the per-cluster light
+// index list built by the clustered light-culling compute passes.
 struct LightData {
     Maths::Vector4f direction;
     Maths::Vector4f color;
     Maths::Vector4f view_position;
     Maths::Vector4f screen_size;
-    Maths::Matrix4x4f light_space_matrix;
     // x: shadow map resolution, y: normal-offset bias,
     // z: max prefiltered specular mip level (see SDL_GPUIBLRenderPass)
     Maths::Vector4f shadow_params;
     // x: camera near plane, y: camera far plane (for view-space depth
     // reconstruction when computing the cluster index), z/w: unused.
     Maths::Vector4f cluster_params;
+    std::array<Maths::Matrix4x4f, shadow_pass_num_cascades>
+        cascade_light_space_matrices;
+    // View-space far distance of each cascade (see SDL_GPUShadowPass),
+    // used by pbr_frag.hlsl to pick which cascade a fragment falls into.
+    Maths::Vector4f cascade_split_depths;
+    // xyz: camera forward direction (world space), used alongside
+    // view_position to compute a fragment's linear view-space depth for
+    // cascade selection. w: unused.
+    Maths::Vector4f camera_forward;
 };
 
 // The Clustered Forward+ buffers produced by SDL_GPUClusterPass, bound as

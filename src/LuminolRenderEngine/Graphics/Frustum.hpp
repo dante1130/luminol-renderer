@@ -16,6 +16,18 @@ namespace Luminol::Graphics {
     const Maths::Matrix4x4f& view_projection
 ) -> std::array<Maths::Vector4f, 6>;
 
+// Unprojects the 8 NDC cube corners (x/y in [-1, 1], z in [0, 1], matching
+// the D3D-style depth range used throughout this codebase - see
+// left_handed_perspective_projection_matrix) through the inverse of a
+// row-major view-projection matrix used with row-vector multiplication
+// (pos * view_projection, see pbr_vert.hlsl), returning their world-space
+// positions. Order: near-bottom-left, near-bottom-right, near-top-left,
+// near-top-right, far-bottom-left, far-bottom-right, far-top-left,
+// far-top-right.
+[[nodiscard]] auto extract_frustum_corners(
+    const Maths::Matrix4x4f& view_projection
+) -> std::array<Maths::Vector3f, 8>;
+
 [[nodiscard]] auto sphere_in_frustum(
     const std::array<Maths::Vector4f, 6>& planes,
     const Maths::Vector3f& center,

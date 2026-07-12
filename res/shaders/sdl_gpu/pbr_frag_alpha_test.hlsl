@@ -4,7 +4,7 @@ Texture2D metallic_texture : register(t2, space2);
 Texture2D roughness_texture : register(t3, space2);
 Texture2D ao_texture : register(t4, space2);
 Texture2D ssao_texture : register(t5, space2);
-Texture2D shadow_map_texture : register(t6, space2);
+Texture2DArray shadow_map_texture : register(t6, space2);
 
 SamplerState albedo_sampler : register(s0, space2);
 SamplerState normal_sampler : register(s1, space2);
@@ -102,17 +102,27 @@ static const uint CLUSTER_GRID_X = 16;
 static const uint CLUSTER_GRID_Y = 9;
 static const uint CLUSTER_GRID_Z = 24;
 
+// Must match shadow_pass_num_cascades in SDL_GPUMeshRenderPass.hpp exactly.
+static const uint NUM_SHADOW_CASCADES = 4;
+
 cbuffer LightBuffer : register(b0, space3) {
     float4 light_direction;
     float4 light_color;
     float4 view_position;
     float4 screen_size;
-    row_major float4x4 light_space_matrix;
     // x: shadow map resolution, y: normal-offset bias,
     // z: max prefiltered specular mip level
     float4 shadow_params;
     // x: camera near plane, y: camera far plane, z/w: unused.
     float4 cluster_params;
+    row_major float4x4 cascade_light_space_matrices[NUM_SHADOW_CASCADES];
+    // View-space far distance of each cascade (see SDL_GPUShadowPass); the
+    // first cascade whose split a fragment's view depth is within is used.
+    float4 cascade_split_depths;
+    // xyz: camera forward direction (world space), used with view_position
+    // to compute a fragment's linear view-space depth for cascade
+    // selection. w: unused.
+    float4 camera_forward;
 };
 
 // Must match the cluster index encoding in cluster_aabb_build.hlsl /
@@ -363,11 +373,24 @@ float3 calculate_spot_light(
 }
 
 float calculate_shadow(float3 world_position, float3 normal) {
+    const float view_depth =
+        dot(world_position - view_position.xyz, camera_forward.xyz);
+
+    uint cascade_index = NUM_SHADOW_CASCADES - 1;
+    [unroll]
+    for (uint i = 0; i < NUM_SHADOW_CASCADES; ++i) {
+        if (view_depth <= cascade_split_depths[i]) {
+            cascade_index = i;
+            break;
+        }
+    }
+
     const float normal_offset_bias = shadow_params.y;
     const float3 offset_position = world_position + normal * normal_offset_bias;
 
-    const float4 light_space_position =
-        mul(float4(offset_position, 1.0f), light_space_matrix);
+    const float4 light_space_position = mul(
+        float4(offset_position, 1.0f), cascade_light_space_matrices[cascade_index]
+    );
 
     float2 shadow_uv = light_space_position.xy * 0.5f + 0.5f;
     shadow_uv.y = 1.0f - shadow_uv.y;
@@ -388,7 +411,9 @@ float calculate_shadow(float3 world_position, float3 normal) {
         for (int y = -1; y <= 1; ++y) {
             const float2 offset = float2(x, y) * texel_size;
             visibility += shadow_map_texture.SampleCmpLevelZero(
-                shadow_map_sampler, shadow_uv + offset, fragment_depth - constant_bias
+                shadow_map_sampler,
+                float3(shadow_uv + offset, cascade_index),
+                fragment_depth - constant_bias
             );
         }
     }

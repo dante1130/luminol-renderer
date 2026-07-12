@@ -1,10 +1,12 @@
 #include "SDL_GPUShadowPass.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 
 #include <LuminolMaths/Transform.hpp>
 
+#include <LuminolRenderEngine/Graphics/Frustum.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
@@ -14,6 +16,7 @@
 namespace {
 
 using namespace Luminol::Graphics::SDL_GPU;
+using namespace Luminol::Graphics;
 using namespace Luminol::Maths;
 
 constexpr auto vertex_stride_in_floats = 11U;
@@ -57,10 +60,29 @@ constexpr auto mesh_vertex_attributes = std::array{
 constexpr auto shadow_map_format = TextureFormat::D24_Unorm;
 
 constexpr auto shadow_map_resolution = 2048U;
-constexpr auto shadow_distance = 30.0F;
-constexpr auto shadow_ortho_half_extent = 18.0F;
 constexpr auto shadow_near_plane = 0.1F;
-constexpr auto shadow_far_plane = shadow_distance + shadow_ortho_half_extent;
+
+// Cascades only need to cover shadows out to this distance from the camera,
+// not the camera's true far plane (which may be far beyond where shadows
+// are visually relevant) - keeps the far cascades from being wasted on
+// distant geometry.
+constexpr auto max_shadow_distance = 100.0F;
+
+// Blend factor between a uniform and logarithmic cascade split scheme (the
+// "practical split scheme"): 0 = uniform, 1 = fully logarithmic. Biased
+// heavily toward logarithmic so cascade 0 stays small (sharp, high texel
+// density close to the camera) instead of ballooning out to roughly a third
+// of max_shadow_distance the way a 0.5 blend does - a pure uniform split
+// wastes the near cascade's resolution on distant geometry.
+constexpr auto cascade_split_lambda = 0.85F;
+
+// Extra distance the light is pulled back behind each cascade's bounding
+// sphere so that casters just outside the visible frustum slice (e.g.
+// behind the camera or off to the side) still end up in the depth range
+// and aren't missing from the shadow map. Decoupled from the per-cascade
+// ortho half-extent, mirroring how the original single-cascade shadow pass
+// used a separate shadow_distance from shadow_ortho_half_extent.
+constexpr auto caster_padding = max_shadow_distance;
 
 constexpr auto world_up = Vector3f{0.0F, 1.0F, 0.0F};
 constexpr auto up_fallback = Vector3f{0.0F, 0.0F, 1.0F};
@@ -88,50 +110,134 @@ auto left_handed_orthographic_projection_matrix(
     return result;
 }
 
-auto compute_light_space_matrix(
-    const Vector3f& light_direction, const Vector3f& camera_position
+// Extracts the camera's near/far plane distances directly from its
+// projection matrix (see Maths::Transform::left_handed_perspective_projection_matrix),
+// so the shadow pass doesn't need a separate camera-params API - it only
+// ever receives the already-computed view/projection matrices, mirroring
+// extract_camera_params in SDL_GPURenderer.cpp.
+struct CameraNearFar {
+    float near_plane;
+    float far_plane;
+};
+
+auto extract_camera_near_far(const Matrix4x4f& projection_matrix)
+    -> CameraNearFar {
+    const auto c = projection_matrix[2][2];
+    const auto e = projection_matrix[3][2];
+
+    return CameraNearFar{
+        .near_plane = -e / c,
+        .far_plane = e / (1.0F - c),
+    };
+}
+
+// Builds the perspective projection covering just [split_near, split_far]
+// of the camera's frustum, reusing the camera's existing fov/aspect terms
+// (rows 0 and 1, which projection_matrix already encodes) and only
+// recomputing the near/far-dependent terms (see
+// Transform::left_handed_perspective_projection_matrix's C/E derivation).
+auto make_sub_frustum_projection(
+    const Matrix4x4f& projection_matrix, float split_near, float split_far
+) -> Matrix4x4f {
+    auto result = projection_matrix;
+    const auto range = split_far - split_near;
+
+    result[2][2] = split_far / range;
+    result[3][2] = -split_near * split_far / range;
+
+    return result;
+}
+
+// Practical split scheme: blends a uniform split and a logarithmic split of
+// [camera_near, effective_far] by cascade_split_lambda. Returns
+// shadow_pass_num_cascades + 1 boundaries; cascade i covers
+// [splits[i], splits[i + 1]].
+auto compute_cascade_splits(float camera_near, float camera_far)
+    -> std::array<float, shadow_pass_num_cascades + 1> {
+    const auto effective_far = std::min(camera_far, max_shadow_distance);
+
+    auto splits = std::array<float, shadow_pass_num_cascades + 1>{};
+    splits[0] = camera_near;
+
+    for (auto i = 1U; i <= shadow_pass_num_cascades; ++i) {
+        const auto t =
+            static_cast<float>(i) / static_cast<float>(shadow_pass_num_cascades);
+
+        const auto log_split =
+            camera_near * std::pow(effective_far / camera_near, t);
+        const auto uniform_split =
+            camera_near + (effective_far - camera_near) * t;
+
+        splits.at(i) = (cascade_split_lambda * log_split) +
+            ((1.0F - cascade_split_lambda) * uniform_split);
+    }
+
+    return splits;
+}
+
+// Fits an orthographic light-space matrix around the world-space frustum
+// slice [split_near, split_far], using a bounding sphere (rather than a
+// tight AABB) so the box's world-space size stays constant regardless of
+// camera yaw/pitch - this is what prevents shadow-edge shimmer as the
+// camera turns. Texel-snaps the sphere center along the light's right/up
+// axes (same trick the original single-cascade pass used) to keep any
+// residual movement to whole-texel steps.
+auto compute_cascade_light_space_matrix(
+    const Vector3f& light_direction,
+    const Matrix4x4f& view_matrix,
+    const Matrix4x4f& projection_matrix,
+    float split_near,
+    float split_far
 ) -> Matrix4x4f {
     const auto direction = light_direction.normalized();
     const auto light_up_vector =
         std::abs(direction.dot(world_up)) > 0.99F ? up_fallback : world_up;
 
-    // Stabilize the shadow map against camera movement: snap the
-    // camera-following target to whole shadow-map texels in the light's
-    // right/up axes so the texel grid only ever shifts by whole texels
-    // frame-to-frame, preventing sub-texel shimmer at shadow edges.
+    const auto sub_projection =
+        make_sub_frustum_projection(projection_matrix, split_near, split_far);
+    const auto corners =
+        extract_frustum_corners(view_matrix * sub_projection);
+
+    auto center = Vector3f{0.0F, 0.0F, 0.0F};
+    for (const auto& corner : corners) {
+        center = center + corner;
+    }
+    center = center * (1.0F / static_cast<float>(corners.size()));
+
+    auto radius = 0.0F;
+    for (const auto& corner : corners) {
+        radius = std::max(radius, (corner - center).length());
+    }
+
     const auto right = light_up_vector.cross(direction).normalized();
     const auto up_axis = direction.cross(right);
 
-    constexpr auto texel_size =
-        (2.0F * shadow_ortho_half_extent) /
-        static_cast<float>(shadow_map_resolution);
+    const auto texel_size = (2.0F * radius) / static_cast<float>(shadow_map_resolution);
 
-    const auto snap = [](float value) {
+    const auto snap = [texel_size](float value) {
         return std::floor(value / texel_size) * texel_size;
     };
 
-    const auto camera_right_dist = right.dot(camera_position);
-    const auto camera_up_dist = up_axis.dot(camera_position);
+    const auto center_right_dist = right.dot(center);
+    const auto center_up_dist = up_axis.dot(center);
 
-    const auto snapped_target = camera_position +
-        right * (snap(camera_right_dist) - camera_right_dist) +
-        up_axis * (snap(camera_up_dist) - camera_up_dist);
+    const auto snapped_center = center +
+        right * (snap(center_right_dist) - center_right_dist) +
+        up_axis * (snap(center_up_dist) - center_up_dist);
 
-    const auto light_eye = snapped_target - direction * shadow_distance;
+    const auto light_eye =
+        snapped_center - direction * (radius + caster_padding);
 
     const auto light_view = Transform::left_handed_look_at_matrix(
         Transform::LookAtParams<float>{
             .eye = light_eye,
-            .target = snapped_target,
+            .target = snapped_center,
             .up_vector = light_up_vector
         }
     );
 
     const auto light_projection = left_handed_orthographic_projection_matrix(
-        shadow_ortho_half_extent,
-        shadow_ortho_half_extent,
-        shadow_near_plane,
-        shadow_far_plane
+        radius, radius, shadow_near_plane, (2.0F * radius) + caster_padding
     );
 
     return light_view * light_projection;
@@ -143,6 +249,8 @@ auto make_shadow_map_texture(GPUDevice& device) -> Texture {
         .height = shadow_map_resolution,
         .format = shadow_map_format,
         .usage = TextureUsage::DepthStencilTarget | TextureUsage::Sampler,
+        .type = TextureType::Texture2DArray,
+        .layer_count = shadow_pass_num_cascades,
     });
 }
 
@@ -210,7 +318,11 @@ SDL_GPUShadowPass::SDL_GPUShadowPass(GPUDevice& device)
           .address_mode_u = SamplerAddressMode::ClampToEdge,
           .address_mode_v = SamplerAddressMode::ClampToEdge,
           .enable_compare = true,
-      })} {}
+      })},
+      cascade_light_space_matrices{
+          Matrix4x4f::identity(), Matrix4x4f::identity(),
+          Matrix4x4f::identity(), Matrix4x4f::identity()
+      } {}
 
 auto SDL_GPUShadowPass::draw(
     const SDL_GPUFactory& graphics_factory,
@@ -218,64 +330,86 @@ auto SDL_GPUShadowPass::draw(
     const SDL_GPUInstanceBufferCache& instance_buffer_cache,
     gsl::span<const InstanceBatch> instance_batches,
     const Maths::Vector3f& light_direction,
-    const Maths::Vector3f& camera_position,
+    const Maths::Matrix4x4f& view_matrix,
+    const Maths::Matrix4x4f& projection_matrix,
     Utilities::PerformanceLogger& performance_logger
 ) -> void {
     const auto pass_timer = Utilities::Timer{};
 
-    light_space_matrix =
-        compute_light_space_matrix(light_direction, camera_position);
+    const auto camera_near_far = extract_camera_near_far(projection_matrix);
+    const auto splits = compute_cascade_splits(
+        camera_near_far.near_plane, camera_near_far.far_plane
+    );
 
     const auto shadow_map_texture_view =
         TextureView{shadow_map_texture.native_handle()};
 
-    const auto depth_stencil_target = DepthStencilTargetInfo{
-        .texture = &shadow_map_texture_view,
-        .clear_depth = 1.0F,
-        .load_op = LoadOp::Clear,
-        .store_op = StoreOp::Store,
-        .cycle = true,
-    };
+    for (auto cascade_index = 0U; cascade_index < shadow_pass_num_cascades;
+         ++cascade_index) {
+        const auto split_near = splits.at(cascade_index);
+        const auto split_far = splits.at(cascade_index + 1);
 
-    auto render_pass =
-        command_buffer.begin_render_pass({}, &depth_stencil_target);
-    render_pass.bind_graphics_pipeline(shadow_pipeline);
+        cascade_light_space_matrices.at(cascade_index) =
+            compute_cascade_light_space_matrix(
+                light_direction, view_matrix, projection_matrix, split_near,
+                split_far
+            );
+        cascade_split_depths[cascade_index] = split_far;
 
-    const auto vertex_ubo = VertexUBO{
-        .light_space_matrix = light_space_matrix,
-        .instance_base_offset = {0, 0, 0, 0},
-    };
-    command_buffer.push_vertex_uniform_data(
-        0,
-        gsl::span{
-            reinterpret_cast<const std::byte*>(&vertex_ubo), sizeof(vertex_ubo)
-        }
-    );
+        const auto depth_stencil_target = DepthStencilTargetInfo{
+            .texture = &shadow_map_texture_view,
+            .clear_depth = 1.0F,
+            .load_op = LoadOp::Clear,
+            .store_op = StoreOp::Store,
+            .cycle = cascade_index == 0,
+            .layer = cascade_index,
+        };
 
-    for (const auto& batch : instance_batches) {
-        const auto& instance_buffer =
-            instance_buffer_cache.get(batch.renderable_id);
-        const auto& identity_indices_buffer =
-            instance_buffer_cache.get_identity_indices_buffer();
-        const auto storage_buffer_bindings =
-            std::array{&instance_buffer, &identity_indices_buffer};
-        render_pass.bind_vertex_storage_buffers(0, storage_buffer_bindings);
+        auto render_pass =
+            command_buffer.begin_render_pass({}, &depth_stencil_target);
+        render_pass.bind_graphics_pipeline(shadow_pipeline);
 
-        const auto vertex_bindings = std::array{VertexBufferBinding{
-            .buffer = &graphics_factory.get_vertex_buffer(batch.renderable_id),
-            .offset = 0,
-        }};
-        render_pass.bind_vertex_buffers(0, vertex_bindings);
-        render_pass.bind_index_buffer(
-            graphics_factory.get_index_buffer(batch.renderable_id),
-            IndexElementSize::Bits32, 0
+        const auto vertex_ubo = VertexUBO{
+            .light_space_matrix =
+                cascade_light_space_matrices.at(cascade_index),
+            .instance_base_offset = {0, 0, 0, 0},
+        };
+        command_buffer.push_vertex_uniform_data(
+            0,
+            gsl::span{
+                reinterpret_cast<const std::byte*>(&vertex_ubo),
+                sizeof(vertex_ubo)
+            }
         );
 
-        for (const auto& mesh :
-             graphics_factory.get_meshes(batch.renderable_id)) {
-            mesh.draw_instanced_geometry_only(
-                static_cast<int32_t>(batch.instance_count), render_pass
+        for (const auto& batch : instance_batches) {
+            const auto& instance_buffer =
+                instance_buffer_cache.get(batch.renderable_id);
+            const auto& identity_indices_buffer =
+                instance_buffer_cache.get_identity_indices_buffer();
+            const auto storage_buffer_bindings =
+                std::array{&instance_buffer, &identity_indices_buffer};
+            render_pass.bind_vertex_storage_buffers(
+                0, storage_buffer_bindings
             );
+
+            const auto vertex_bindings = std::array{VertexBufferBinding{
+                .buffer =
+                    &graphics_factory.get_vertex_buffer(batch.renderable_id),
+                .offset = 0,
+            }};
+            render_pass.bind_vertex_buffers(0, vertex_bindings);
+            render_pass.bind_index_buffer(
+                graphics_factory.get_index_buffer(batch.renderable_id),
+                IndexElementSize::Bits32, 0
+            );
+
+            for (const auto& mesh :
+                 graphics_factory.get_meshes(batch.renderable_id)) {
+                mesh.draw_instanced_geometry_only(
+                    static_cast<int32_t>(batch.instance_count), render_pass
+                );
+            }
         }
     }
 
@@ -292,9 +426,14 @@ auto SDL_GPUShadowPass::get_sampler() const -> const Sampler& {
     return shadow_map_sampler;
 }
 
-auto SDL_GPUShadowPass::get_light_space_matrix() const
-    -> const Maths::Matrix4x4f& {
-    return light_space_matrix;
+auto SDL_GPUShadowPass::get_cascade_light_space_matrices() const
+    -> const std::array<Maths::Matrix4x4f, shadow_pass_num_cascades>& {
+    return cascade_light_space_matrices;
+}
+
+auto SDL_GPUShadowPass::get_cascade_split_depths() const
+    -> const Maths::Vector4f& {
+    return cascade_split_depths;
 }
 
 }  // namespace Luminol::Graphics::SDL_GPU

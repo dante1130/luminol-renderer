@@ -30,6 +30,45 @@ auto extract_frustum_planes(const Maths::Matrix4x4f& view_projection)
     };
 }
 
+auto extract_frustum_corners(const Maths::Matrix4x4f& view_projection)
+    -> std::array<Maths::Vector3f, 8> {
+    const auto inverse_view_projection = view_projection.inverse();
+
+    constexpr auto ndc_x = std::array{-1.0F, 1.0F};
+    constexpr auto ndc_y = std::array{-1.0F, 1.0F};
+    constexpr auto ndc_z = std::array{0.0F, 1.0F};
+
+    auto corners = std::array<Maths::Vector3f, 8>{};
+    auto index = size_t{0};
+
+    for (const auto z : ndc_z) {
+        for (const auto y : ndc_y) {
+            for (const auto x : ndc_x) {
+                const auto ndc_position = Maths::Vector4f{x, y, z, 1.0F};
+
+                auto world_position = Maths::Vector4f{};
+                for (size_t column = 0; column < 4; ++column) {
+                    auto sum = 0.0F;
+                    for (size_t row = 0; row < 4; ++row) {
+                        sum += ndc_position[row] *
+                            inverse_view_projection[row][column];
+                    }
+                    world_position[column] = sum;
+                }
+
+                corners.at(index) = Maths::Vector3f{
+                    world_position.x() / world_position.w(),
+                    world_position.y() / world_position.w(),
+                    world_position.z() / world_position.w(),
+                };
+                ++index;
+            }
+        }
+    }
+
+    return corners;
+}
+
 auto sphere_in_frustum(
     const std::array<Maths::Vector4f, 6>& planes,
     const Maths::Vector3f& center,

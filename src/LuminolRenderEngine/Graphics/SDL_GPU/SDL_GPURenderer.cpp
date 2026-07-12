@@ -71,6 +71,21 @@ auto get_view_position(const Matrix4x4f& view_matrix) -> Vector4f {
     };
 }
 
+// World-space camera forward direction, recovered the same way as
+// get_view_position above: row 2 of the inverse view matrix is where
+// left_handed_look_at_matrix stores the forward basis vector's world-space
+// components (see Transform.hpp).
+auto get_camera_forward(const Matrix4x4f& view_matrix) -> Vector4f {
+    const auto inverse_view_matrix = view_matrix.inverse();
+
+    return Vector4f{
+        inverse_view_matrix[2][0],
+        inverse_view_matrix[2][1],
+        inverse_view_matrix[2][2],
+        0.0F,
+    };
+}
+
 auto make_depth_texture(GPUDevice& device, uint32_t width, uint32_t height)
     -> Texture {
     return device.create_texture(TextureInfo{
@@ -586,9 +601,8 @@ auto SDL_GPURenderer::draw() -> void {
             directional_light.direction.y(),
             directional_light.direction.z()
         },
-        Maths::Vector3f{
-            camera_position.x(), camera_position.y(), camera_position.z()
-        },
+        view_matrix,
+        projection_matrix,
         performance_logger
     );
 
@@ -626,7 +640,6 @@ auto SDL_GPURenderer::draw() -> void {
                 0.0F,
                 0.0F,
             },
-            .light_space_matrix = shadow_pass.get_light_space_matrix(),
             .shadow_params = Maths::Vector4f{
                 static_cast<float>(
                     shadow_pass.get_shadow_map_texture().get_width()
@@ -641,6 +654,10 @@ auto SDL_GPURenderer::draw() -> void {
                 0.0F,
                 0.0F,
             },
+            .cascade_light_space_matrices =
+                shadow_pass.get_cascade_light_space_matrices(),
+            .cascade_split_depths = shadow_pass.get_cascade_split_depths(),
+            .camera_forward = get_camera_forward(view_matrix),
         };
 
         mesh_render_pass.draw(
