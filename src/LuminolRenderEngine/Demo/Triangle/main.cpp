@@ -2,6 +2,7 @@
 #include <cstdint>
 
 #include <LuminolRenderEngine/LuminolRenderEngine.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderer.hpp>
 #include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
 
 auto main() -> int {

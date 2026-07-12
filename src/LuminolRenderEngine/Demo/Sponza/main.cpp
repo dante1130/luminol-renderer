@@ -5,6 +5,7 @@
 
 #include <LuminolRenderEngine/LuminolRenderEngine.hpp>
 #include <LuminolRenderEngine/Graphics/Camera.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderer.hpp>
 #include <LuminolRenderEngine/Utilities/Timer.hpp>
 
 namespace {

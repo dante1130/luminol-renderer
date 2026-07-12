@@ -1,4 +1,5 @@
 #include <LuminolRenderEngine/LuminolRenderEngine.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderer.hpp>
 
 auto main() -> int {
     using namespace Luminol;

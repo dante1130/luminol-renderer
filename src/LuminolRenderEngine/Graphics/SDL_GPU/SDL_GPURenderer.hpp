@@ -10,6 +10,7 @@
 
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUAmbientOcclusionPass.hpp>
+#include <LuminolRenderEngine/Window/Window.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUClusterPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
@@ -41,35 +42,35 @@ public:
         SampleCount requested_msaa_sample_count = SampleCount::x4
     );
 
-    auto set_view_matrix(const Maths::Matrix4x4f& view_matrix) -> void override;
+    auto set_view_matrix(const Maths::Matrix4x4f& view_matrix) -> void;
     auto set_projection_matrix(const Maths::Matrix4x4f& projection_matrix)
-        -> void override;
+        -> void;
 
-    auto set_exposure(float exposure) -> void override;
+    auto set_exposure(float exposure) -> void;
 
-    auto clear_color(const Maths::Vector4f& color) const -> void override;
+    auto clear_color(const Maths::Vector4f& color) const -> void;
 
     auto queue_draw(
         RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
-    ) -> void override;
+    ) -> void;
 
     auto queue_draw_instanced(
         RenderableId renderable_id,
         gsl::span<const Maths::Matrix4x4f> model_matrices
-    ) -> void override;
+    ) -> void;
 
     auto queue_draw_text(
         FontId font_id,
         std::string_view text,
         const Maths::Vector2f& position,
         const Maths::Vector4f& color
-    ) -> void override;
+    ) -> void;
 
-    auto draw() -> void override;
+    auto draw() -> void;
 
-    auto set_debug_disable_occlusion_culling(bool disabled) -> void override;
-    auto debug_log_visible_instance_count() -> void override;
-    auto set_debug_visualize_hiz(bool enabled) -> void override;
+    auto set_debug_disable_occlusion_culling(bool disabled) -> void;
+    auto debug_log_visible_instance_count() -> void;
+    auto set_debug_visualize_hiz(bool enabled) -> void;
 
 private:
     // Recreates all swapchain-resolution-dependent textures/passes when the

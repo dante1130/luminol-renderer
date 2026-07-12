@@ -6,7 +6,6 @@
 
 #include <gsl/gsl>
 
-#include <LuminolRenderEngine/Graphics/Renderer.hpp>
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 #include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFont.hpp>
@@ -17,6 +16,7 @@
 namespace Luminol::Graphics::SDL_GPU {
 
 class GPUDevice;
+class SDL_GPURenderer;
 
 class SDL_GPUFactory : public std::enable_shared_from_this<SDL_GPUFactory> {
 public:
@@ -29,7 +29,7 @@ public:
     auto operator=(SDL_GPUFactory&&) -> SDL_GPUFactory& = delete;
 
     [[nodiscard]] auto create_renderer(Window& window)
-        -> std::unique_ptr<Renderer>;
+        -> std::unique_ptr<SDL_GPURenderer>;
 
     [[nodiscard]] auto create_mesh(
         gsl::span<const float> vertices,

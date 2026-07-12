@@ -2,6 +2,7 @@
 
 #include <LuminolRenderEngine/Graphics/Light.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderer.hpp>
 
 namespace Luminol {
 
@@ -12,15 +13,17 @@ RenderEngine::RenderEngine(const Properties& properties)
                )
                    ->create_renderer(this->window)) {}
 
+RenderEngine::~RenderEngine() = default;
+
 auto RenderEngine::get_window() const -> const Window& { return this->window; }
 
 auto RenderEngine::get_window() -> Window& { return this->window; }
 
-auto RenderEngine::get_renderer() const -> const Graphics::Renderer& {
+auto RenderEngine::get_renderer() const -> const Graphics::SDL_GPU::SDL_GPURenderer& {
     return *this->renderer;
 }
 
-auto RenderEngine::get_renderer() -> Graphics::Renderer& {
+auto RenderEngine::get_renderer() -> Graphics::SDL_GPU::SDL_GPURenderer& {
     return *this->renderer;
 }
 

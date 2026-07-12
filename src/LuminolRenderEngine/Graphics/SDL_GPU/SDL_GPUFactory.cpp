@@ -46,7 +46,7 @@ SDL_GPUFactory::~SDL_GPUFactory() {
 }
 
 auto SDL_GPUFactory::create_renderer(Window& window)
-    -> std::unique_ptr<Renderer> {
+    -> std::unique_ptr<SDL_GPURenderer> {
     auto* sdl_window = static_cast<SDL_Window*>(window.get_window_handle());
     gpu_device = std::make_shared<GPUDevice>(sdl_window);
     return std::make_unique<SDL_GPURenderer>(
