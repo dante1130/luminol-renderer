@@ -1,0 +1,2 @@
+add_subdirectory(InstancedCubeStressTest)
+add_subdirectory(ManyLightsStressTest)
