@@ -39,6 +39,14 @@ Texture2D spot_shadow_maps : register(t11, space2);
 SamplerComparisonState point_shadow_sampler : register(s10, space2);
 SamplerComparisonState spot_shadow_sampler : register(s11, space2);
 
+// Screen-space reflections for this pixel (rgb = reflected color, a = hit
+// confidence), produced by SDL_GPUScreenSpaceReflectionPass. Sampled at the
+// fragment's screen UV and blended over the global prefiltered specular IBL
+// below. Must stay grouped with the textures/samplers above (before the
+// storage buffers), per SDL_GPU's fragment resource-space convention.
+Texture2D ssr_texture : register(t12, space2);
+SamplerState ssr_sampler : register(s12, space2);
+
 struct PointLight {
     float4 position;
     float4 color;
@@ -68,14 +76,14 @@ struct ClusterLightGrid {
 
 // Clustered Forward+ light buffers, populated by SDL_GPUClusterPass's
 // count -> scan -> compact compute passes. Continue the t-register index
-// right after the 12 textures/samplers above (t0-t11), per SDL_GPU's
+// right after the 13 textures/samplers above (t0-t12), per SDL_GPU's
 // fragment resource-space convention (space2 = textures then storage
 // buffers, in declaration order).
-StructuredBuffer<PointLight> point_lights : register(t12, space2);
-StructuredBuffer<SpotLight> spot_lights : register(t13, space2);
-StructuredBuffer<ClusterLightGrid> cluster_light_grid : register(t14, space2);
-StructuredBuffer<uint> global_light_index_list : register(t15, space2);
-StructuredBuffer<row_major float4x4> spot_shadow_matrices : register(t16, space2);
+StructuredBuffer<PointLight> point_lights : register(t13, space2);
+StructuredBuffer<SpotLight> spot_lights : register(t14, space2);
+StructuredBuffer<ClusterLightGrid> cluster_light_grid : register(t15, space2);
+StructuredBuffer<uint> global_light_index_list : register(t16, space2);
+StructuredBuffer<row_major float4x4> spot_shadow_matrices : register(t17, space2);
 
 // Must match SDL_GPUPointSpotShadowPass.cpp exactly.
 static const float POINT_SHADOW_NEAR_PLANE = 0.05f;
@@ -634,7 +642,17 @@ float4 main(PSInput input) : SV_Target {
         prefiltered_sampler, R, roughness * max_reflection_lod
     ).rgb;
     const float2 env_brdf = brdf_lut_texture.Sample(brdf_lut_sampler, float2(n_dot_v, roughness)).rg;
-    const float3 specular_ibl = prefiltered_color * (k_s * env_brdf.x + env_brdf.y);
+
+    // Screen-space reflections replace the global prefiltered reflection where
+    // the SSR pass found a confident on-screen hit, and fall back to the
+    // cubemap elsewhere. Rougher surfaces reflect the environment more
+    // diffusely, so fade SSR out with roughness to avoid sharp screen-space
+    // reflections on matte materials.
+    const float2 ssr_uv = input.screen_position.xy / screen_size.xy;
+    const float4 ssr = ssr_texture.Sample(ssr_sampler, ssr_uv);
+    const float ssr_weight = ssr.a * (1.0f - roughness);
+    const float3 reflection_color = lerp(prefiltered_color, ssr.rgb, ssr_weight);
+    const float3 specular_ibl = reflection_color * (k_s * env_brdf.x + env_brdf.y);
 
     const float3 ambient = (diffuse_ibl + specular_ibl) * ao * ssao;
     const float3 color = ambient + directional_lo * shadow + point_lo + spot_lo;

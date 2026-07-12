@@ -17,6 +17,7 @@ add_library(Luminol.Graphics.SDL_GPU
     SDL_GPUInstanceBufferCache.cpp
     SDL_GPUMeshRenderPass.cpp
     SDL_GPUAmbientOcclusionPass.cpp
+    SDL_GPUScreenSpaceReflectionPass.cpp
     SDL_GPUClusterPass.cpp
     SDL_GPUInstanceCullPass.cpp
     SDL_GPUHiZPass.cpp

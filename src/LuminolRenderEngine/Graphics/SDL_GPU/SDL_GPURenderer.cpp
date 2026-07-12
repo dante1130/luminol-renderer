@@ -250,6 +250,7 @@ SDL_GPURenderer::SDL_GPURenderer(
           )
       },
       ao_pass{*this->gpu_device, sdl_window},
+      ssr_pass{*this->gpu_device, sdl_window},
       hiz_pass{*this->gpu_device, sdl_window},
       phase1_cull_pass{*this->gpu_device},
       occlusion_depth_pass{*this->gpu_device, sdl_window},
@@ -272,6 +273,9 @@ SDL_GPURenderer::SDL_GPURenderer(
       text_render_pass{*this->gpu_device, sdl_window},
       depth_texture{make_depth_texture(*this->gpu_device, sdl_window)},
       hdr_color_texture{make_hdr_color_texture(*this->gpu_device, sdl_window)},
+      previous_hdr_color_texture{
+          make_hdr_color_texture(*this->gpu_device, sdl_window)
+      },
       point_sampler{this->gpu_device->create_sampler(SamplerInfo{
           .filter = SamplerFilter::Nearest,
           .address_mode_u = SamplerAddressMode::ClampToEdge,
@@ -361,6 +365,10 @@ auto SDL_GPURenderer::draw() -> void {
         hdr_color_texture = make_hdr_color_texture(
             *gpu_device, swapchain->width, swapchain->height
         );
+        previous_hdr_color_texture = make_hdr_color_texture(
+            *gpu_device, swapchain->width, swapchain->height
+        );
+        has_valid_previous_hdr = false;
         msaa_color_texture = make_msaa_color_texture(
             *gpu_device, swapchain->width, swapchain->height, msaa_sample_count
         );
@@ -368,6 +376,7 @@ auto SDL_GPURenderer::draw() -> void {
             *gpu_device, swapchain->width, swapchain->height, msaa_sample_count
         );
         ao_pass.resize(*gpu_device, swapchain->width, swapchain->height);
+        ssr_pass.resize(*gpu_device, swapchain->width, swapchain->height);
         hiz_pass.resize(*gpu_device, swapchain->width, swapchain->height);
         occlusion_depth_pass.resize(
             *gpu_device, swapchain->width, swapchain->height
@@ -519,6 +528,19 @@ auto SDL_GPURenderer::draw() -> void {
         performance_logger
     );
 
+    // Screen-space reflections: trace against this frame's depth + normals
+    // (just written by the AO prepass) and sample the previous frame's
+    // resolved HDR color. Consumed by the main pass below.
+    ssr_pass.draw(
+        command_buffer,
+        projection_matrix,
+        depth_texture,
+        ao_pass.get_normal_texture(),
+        previous_hdr_color_texture,
+        has_valid_previous_hdr,
+        performance_logger
+    );
+
     const auto camera_position = get_view_position(view_matrix);
     const auto camera_params = extract_camera_params(projection_matrix);
 
@@ -665,7 +687,9 @@ auto SDL_GPURenderer::draw() -> void {
                     &point_spot_shadow_pass.get_spot_shadow_sampler(),
                 .spot_shadow_matrices =
                     &point_spot_shadow_pass.get_spot_shadow_matrix_buffer(),
-            }
+            },
+            ssr_pass.get_ssr_texture(),
+            ssr_pass.get_sampler()
         );
 
         skybox_render_pass.draw(
@@ -709,6 +733,13 @@ auto SDL_GPURenderer::draw() -> void {
     queued_draws.clear();
 
     has_valid_previous_depth = true;
+
+    // Ping-pong the HDR targets: this frame's resolved color becomes next
+    // frame's SSR reflection source. Swapping the wrapper handles avoids a
+    // per-frame texture copy; the tonemap pass above already consumed
+    // hdr_color_texture, so it's safe to repurpose it as "previous" now.
+    std::swap(hdr_color_texture, previous_hdr_color_texture);
+    has_valid_previous_hdr = true;
 
     performance_logger.record(
         "frame", Units::Seconds{frame_timer.elapsed_seconds()}

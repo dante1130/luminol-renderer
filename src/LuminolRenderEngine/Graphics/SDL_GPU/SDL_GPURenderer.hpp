@@ -18,6 +18,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUOcclusionDepthPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUPointSpotShadowPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUScreenSpaceReflectionPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShadowPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUSkyboxRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTextRenderPass.hpp>
@@ -76,6 +77,7 @@ private:
 
     SDL_GPUMeshRenderPass mesh_render_pass;
     SDL_GPUAmbientOcclusionPass ao_pass;
+    SDL_GPUScreenSpaceReflectionPass ssr_pass;
     SDL_GPUHiZPass hiz_pass;
     // Phase 1: cheap early-out cull against last frame's Hi-Z, current
     // camera. Only feeds occlusion_depth_pass's bootstrap draw - never used
@@ -98,6 +100,14 @@ private:
 
     Texture depth_texture;
     Texture hdr_color_texture;
+    // Last frame's resolved HDR color, used by the SSR pass as its reflection
+    // source. Ping-ponged with hdr_color_texture at the end of each frame
+    // (std::swap) so no per-frame copy is needed. has_valid_previous_hdr is
+    // false on the first frame and immediately after a resize, when this holds
+    // no valid data - the SSR pass then produces zero confidence and the
+    // forward pass falls back to the global specular IBL.
+    Texture previous_hdr_color_texture;
+    bool has_valid_previous_hdr = false;
     Sampler point_sampler;
 
     // Dedicated multisampled targets for the main forward pass only,

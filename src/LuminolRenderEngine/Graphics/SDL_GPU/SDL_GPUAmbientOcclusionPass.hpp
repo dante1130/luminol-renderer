@@ -48,6 +48,9 @@ public:
     ) -> void;
 
     [[nodiscard]] auto get_ao_texture() const -> const Texture&;
+    // View-space normals written by the normal prepass (encoded *0.5+0.5).
+    // Reused by the SSR pass, which needs the same-frame surface normals.
+    [[nodiscard]] auto get_normal_texture() const -> const Texture&;
     [[nodiscard]] auto get_sampler() const -> const Sampler&;
 
 private:

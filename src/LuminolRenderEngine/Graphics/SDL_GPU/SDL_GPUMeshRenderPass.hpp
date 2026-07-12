@@ -116,7 +116,9 @@ public:
         const Sampler& shadow_map_sampler,
         const IBLTextures& ibl_textures,
         const ClusteredLightBuffers& clustered_light_buffers,
-        const PointSpotShadowTextures& point_spot_shadow_textures
+        const PointSpotShadowTextures& point_spot_shadow_textures,
+        const Texture& ssr_texture,
+        const Sampler& ssr_sampler
     ) -> void;
 
     [[nodiscard]] auto get_instance_buffer_cache() const

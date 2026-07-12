@@ -428,6 +428,10 @@ auto SDL_GPUAmbientOcclusionPass::get_ao_texture() const -> const Texture& {
     return ssao_texture;
 }
 
+auto SDL_GPUAmbientOcclusionPass::get_normal_texture() const -> const Texture& {
+    return normal_texture;
+}
+
 auto SDL_GPUAmbientOcclusionPass::get_sampler() const -> const Sampler& {
     return clamp_sampler;
 }

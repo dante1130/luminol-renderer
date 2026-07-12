@@ -58,7 +58,7 @@ constexpr auto mesh_vertex_attributes = std::array{
 constexpr auto depth_texture_format = TextureFormat::D24_Unorm;
 constexpr auto hdr_color_texture_format = TextureFormat::R16G16B16A16_Float;
 
-constexpr auto fragment_sampler_count = 12U;
+constexpr auto fragment_sampler_count = 13U;
 constexpr auto ssao_sampler_slot = 5U;
 constexpr auto shadow_map_sampler_slot = 6U;
 constexpr auto irradiance_sampler_slot = 7U;
@@ -66,15 +66,16 @@ constexpr auto prefiltered_sampler_slot = 8U;
 constexpr auto brdf_lut_sampler_slot = 9U;
 constexpr auto point_shadow_sampler_slot = 10U;
 constexpr auto spot_shadow_sampler_slot = 11U;
+constexpr auto ssr_sampler_slot = 12U;
 
 // Clustered Forward+ light buffers, bound as fragment storage buffers
-// (t10-t13, space2 - continuing the t-register index right after the 10
+// (t13-t16, space2 - continuing the t-register index right after the 13
 // textures/samplers above, per SDL_GPU's fragment resource-space
 // convention).
 constexpr auto cluster_light_buffer_count = 4U;
 constexpr auto cluster_light_buffer_slot = 0U;
 
-// Spot shadow-matrix buffer (t16, space2), the fifth and last fragment
+// Spot shadow-matrix buffer (t17, space2), the fifth and last fragment
 // storage buffer.
 constexpr auto spot_shadow_matrix_buffer_slot = cluster_light_buffer_count;
 constexpr auto fragment_storage_buffer_count = cluster_light_buffer_count + 1U;
@@ -280,7 +281,9 @@ auto SDL_GPUMeshRenderPass::draw(
     const Sampler& shadow_map_sampler,
     const IBLTextures& ibl_textures,
     const ClusteredLightBuffers& clustered_light_buffers,
-    const PointSpotShadowTextures& point_spot_shadow_textures
+    const PointSpotShadowTextures& point_spot_shadow_textures,
+    const Texture& ssr_texture,
+    const Sampler& ssr_sampler
 ) -> void {
     light_data.shadow_params.z() =
         static_cast<float>(ibl_textures.prefiltered_mip_count - 1);
@@ -353,6 +356,11 @@ auto SDL_GPUMeshRenderPass::draw(
     render_pass.bind_fragment_samplers(
         spot_shadow_sampler_slot, spot_shadow_sampler_bindings
     );
+
+    const auto ssr_sampler_bindings = std::array{TextureSamplerBinding{
+        .texture = &ssr_texture, .sampler = &ssr_sampler
+    }};
+    render_pass.bind_fragment_samplers(ssr_sampler_slot, ssr_sampler_bindings);
 
     const auto spot_shadow_matrix_buffer_bindings =
         std::array<const Buffer* const, 1>{
