@@ -1,5 +1,8 @@
 add_executable(Luminol.Graphics.Tests
     FrustumTests.cpp
+    CameraTests.cpp
+    LightManagerTests.cpp
+    SDL_GPUTypeConversionsTests.cpp
 )
 
 target_compile_features(Luminol.Graphics.Tests PRIVATE cxx_std_20)
@@ -13,6 +16,7 @@ target_compile_options(Luminol.Graphics.Tests PRIVATE
 
 target_link_libraries(Luminol.Graphics.Tests PRIVATE
     Luminol.Graphics
+    Luminol.Graphics.SDL_GPU
     doctest::doctest
 )
 
