@@ -1,3 +1,5 @@
 add_subdirectory(ComputeSmokeTest)
 add_subdirectory(ClusterAabbSmokeTest)
 add_subdirectory(ClusterLightCullSmokeTest)
+add_subdirectory(CullingUtilsSmokeTest)
+add_subdirectory(InstanceCullSmokeTest)
