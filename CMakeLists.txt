@@ -4,6 +4,7 @@ project(luminol-renderer)
 
 option(LUMINOL_RENDER_ENGINE_EXPORT_COMPILE_COMMANDS "Export compile commands" ON)
 option(LUMINOL_RENDER_ENGINE_BUILD_DEMO "Build LuminolRenderEngine demo" ON)
+option(LUMINOL_RENDER_ENGINE_BUILD_TESTS "Build LuminolRenderEngine tests" ON)
 
 if(LUMINOL_RENDER_ENGINE_EXPORT_COMPILE_COMMANDS)
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -23,6 +24,11 @@ set(LUMINOL_RENDER_ENGINE_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_subdirectory(${LUMINOL_RENDER_ENGINE_CMAKE_DIR})
 add_subdirectory(${LUMINOL_RENDER_ENGINE_SRC_DIR})
+
+if(LUMINOL_RENDER_ENGINE_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(${LUMINOL_RENDER_ENGINE_ROOT_DIR}/tests)
+endif()
 
 add_custom_target(
     copy-resources ALL

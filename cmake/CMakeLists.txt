@@ -89,3 +89,15 @@ CPMAddPackage(
     EXCLUDE_FROM_ALL
     SYSTEM
 )
+
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+
+CPMAddPackage(
+    NAME doctest
+    GITHUB_REPOSITORY doctest/doctest
+    GIT_TAG v2.4.11
+    EXCLUDE_FROM_ALL
+    SYSTEM
+)
+
+unset(CMAKE_POLICY_VERSION_MINIMUM)
