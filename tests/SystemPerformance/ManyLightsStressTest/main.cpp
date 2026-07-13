@@ -35,7 +35,7 @@ constexpr auto grid_spacing = 2.0F;
 constexpr auto warmup_frames = 30;
 constexpr auto measured_frames = 120;
 
-constexpr auto max_average_frame_time_ms = 8.333;
+constexpr auto max_average_frame_time_ms = 7.0;
 
 auto add_lights(LightManager& light_manager) -> void {
     // Centered near the origin, roughly Sponza's interior volume (see
