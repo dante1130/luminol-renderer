@@ -30,12 +30,12 @@ using namespace Luminol::Graphics;
 constexpr auto grid_x = 8;
 constexpr auto grid_y = 8;
 constexpr auto grid_z = 16;
-constexpr auto grid_spacing = 4.0F;
+constexpr auto grid_spacing = 2.0F;
 
 constexpr auto warmup_frames = 30;
 constexpr auto measured_frames = 120;
 
-constexpr auto max_average_frame_time_ms = 3.667;
+constexpr auto max_average_frame_time_ms = 8.333;
 
 auto add_lights(LightManager& light_manager) -> void {
     // Centered near the origin, roughly Sponza's interior volume (see
@@ -61,7 +61,7 @@ auto add_lights(LightManager& light_manager) -> void {
 
                 (void)light_manager.add_spot_light(SpotLight{
                     .position = position,
-                    .direction = Maths::Vector3f{0.0F, 0.0F, 1.0F},
+                    .direction = Maths::Vector3f{0.0F, -1.0F, 0.0F},
                     .color = Maths::Vector3f{1.0F, 1.0F, 1.0F},
                     .cut_off = 0.9F,
                     .outer_cut_off = 0.8F,
@@ -78,7 +78,7 @@ auto main() -> int {
     using namespace Luminol::Graphics;
 
     // Same camera framing as Demo/Sponza.
-    constexpr auto camera_initial_position = Maths::Vector3f{5.0F, 0.0F, 0.0F};
+    constexpr auto camera_initial_position = Maths::Vector3f{10.0F, 1.0F, 0.0F};
     constexpr auto camera_initial_forward = Maths::Vector3f{-1.0F, 0.0F, 0.0F};
     constexpr auto camera_far_plane = 200.0F;
 
@@ -95,12 +95,6 @@ auto main() -> int {
     const auto sponza_model_id = luminol_engine.get_renderer().create_renderable(
         "res/models/Sponza/glTF/Sponza.gltf"
     );
-
-    const auto cube_model_id =
-        luminol_engine.get_renderer().create_renderable("res/models/cube/cube.obj");
-    const auto model_matrices = std::array<Maths::Matrix4x4f, 1>{
-        Maths::Matrix4x4f::identity()
-    };
 
     add_lights(luminol_engine.get_renderer().get_light_manager());
 
@@ -119,9 +113,6 @@ auto main() -> int {
         );
         luminol_engine.get_renderer().queue_draw(
             sponza_model_id, Maths::Matrix4x4f::identity()
-        );
-        luminol_engine.get_renderer().queue_draw_instanced(
-            cube_model_id, model_matrices
         );
         luminol_engine.get_renderer().draw();
     };

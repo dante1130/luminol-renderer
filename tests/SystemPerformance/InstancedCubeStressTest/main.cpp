@@ -29,7 +29,7 @@ constexpr auto grid_spacing = 5.0F;
 constexpr auto warmup_frames = 30;
 constexpr auto measured_frames = 120;
 
-constexpr auto max_average_frame_time_ms = 28.2;
+constexpr auto max_average_frame_time_ms = 12.0;
 
 auto make_grid_model_matrices() -> std::vector<Maths::Matrix4x4f> {
     auto model_matrices = std::vector<Maths::Matrix4x4f>{};
