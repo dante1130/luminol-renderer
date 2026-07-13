@@ -28,16 +28,17 @@ auto main() -> int {
             }
         );
 
+    const auto quad_model_matrix = Maths::Matrix4x4f::identity();
+    luminol_engine.get_renderer().queue_draw_instanced_static(
+        quad_id, gsl::span{&quad_model_matrix, 1}
+    );
+
     while (!luminol_engine.get_window().should_close()) {
         luminol_engine.get_window().poll_events();
 
         constexpr auto color = Maths::Vector4f{0.0F, 0.0F, 0.0F, 1.0F};
 
         luminol_engine.get_renderer().clear_color(color);
-
-        luminol_engine.get_renderer().queue_draw(
-            quad_id, Maths::Matrix4x4f::identity()
-        );
 
         luminol_engine.get_renderer().draw();
     }

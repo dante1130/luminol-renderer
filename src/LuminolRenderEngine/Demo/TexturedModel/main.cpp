@@ -104,6 +104,14 @@ auto main() -> int {
     const auto floor_model_matrix =
         Maths::Transform::translate_4x4(Maths::Vector3f{0.0f, -1.0f, 0.0f});
 
+    const auto model_model_matrix = Maths::Matrix4x4f::identity();
+    luminol_engine.get_renderer().queue_draw_instanced_static(
+        model_id, gsl::span{&model_model_matrix, 1}
+    );
+    luminol_engine.get_renderer().queue_draw_instanced_static(
+        floor_id, gsl::span{&floor_model_matrix, 1}
+    );
+
     constexpr auto directional_light = Graphics::DirectionalLight{
         .direction = Maths::Vector3f{0.5f, -0.5f, 1.0f},
         .color = Maths::Vector3f{1.0f, 1.0f, 1.0f},
@@ -146,12 +154,6 @@ auto main() -> int {
         luminol_engine.get_renderer().set_projection_matrix(
             camera.get_projection_matrix()
         );
-
-        luminol_engine.get_renderer().queue_draw(
-            model_id, Maths::Matrix4x4f::identity()
-        );
-
-        luminol_engine.get_renderer().queue_draw(floor_id, floor_model_matrix);
 
         luminol_engine.get_renderer().draw();
     }

@@ -23,16 +23,17 @@ auto main() -> int {
             triangle_vertices, triangle_indices, Graphics::TexturePaths{}
         );
 
+    const auto triangle_model_matrix = Maths::Matrix4x4f::identity();
+    luminol_engine.get_renderer().queue_draw_instanced_static(
+        triangle_id, gsl::span{&triangle_model_matrix, 1}
+    );
+
     while (!luminol_engine.get_window().should_close()) {
         luminol_engine.get_window().poll_events();
 
         constexpr auto color = Maths::Vector4f{1.0F, 0.0F, 0.0F, 1.0F};
 
         luminol_engine.get_renderer().clear_color(color);
-
-        luminol_engine.get_renderer().queue_draw(
-            triangle_id, Maths::Matrix4x4f::identity()
-        );
 
         luminol_engine.get_renderer().draw();
     }

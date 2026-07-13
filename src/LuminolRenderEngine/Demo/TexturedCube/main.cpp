@@ -109,6 +109,11 @@ auto main() -> int {
             }
         );
 
+    const auto cube_model_matrix = Maths::Matrix4x4f::identity();
+    luminol_engine.get_renderer().queue_draw_instanced_static(
+        cube_id, gsl::span{&cube_model_matrix, 1}
+    );
+
     auto last_frame_time_seconds = 0.0;
 
     while (!luminol_engine.get_window().should_close()) {
@@ -141,10 +146,6 @@ auto main() -> int {
         luminol_engine.get_renderer().set_view_matrix(camera.get_view_matrix());
         luminol_engine.get_renderer().set_projection_matrix(
             camera.get_projection_matrix()
-        );
-
-        luminol_engine.get_renderer().queue_draw(
-            cube_id, Maths::Matrix4x4f::identity()
         );
 
         luminol_engine.get_renderer().draw();
