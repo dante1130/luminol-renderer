@@ -1,5 +1,6 @@
 #include "SDL_GPUAmbientOcclusionPass.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 
@@ -51,6 +52,25 @@ auto make_ao_texture(GPUDevice& device, uint32_t width, uint32_t height)
 auto make_ao_texture(GPUDevice& device, SDL_Window* window) -> Texture {
     const auto [width, height] = get_window_size_in_pixels(window);
     return make_ao_texture(device, width, height);
+}
+
+// SSAO's raw trace and its blurred output are both low-frequency signals -
+// the blur pass (ssao_blur_frag.hlsl) discards full-resolution detail
+// immediately anyway - so both render at half resolution; only the
+// normal+depth prepass (dual-purposed as next frame's Hi-Z source) stays
+// full-res. Floor of 1 to stay defensive on tiny windows.
+auto half_extent(uint32_t value) -> uint32_t {
+    return std::max(value / 2U, 1U);
+}
+
+auto make_half_res_ao_texture(GPUDevice& device, uint32_t width, uint32_t height)
+    -> Texture {
+    return make_ao_texture(device, half_extent(width), half_extent(height));
+}
+
+auto make_half_res_ao_texture(GPUDevice& device, SDL_Window* window) -> Texture {
+    const auto [width, height] = get_window_size_in_pixels(window);
+    return make_half_res_ao_texture(device, width, height);
 }
 
 auto make_normal_prepass_pipeline(
@@ -127,8 +147,8 @@ SDL_GPUAmbientOcclusionPass::SDL_GPUAmbientOcclusionPass(
           ao_texture_format
       )},
       normal_texture{make_ao_texture(device, window)},
-      ssao_raw_texture{make_ao_texture(device, window)},
-      ssao_texture{make_ao_texture(device, window)},
+      ssao_raw_texture{make_half_res_ao_texture(device, window)},
+      ssao_texture{make_half_res_ao_texture(device, window)},
       clamp_sampler{device.create_sampler(SamplerInfo{
           .filter = SamplerFilter::Linear,
           .address_mode_u = SamplerAddressMode::ClampToEdge,
@@ -139,8 +159,8 @@ auto SDL_GPUAmbientOcclusionPass::resize(
     GPUDevice& device, uint32_t width, uint32_t height
 ) -> void {
     normal_texture = make_ao_texture(device, width, height);
-    ssao_raw_texture = make_ao_texture(device, width, height);
-    ssao_texture = make_ao_texture(device, width, height);
+    ssao_raw_texture = make_half_res_ao_texture(device, width, height);
+    ssao_texture = make_half_res_ao_texture(device, width, height);
 }
 
 auto SDL_GPUAmbientOcclusionPass::draw(

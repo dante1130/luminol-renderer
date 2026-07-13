@@ -1,5 +1,6 @@
 #include "SDL_GPUScreenSpaceReflectionPass.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 
@@ -51,6 +52,24 @@ auto make_ssr_texture(GPUDevice& device, SDL_Window* window) -> Texture {
     return make_ssr_texture(device, width, height);
 }
 
+// SSR's trace output is immediately denoised by the resolve pass (see the
+// doc comment on draw() below) - full-resolution detail here is discarded
+// before it's ever seen, so both the trace and resolve targets render at
+// half resolution instead. Floor of 1 to stay defensive on tiny windows.
+auto half_extent(uint32_t value) -> uint32_t {
+    return std::max(value / 2U, 1U);
+}
+
+auto make_half_res_ssr_texture(GPUDevice& device, uint32_t width, uint32_t height)
+    -> Texture {
+    return make_ssr_texture(device, half_extent(width), half_extent(height));
+}
+
+auto make_half_res_ssr_texture(GPUDevice& device, SDL_Window* window) -> Texture {
+    const auto [width, height] = get_window_size_in_pixels(window);
+    return make_half_res_ssr_texture(device, width, height);
+}
+
 }  // namespace
 
 namespace Luminol::Graphics::SDL_GPU {
@@ -84,8 +103,8 @@ SDL_GPUScreenSpaceReflectionPass::SDL_GPUScreenSpaceReflectionPass(
           device, fullscreen_vertex_shader, resolve_fragment_shader,
           ssr_texture_format
       )},
-      ssr_texture{make_ssr_texture(device, window)},
-      ssr_resolved_texture{make_ssr_texture(device, window)},
+      ssr_texture{make_half_res_ssr_texture(device, window)},
+      ssr_resolved_texture{make_half_res_ssr_texture(device, window)},
       clamp_sampler{device.create_sampler(SamplerInfo{
           .filter = SamplerFilter::Linear,
           .address_mode_u = SamplerAddressMode::ClampToEdge,
@@ -95,8 +114,8 @@ SDL_GPUScreenSpaceReflectionPass::SDL_GPUScreenSpaceReflectionPass(
 auto SDL_GPUScreenSpaceReflectionPass::resize(
     GPUDevice& device, uint32_t width, uint32_t height
 ) -> void {
-    ssr_texture = make_ssr_texture(device, width, height);
-    ssr_resolved_texture = make_ssr_texture(device, width, height);
+    ssr_texture = make_half_res_ssr_texture(device, width, height);
+    ssr_resolved_texture = make_half_res_ssr_texture(device, width, height);
 }
 
 auto SDL_GPUScreenSpaceReflectionPass::draw(
