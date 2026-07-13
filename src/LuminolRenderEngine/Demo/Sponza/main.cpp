@@ -76,7 +76,7 @@ auto handle_debug_gpu_profiling_key(
 auto main() -> int {
     using namespace Luminol;
 
-    constexpr auto camera_initial_position = Maths::Vector3f{5.0f, 0.0f, 0.0f};
+    constexpr auto camera_initial_position = Maths::Vector3f{10.0f, 1.0f, 0.0f};
     constexpr auto camera_initial_forward = Maths::Vector3f{-1.0f, 0.0f, 0.0f};
     constexpr auto camera_rotation_speed = 0.1f;
 

@@ -39,16 +39,21 @@ struct SubmeshCullInfo {
 // (batch_index, mesh_index).
 using InstanceCullLayout = std::vector<std::vector<SubmeshCullInfo>>;
 
-// GPU-driven per-instance frustum culling: for every submesh across every
-// queued batch, dispatches one compute pass (instance_cull.hlsl, one thread
-// per instance) that transforms the submesh's local AABB by each instance's
-// model matrix, tests it against the camera frustum, and for survivors
-// atomically compacts the instance's original index into
-// visible_instance_indices while incrementing the matching
-// IndirectDrawCommand's num_instances - so per-frame CPU cost is
-// proportional to submesh count, not instance count, unlike the CPU
-// whole-batch AABB approach in SDL_GPUCullingUtils. Modeled on
-// SDL_GPUClusterPass's compute-pass-before-render-pass structure.
+// GPU-driven per-instance frustum culling: one compute dispatch per BATCH
+// (not per submesh) runs instance_cull.hlsl - one thread per instance,
+// grouped so that every submesh in the batch is covered by the same
+// dispatch via a group-index -> submesh-index lookup built each call. Each
+// thread transforms its submesh's local AABB by its instance's model
+// matrix, tests it against the camera frustum, and for survivors atomically
+// compacts the instance's original index into visible_instance_indices
+// while incrementing the matching IndirectDrawCommand's num_instances.
+// Batching by batch (rather than one dispatch per submesh) matters because
+// every submesh in a batch shares the same instance_models buffer, but
+// different batches don't - so dispatch granularity can't go coarser than
+// one per batch without also index into per-batch instance buffers.
+// Per-frame CPU cost is proportional to submesh count, not instance count,
+// unlike the CPU whole-batch AABB approach in SDL_GPUCullingUtils. Modeled
+// on SDL_GPUClusterPass's compute-pass-before-render-pass structure.
 class SDL_GPUInstanceCullPass {
 public:
     explicit SDL_GPUInstanceCullPass(GPUDevice& device);
@@ -80,6 +85,17 @@ private:
     Buffer indirect_command_buffer;
     TransferBuffer indirect_command_transfer_buffer;
     Buffer visible_instance_indices_buffer;
+
+    // Per-submesh cull inputs (bounds, command_index, instance_base_offset,
+    // instance_count, first_group) and a group-index -> submesh-index lookup,
+    // both rebuilt and re-uploaded every cull() call. Together these let one
+    // dispatch per batch cover every submesh in that batch (each thread group
+    // looks up its own submesh via group_to_submesh), instead of one dispatch
+    // per submesh - see the doc comment on cull().
+    Buffer submesh_metadata_buffer;
+    TransferBuffer submesh_metadata_transfer_buffer;
+    Buffer group_to_submesh_buffer;
+    TransferBuffer group_to_submesh_transfer_buffer;
 };
 
 }  // namespace Luminol::Graphics::SDL_GPU

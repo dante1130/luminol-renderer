@@ -6,8 +6,16 @@
 // original index into visible_instance_indices and increments the
 // corresponding IndirectDrawCommand's num_instances. This replaces an
 // O(instance count) CPU loop (SDL_GPUCullingUtils::compute_batch_mesh_world_bounds)
-// with one GPU dispatch per submesh, so cost no longer scales with instance
-// count on the CPU (see SDL_GPUInstanceCullPass).
+// with one GPU dispatch per BATCH (covering every submesh in that batch), so
+// cost no longer scales with instance count on the CPU, and dispatch count
+// no longer scales with submesh count either (see SDL_GPUInstanceCullPass).
+//
+// One dispatch covers many submeshes: each thread group looks itself up in
+// group_to_submesh (indexed by group_to_submesh_base + SV_GroupID.x) to find
+// its submesh's metadata, then recovers its LOCAL instance index within that
+// submesh via (global_group_index - metadata.first_group) * 64 +
+// SV_GroupThreadID.x - group counts vary per submesh, so this is not simply
+// SV_DispatchThreadID.x.
 //
 // The staleness lives entirely in the Hi-Z pyramid's depth values (built
 // from last frame's render), NOT in where on screen we look: objects are
@@ -39,35 +47,46 @@ struct IndirectDrawCommand {
 // compile as one combined-image-sampler descriptor; instance_models is a
 // separate SRV so it takes the next free t-register (t and Texture SRVs
 // share the same register file in HLSL, so it can't also be t0).
+// submesh_metadata/group_to_submesh follow at t2/t3.
 Texture2D hiz_pyramid : register(t0, space0);
 SamplerState hiz_sampler : register(s0, space0);
 StructuredBuffer<row_major float4x4> instance_models : register(t1, space0);
 
-RWStructuredBuffer<IndirectDrawCommand> indirect_commands : register(u0, space1);
-RWStructuredBuffer<uint> visible_instance_indices : register(u1, space1);
-
-// frustum_planes: left, right, bottom, top, near, far. local_bounds_min/max:
-// this submesh's local-space AABB. current_view_projection: THIS frame's
-// view * projection - same matrix used to build camera_frustum_planes -
-// for projecting this frame's world AABB to its actual current screen
-// position (only the sampled Hi-Z depth data is last-frame-stale, not the
-// screen location). command_index: this submesh's slot in indirect_commands.
-// instance_base_offset: this submesh's slice base in
-// visible_instance_indices. instance_count: this batch's instance count
-// (thread count ceiling). hiz_mip_levels: 0 disables the occlusion test
-// (first frame / just resized, no valid previous depth).
-// hiz_pyramid_size: mip-0 width/height, for screen-rect -> mip selection.
-cbuffer InstanceCullParams : register(b0, space2) {
-    float4 frustum_planes[6];
+// One entry per submesh. Mirrors struct SubmeshCullMetadata in
+// SDL_GPUInstanceCullPass.cpp exactly.
+struct SubmeshCullMetadata {
     float4 local_bounds_min;
     float4 local_bounds_max;
-    row_major float4x4 current_view_projection;
     uint command_index;
     uint instance_base_offset;
     uint instance_count;
+    uint first_group;
+};
+StructuredBuffer<SubmeshCullMetadata> submesh_metadata : register(t2, space0);
+// One entry per thread group in this dispatch, indexed by
+// group_to_submesh_base + SV_GroupID.x: which submesh (index into
+// submesh_metadata) that group belongs to.
+StructuredBuffer<uint> group_to_submesh : register(t3, space0);
+
+RWStructuredBuffer<IndirectDrawCommand> indirect_commands : register(u0, space1);
+RWStructuredBuffer<uint> visible_instance_indices : register(u1, space1);
+
+// frustum_planes: left, right, bottom, top, near, far. current_view_projection:
+// THIS frame's view * projection - same matrix used to build
+// camera_frustum_planes - for projecting this frame's world AABB to its
+// actual current screen position (only the sampled Hi-Z depth data is
+// last-frame-stale, not the screen location). hiz_mip_levels: 0 disables the
+// occlusion test (first frame / just resized, no valid previous depth).
+// group_to_submesh_base: this dispatch's (i.e. this batch's) slice offset
+// into group_to_submesh - every other batch dispatched this cull() call has
+// its own base, into the same shared buffer. hiz_pyramid_size: mip-0
+// width/height, for screen-rect -> mip selection.
+cbuffer InstanceCullParams : register(b0, space2) {
+    float4 frustum_planes[6];
+    row_major float4x4 current_view_projection;
     uint hiz_mip_levels;
+    uint group_to_submesh_base;
     float2 hiz_pyramid_size;
-    float2 padding;
 };
 
 bool aabb_in_frustum(float3 box_min, float3 box_max) {
@@ -87,15 +106,25 @@ bool aabb_in_frustum(float3 box_min, float3 box_max) {
 }
 
 [numthreads(64, 1, 1)]
-void main(uint3 dispatch_thread_id : SV_DispatchThreadID) {
-    uint instance_index = dispatch_thread_id.x;
-    if (instance_index >= instance_count) {
+void main(uint3 group_id : SV_GroupID, uint3 group_thread_id : SV_GroupThreadID) {
+    uint global_group_index = group_to_submesh_base + group_id.x;
+    uint submesh_index = group_to_submesh[global_group_index];
+    SubmeshCullMetadata metadata = submesh_metadata[submesh_index];
+
+    // Groups aren't 1:1 with submeshes - group counts vary per submesh, so
+    // this submesh's own group range starts at metadata.first_group, not at
+    // group 0 of the dispatch.
+    uint local_group_index = global_group_index - metadata.first_group;
+    uint instance_index = (local_group_index * 64) + group_thread_id.x;
+    if (instance_index >= metadata.instance_count) {
         return;
     }
 
     row_major float4x4 model = instance_models[instance_index];
 
-    float3 mid = (local_bounds_min.xyz + local_bounds_max.xyz) * 0.5;
+    float3 local_bounds_min = metadata.local_bounds_min.xyz;
+    float3 local_bounds_max = metadata.local_bounds_max.xyz;
+    float3 mid = (local_bounds_min + local_bounds_max) * 0.5;
 
     // 8 corners + 6 face centers + 12 edge midpoints, so the occlusion test
     // below has more coverage than just the extremal corners - a cube
@@ -219,6 +248,6 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID) {
     }
 
     uint dest_slot;
-    InterlockedAdd(indirect_commands[command_index].num_instances, 1, dest_slot);
-    visible_instance_indices[instance_base_offset + dest_slot] = instance_index;
+    InterlockedAdd(indirect_commands[metadata.command_index].num_instances, 1, dest_slot);
+    visible_instance_indices[metadata.instance_base_offset + dest_slot] = instance_index;
 }
