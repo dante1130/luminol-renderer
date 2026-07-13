@@ -21,6 +21,12 @@ using namespace Luminol::Graphics::SDL_GPU;
 constexpr auto pyramid_format = TextureFormat::R32_Float;
 constexpr auto downsample_threads = uint32_t{8};
 
+// One 8x8 threadgroup can reduce its own 64 computed values through
+// groupshared memory down to 4x4, 2x2, and 1x1 - 3 extra mip levels beyond
+// the one it computes directly from src_mip, so up to 4 mip transitions fit
+// in a single dispatch. See hiz_downsample.hlsl.
+constexpr auto max_mips_per_dispatch = uint32_t{4};
+
 auto compute_mip_levels(uint32_t width, uint32_t height) -> uint32_t {
     return 1U +
         static_cast<uint32_t>(std::floor(
@@ -30,8 +36,13 @@ auto compute_mip_levels(uint32_t width, uint32_t height) -> uint32_t {
 
 // Mirrors cbuffer HiZDownsampleParams in hiz_downsample.hlsl.
 struct HiZDownsampleParams {
-    std::array<uint32_t, 2> dst_size;
     std::array<uint32_t, 2> src_size;
+    std::array<uint32_t, 2> dst_size0;
+    std::array<uint32_t, 2> dst_size1;
+    std::array<uint32_t, 2> dst_size2;
+    std::array<uint32_t, 2> dst_size3;
+    uint32_t num_mips_this_dispatch;
+    std::array<uint32_t, 3> padding;
 };
 
 auto make_pyramid_texture(GPUDevice& device, uint32_t width, uint32_t height)
@@ -55,7 +66,7 @@ auto make_downsample_pipeline(GPUDevice& device) -> ComputePipeline {
     return device.create_compute_pipeline(ComputePipelineInfo{
         .path = "res/shaders/sdl_gpu/hiz_downsample.hlsl",
         .source_language = ShaderSourceLanguage::Hlsl,
-        .readwrite_storage_texture_count = 2,
+        .readwrite_storage_texture_count = 5,
         .uniform_buffer_count = 1,
         .threadcount_x = downsample_threads,
         .threadcount_y = downsample_threads,
@@ -134,16 +145,39 @@ auto SDL_GPUHiZPass::build(
         render_pass.draw_primitives(3, 1, 0, 0);
     }
 
-    // Mips 1..N-1: max-reduction compute downsample. One compute pass per
-    // mip transition - SDL_GPU doesn't synchronize texture reads/writes
-    // across dispatches within a single compute pass, so each mip's write
-    // must be visible before the next mip reads it.
+    // Mips 1..N-1: max-reduction compute downsample, batched up to
+    // max_mips_per_dispatch transitions per dispatch (see the doc comment on
+    // hiz_downsample.hlsl for how one threadgroup produces multiple mips via
+    // groupshared memory). Each batch still depends on the previous batch's
+    // last mip being fully written first - SDL_GPU doesn't synchronize
+    // texture reads/writes across separate begin_compute_pass calls, so
+    // batches remain sequential; only the mips *within* one batch collapse
+    // into a single dispatch.
     auto src_width = pyramid_texture.get_width();
     auto src_height = pyramid_texture.get_height();
-    for (auto mip = uint32_t{1}; mip < mip_levels; ++mip) {
-        const auto dst_width = std::max(src_width / 2, 1U);
-        const auto dst_height = std::max(src_height / 2, 1U);
+    for (auto mip = uint32_t{1}; mip < mip_levels;) {
+        const auto mips_this_batch =
+            std::min(max_mips_per_dispatch, mip_levels - mip);
 
+        auto dst_widths = std::array<uint32_t, max_mips_per_dispatch>{};
+        auto dst_heights = std::array<uint32_t, max_mips_per_dispatch>{};
+        {
+            auto w = src_width;
+            auto h = src_height;
+            for (auto i = uint32_t{0}; i < mips_this_batch; ++i) {
+                w = std::max(w / 2, 1U);
+                h = std::max(h / 2, 1U);
+                dst_widths[i] = w;
+                dst_heights[i] = h;
+            }
+        }
+
+        // Pipeline always declares 5 storage textures (1 src + 4 dst) -
+        // pad any unused dst slots (mips_this_batch < 4, only possible on
+        // the final batch) by reusing the last real mip's view. The shader
+        // never writes through them in that case (guarded by
+        // num_mips_this_dispatch), so the aliasing is harmless.
+        const auto last_real_mip = mip + mips_this_batch - 1;
         const auto storage_texture_bindings = std::array{
             StorageTextureReadWriteBinding{
                 .texture = &pyramid_texture, .mip_level = mip - 1, .cycle = false
@@ -151,14 +185,34 @@ auto SDL_GPUHiZPass::build(
             StorageTextureReadWriteBinding{
                 .texture = &pyramid_texture, .mip_level = mip, .cycle = false
             },
+            StorageTextureReadWriteBinding{
+                .texture = &pyramid_texture,
+                .mip_level = mips_this_batch > 1 ? mip + 1 : last_real_mip,
+                .cycle = false,
+            },
+            StorageTextureReadWriteBinding{
+                .texture = &pyramid_texture,
+                .mip_level = mips_this_batch > 2 ? mip + 2 : last_real_mip,
+                .cycle = false,
+            },
+            StorageTextureReadWriteBinding{
+                .texture = &pyramid_texture,
+                .mip_level = mips_this_batch > 3 ? mip + 3 : last_real_mip,
+                .cycle = false,
+            },
         };
         auto compute_pass =
             command_buffer.begin_compute_pass(storage_texture_bindings, {});
         compute_pass.bind_compute_pipeline(downsample_pipeline);
 
         const auto params = HiZDownsampleParams{
-            .dst_size = {dst_width, dst_height},
             .src_size = {src_width, src_height},
+            .dst_size0 = {dst_widths[0], dst_heights[0]},
+            .dst_size1 = {dst_widths[1], dst_heights[1]},
+            .dst_size2 = {dst_widths[2], dst_heights[2]},
+            .dst_size3 = {dst_widths[3], dst_heights[3]},
+            .num_mips_this_dispatch = mips_this_batch,
+            .padding = {0, 0, 0},
         };
         command_buffer.push_compute_uniform_data(
             0,
@@ -167,14 +221,19 @@ auto SDL_GPUHiZPass::build(
             }
         );
 
+        // Dispatch is sized to the batch's first (finest) output mip - the
+        // one every thread computes directly; later, coarser mips in the
+        // same batch are produced by a subset of those same threads via
+        // groupshared reduction, not extra threads.
         const auto group_count_x =
-            (dst_width + downsample_threads - 1) / downsample_threads;
+            (dst_widths[0] + downsample_threads - 1) / downsample_threads;
         const auto group_count_y =
-            (dst_height + downsample_threads - 1) / downsample_threads;
+            (dst_heights[0] + downsample_threads - 1) / downsample_threads;
         compute_pass.dispatch(group_count_x, group_count_y, 1);
 
-        src_width = dst_width;
-        src_height = dst_height;
+        src_width = dst_widths[mips_this_batch - 1];
+        src_height = dst_heights[mips_this_batch - 1];
+        mip += mips_this_batch;
     }
 }
 
