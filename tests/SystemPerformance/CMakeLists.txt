@@ -1,2 +1,5 @@
 add_subdirectory(InstancedCubeStressTest)
 add_subdirectory(ManyLightsStressTest)
+add_subdirectory(DynamicInstancesStressTest)
+add_subdirectory(ManyDrawCallsStressTest)
+add_subdirectory(OcclusionCullingStressTest)
