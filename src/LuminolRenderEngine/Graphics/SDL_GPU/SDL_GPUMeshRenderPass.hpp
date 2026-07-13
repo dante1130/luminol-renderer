@@ -145,6 +145,25 @@ public:
         const Sampler& ssr_sampler
     ) -> void;
 
+    // Depth-only pre-pass for Opaque submeshes only, run before draw() so the
+    // real shading draws get a complete, correct depth buffer to test
+    // against (true early-Z) instead of relying solely on the front-to-back
+    // batch sort to approximate it. AlphaTest (Mask) and Transparent (Blend)
+    // submeshes are unaffected - see the doc comment on the .cpp definition
+    // for why they're out of scope here. Must run before draw() and its
+    // render pass must use LoadOp::Load on the same depth attachment draw()
+    // targets, so this pre-pass's depth isn't cleared away.
+    auto draw_depth_prepass(
+        const SDL_GPUFactory& graphics_factory,
+        CommandBuffer& command_buffer,
+        gsl::span<const InstanceBatch> instance_batches,
+        const Maths::Matrix4x4f& view_proj,
+        const Buffer& indirect_command_buffer,
+        const Buffer& visible_instance_indices_buffer,
+        const InstanceCullLayout& instance_cull_layout,
+        const Texture& msaa_depth_texture
+    ) -> void;
+
     [[nodiscard]] auto get_instance_buffer_cache() const
         -> const SDL_GPUInstanceBufferCache&;
 
@@ -152,9 +171,11 @@ private:
     Shader mesh_vertex_shader;
     Shader mesh_fragment_shader;
     Shader mesh_alpha_test_fragment_shader;
+    Shader depth_prepass_fragment_shader;
     GraphicsPipeline mesh_pipeline;
     GraphicsPipeline mesh_alpha_test_pipeline;
     GraphicsPipeline mesh_transparent_pipeline;
+    GraphicsPipeline depth_prepass_pipeline;
 
     SDL_GPUInstanceBufferCache instance_buffer_cache;
 };

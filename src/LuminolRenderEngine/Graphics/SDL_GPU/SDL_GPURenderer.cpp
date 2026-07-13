@@ -644,6 +644,33 @@ auto SDL_GPURenderer::record_main_pass(
 ) -> void {
     const auto& directional_light = light_manager_data.directional_light;
 
+    // Opaque-only depth pre-pass: gives the real shading draws below a
+    // complete, correct depth buffer to test against (true early-Z) instead
+    // of relying solely on the front-to-back batch sort to approximate it.
+    // Must run before the render pass below, which reuses its depth via
+    // LoadOp::Load rather than clearing it away - see the doc comment on
+    // SDL_GPUMeshRenderPass::draw_depth_prepass.
+    {
+        const auto pass_timer = Utilities::Timer{};
+        command_buffer.push_debug_group("depth_prepass");
+
+        mesh_render_pass.draw_depth_prepass(
+            *this->sdl_gpu_factory,
+            command_buffer,
+            instance_batches,
+            view_matrix * projection_matrix,
+            instance_cull_pass.get_indirect_command_buffer(),
+            instance_cull_pass.get_visible_instance_indices_buffer(),
+            instance_cull_layout,
+            msaa_depth_texture
+        );
+
+        command_buffer.pop_debug_group();
+        performance_logger.record(
+            "depth_prepass", Units::Seconds{pass_timer.elapsed_seconds()}
+        );
+    }
+
     const auto hdr_color_texture_view =
         TextureView{hdr_color_texture.native_handle()};
     const auto msaa_color_texture_view =
@@ -662,7 +689,7 @@ auto SDL_GPURenderer::record_main_pass(
     const auto depth_stencil_target = DepthStencilTargetInfo{
         .texture = &msaa_depth_texture_view,
         .clear_depth = 1.0F,
-        .load_op = LoadOp::Clear,
+        .load_op = LoadOp::Load,
         .store_op = StoreOp::DontCare,
     };
 

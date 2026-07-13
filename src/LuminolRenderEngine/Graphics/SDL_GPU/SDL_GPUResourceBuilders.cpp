@@ -59,7 +59,8 @@ auto make_depth_only_mesh_pipeline(
     GPUDevice& device,
     const Shader& vertex_shader,
     const Shader& fragment_shader,
-    TextureFormat depth_stencil_format
+    TextureFormat depth_stencil_format,
+    SampleCount sample_count
 ) -> GraphicsPipeline {
     return device.create_graphics_pipeline(GraphicsPipelineInfo{
         .vertex_shader = vertex_shader,
@@ -72,6 +73,7 @@ auto make_depth_only_mesh_pipeline(
         .depth_stencil_format = depth_stencil_format,
         .cull_mode = CullMode::Back,
         .front_face = FrontFace::Clockwise,
+        .sample_count = sample_count,
     });
 }
 

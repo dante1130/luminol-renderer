@@ -12,6 +12,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUResourceBuilders.hpp>
 
 namespace {
 
@@ -133,6 +134,12 @@ auto batch_distance_squared_to_camera(
     return (diff_x * diff_x) + (diff_y * diff_y) + (diff_z * diff_z);
 }
 
+// enable_depth_write = false: SDL_GPUMeshRenderPass::draw_depth_prepass
+// already wrote the authoritative depth value for every Opaque submesh
+// before draw() runs (see SDL_GPURenderer::record_main_pass, which runs the
+// pre-pass first and reuses its depth via LoadOp::Load) - re-writing the
+// same value here would be redundant. The depth test itself stays enabled
+// and unchanged (LESS_OR_EQUAL passes correctly against a matching value).
 auto make_mesh_pipeline(
     GPUDevice& device,
     const Shader& vertex_shader,
@@ -147,6 +154,7 @@ auto make_mesh_pipeline(
         .vertex_buffer_descriptions = mesh_vertex_buffer_descriptions,
         .vertex_attributes = mesh_vertex_attributes,
         .enable_depth_test = true,
+        .enable_depth_write = false,
         .depth_stencil_format = depth_texture_format,
         .cull_mode = CullMode::Back,
         .front_face = FrontFace::Clockwise,
@@ -222,6 +230,10 @@ SDL_GPUMeshRenderPass::SDL_GPUMeshRenderPass(
           device, "res/shaders/sdl_gpu/pbr_frag_alpha_test.hlsl",
           ShaderStage::Fragment
       )},
+      depth_prepass_fragment_shader{make_hlsl_shader(
+          device, "res/shaders/sdl_gpu/shadow_depth_frag.hlsl",
+          ShaderStage::Fragment
+      )},
       mesh_pipeline{make_mesh_pipeline(
           device, mesh_vertex_shader, mesh_fragment_shader, sample_count
       )},
@@ -231,6 +243,10 @@ SDL_GPUMeshRenderPass::SDL_GPUMeshRenderPass(
       )},
       mesh_transparent_pipeline{make_mesh_transparent_pipeline(
           device, mesh_vertex_shader, mesh_fragment_shader, sample_count
+      )},
+      depth_prepass_pipeline{make_depth_only_mesh_pipeline(
+          device, mesh_vertex_shader, depth_prepass_fragment_shader,
+          depth_texture_format, sample_count
       )} {}
 
 auto SDL_GPUMeshRenderPass::get_instance_buffer_cache() const
@@ -267,6 +283,89 @@ auto SDL_GPUMeshRenderPass::upload_instances(
     }
 
     return instance_batches;
+}
+
+// Opaque-only: a correct pre-pass for Mask (alpha-tested/cutout) submeshes
+// would need its own alpha-sampling depth fragment shader (to avoid writing
+// depth into cutout holes the real cutout shader would discard), which is
+// separable, additional scope not done here. Blend (transparent) submeshes
+// already render with depth write disabled and are drawn individually
+// sorted, unaffected either way. Per-submesh (not multi-draw): submeshes
+// aren't grouped by alpha mode in the indirect command buffer (built in mesh
+// order - see SDL_GPUInstanceCullPass::cull), so a batch's Opaque submeshes
+// aren't guaranteed contiguous there, and a multi-draw call can't
+// selectively skip the interleaved Mask ones - restructuring the cull pass
+// to bucket by alpha mode is a larger, cross-cutting change not justified by
+// how cheap depth-only draws already are.
+auto SDL_GPUMeshRenderPass::draw_depth_prepass(
+    const SDL_GPUFactory& graphics_factory,
+    CommandBuffer& command_buffer,
+    gsl::span<const InstanceBatch> instance_batches,
+    const Maths::Matrix4x4f& view_proj,
+    const Buffer& indirect_command_buffer,
+    const Buffer& visible_instance_indices_buffer,
+    const InstanceCullLayout& instance_cull_layout,
+    const Texture& msaa_depth_texture
+) -> void {
+    const auto depth_texture_view =
+        TextureView{msaa_depth_texture.native_handle()};
+    const auto depth_stencil_target = DepthStencilTargetInfo{
+        .texture = &depth_texture_view,
+        .clear_depth = 1.0F,
+        .load_op = LoadOp::Clear,
+        .store_op = StoreOp::Store,
+    };
+
+    auto render_pass =
+        command_buffer.begin_render_pass({}, &depth_stencil_target);
+    render_pass.bind_graphics_pipeline(depth_prepass_pipeline);
+
+    for (auto batch_index = std::size_t{0};
+         batch_index < instance_batches.size(); ++batch_index) {
+        const auto& batch = instance_batches[batch_index];
+        const auto& submesh_infos = instance_cull_layout[batch_index];
+        const auto meshes = graphics_factory.get_meshes(batch.renderable_id);
+
+        const auto& instance_buffer =
+            instance_buffer_cache.get(batch.renderable_id);
+        const auto storage_buffer_bindings = std::array{
+            &instance_buffer, &visible_instance_indices_buffer
+        };
+        render_pass.bind_vertex_storage_buffers(0, storage_buffer_bindings);
+
+        const auto vertex_bindings = std::array{VertexBufferBinding{
+            .buffer = &graphics_factory.get_vertex_buffer(batch.renderable_id),
+            .offset = 0,
+        }};
+        render_pass.bind_vertex_buffers(0, vertex_bindings);
+        render_pass.bind_index_buffer(
+            graphics_factory.get_index_buffer(batch.renderable_id),
+            IndexElementSize::Bits32, 0
+        );
+
+        for (auto mesh_index = std::size_t{0}; mesh_index < meshes.size();
+             ++mesh_index) {
+            const auto& mesh = meshes[mesh_index];
+            if (mesh.alpha_mode() != Utilities::ModelLoader::AlphaMode::Opaque) {
+                continue;
+            }
+
+            const auto& info = submesh_infos[mesh_index];
+            const auto vertex_ubo = VertexUBO{.view_proj = view_proj};
+            command_buffer.push_vertex_uniform_data(
+                0,
+                gsl::span{
+                    reinterpret_cast<const std::byte*>(&vertex_ubo),
+                    sizeof(vertex_ubo)
+                }
+            );
+
+            mesh.draw_indirect_geometry_only(
+                render_pass, indirect_command_buffer,
+                info.indirect_command_byte_offset
+            );
+        }
+    }
 }
 
 auto SDL_GPUMeshRenderPass::draw(

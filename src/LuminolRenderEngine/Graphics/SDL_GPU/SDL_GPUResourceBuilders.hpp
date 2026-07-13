@@ -79,11 +79,16 @@ constexpr auto mesh_vertex_attributes = std::array{
 
 // Depth-only mesh pipeline shape (e.g. shadow maps): standard mesh vertex
 // layout, no color target, depth test enabled, back-face culling.
+// sample_count defaults to x1 (every current caller is a single-sample
+// depth/shadow map); pass the real value to build one matching an MSAA
+// color target's sample count instead (e.g. a depth pre-pass sharing the
+// main pass's MSAA depth buffer).
 [[nodiscard]] auto make_depth_only_mesh_pipeline(
     GPUDevice& device,
     const Shader& vertex_shader,
     const Shader& fragment_shader,
-    TextureFormat depth_stencil_format
+    TextureFormat depth_stencil_format,
+    SampleCount sample_count = SampleCount::x1
 ) -> GraphicsPipeline;
 
 }  // namespace Luminol::Graphics::SDL_GPU
