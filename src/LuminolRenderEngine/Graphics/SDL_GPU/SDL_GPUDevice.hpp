@@ -56,6 +56,14 @@ public:
     // Intended for readback/debug paths, not per-frame use.
     auto wait_for_idle() const -> void;
 
+    // Best-effort debug/perf-testing toggle: Vsync is always supported, but
+    // Immediate/Mailbox aren't guaranteed on every driver - returns false
+    // (and logs, without asserting) if the requested mode isn't supported or
+    // the change fails, leaving the swapchain on its previous mode. window
+    // must already be claimed by this device.
+    [[nodiscard]] auto set_present_mode(SDL_Window* window, PresentMode mode)
+        const -> bool;
+
     // Blocks the calling thread until fence is signaled. fence must have come
     // from this device's CommandBuffer::submit_and_acquire_fence(); a null
     // fence is a no-op. Does not release the fence - call release_fence

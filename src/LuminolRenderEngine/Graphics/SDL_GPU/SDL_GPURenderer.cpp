@@ -888,6 +888,12 @@ auto SDL_GPURenderer::set_debug_gpu_profiling_enabled(bool enabled) -> void {
     debug_gpu_profiling_enabled = enabled;
 }
 
+auto SDL_GPURenderer::set_debug_present_mode(PresentMode mode) -> void {
+    if (!gpu_device->set_present_mode(sdl_window, mode)) {
+        SDL_Log("[GpuProfiling] present mode change failed or unsupported");
+    }
+}
+
 auto SDL_GPURenderer::debug_log_visible_instance_count() -> void {
     const auto& indirect_buffer = instance_cull_pass.get_indirect_command_buffer();
     const auto buffer_size = indirect_buffer.get_size();

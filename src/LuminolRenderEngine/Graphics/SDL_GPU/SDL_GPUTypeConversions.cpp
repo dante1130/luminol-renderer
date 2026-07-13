@@ -154,6 +154,18 @@ auto to_sdl_sample_count(SampleCount sample_count) -> SDL_GPUSampleCount {
     throw std::runtime_error{"Invalid sample count"};
 }
 
+auto to_sdl_present_mode(PresentMode mode) -> SDL_GPUPresentMode {
+    switch (mode) {
+        case PresentMode::Vsync:
+            return SDL_GPU_PRESENTMODE_VSYNC;
+        case PresentMode::Immediate:
+            return SDL_GPU_PRESENTMODE_IMMEDIATE;
+        case PresentMode::Mailbox:
+            return SDL_GPU_PRESENTMODE_MAILBOX;
+    }
+    throw std::runtime_error{"Invalid present mode"};
+}
+
 auto to_sdl_vertex_element_format(VertexElementFormat format)
     -> SDL_GPUVertexElementFormat {
     switch (format) {

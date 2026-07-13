@@ -92,6 +92,15 @@ enum class SampleCount : uint8_t {
     x8,
 };
 
+// Vsync is the only mode every driver is guaranteed to support; check
+// GPUDevice::set_present_mode's return value before assuming Immediate or
+// Mailbox took effect.
+enum class PresentMode : uint8_t {
+    Vsync,
+    Immediate,
+    Mailbox,
+};
+
 enum class VertexElementFormat : uint8_t {
     Float,
     Float2,

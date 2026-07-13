@@ -71,6 +71,30 @@ auto handle_debug_gpu_profiling_key(
     g_key_was_down = g_key_down;
 }
 
+// Debug-only: 'i' toggles the swapchain present mode between Vsync (default)
+// and Immediate, for measuring real uncapped render cost - under Vsync,
+// frame time mostly reflects waiting for the display's refresh interval, not
+// GPU work, which hides the effect of GPU/CPU-side optimizations. See
+// SDL_GPURenderer::set_debug_present_mode. is_key_event is level-triggered,
+// so press-edge tracking is needed to fire once per physical press.
+auto handle_debug_present_mode_key(
+    RenderEngine& engine, bool& vsync_disabled, bool& i_key_was_down
+) -> void {
+    const auto i_key_down = engine.get_window().is_key_event('i', KeyEvent::Press);
+    if (i_key_down && !i_key_was_down) {
+        vsync_disabled = !vsync_disabled;
+        engine.get_renderer().set_debug_present_mode(
+            vsync_disabled ? Graphics::SDL_GPU::PresentMode::Immediate
+                            : Graphics::SDL_GPU::PresentMode::Vsync
+        );
+        std::printf(
+            "[GpuProfiling] present mode: %s\n",
+            vsync_disabled ? "Immediate" : "Vsync"
+        );
+    }
+    i_key_was_down = i_key_down;
+}
+
 }  // namespace
 
 auto main() -> int {
@@ -191,6 +215,9 @@ auto main() -> int {
     auto gpu_profiling_enabled = false;
     auto g_key_was_down = false;
 
+    auto vsync_disabled = false;
+    auto i_key_was_down = false;
+
     while (!luminol_engine.get_window().should_close()) {
         const auto current_frame_time_seconds = timer.elapsed_seconds();
         const auto delta_time_seconds =
@@ -205,6 +232,10 @@ auto main() -> int {
 
         handle_debug_gpu_profiling_key(
             luminol_engine, gpu_profiling_enabled, g_key_was_down
+        );
+
+        handle_debug_present_mode_key(
+            luminol_engine, vsync_disabled, i_key_was_down
         );
 
         const auto mouse_delta = luminol_engine.get_window().get_mouse_delta();

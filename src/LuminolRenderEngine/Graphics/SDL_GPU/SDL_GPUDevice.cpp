@@ -691,6 +691,34 @@ auto GPUDevice::supports_sample_count(
     );
 }
 
+auto GPUDevice::set_present_mode(SDL_Window* window, PresentMode mode) const
+    -> bool {
+    const auto sdl_mode = to_sdl_present_mode(mode);
+
+    if (!SDL_WindowSupportsGPUPresentMode(this->device.get(), window, sdl_mode)) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_ERROR,
+            "Present mode %d is not supported by this window/driver",
+            static_cast<int>(mode)
+        );
+        return false;
+    }
+
+    if (!SDL_SetGPUSwapchainParameters(
+            this->device.get(), window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
+            sdl_mode
+        )) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_ERROR,
+            "Failed to set GPU swapchain present mode: %s",
+            SDL_GetError()
+        );
+        return false;
+    }
+
+    return true;
+}
+
 auto GPUDevice::wait_for_idle() const -> void {
     if (!SDL_WaitForGPUIdle(this->device.get())) {
         SDL_LogError(

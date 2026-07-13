@@ -35,6 +35,8 @@ namespace Luminol::Graphics::SDL_GPU {
 [[nodiscard]] auto to_sdl_sample_count(SampleCount sample_count)
     -> SDL_GPUSampleCount;
 
+[[nodiscard]] auto to_sdl_present_mode(PresentMode mode) -> SDL_GPUPresentMode;
+
 [[nodiscard]] auto to_sdl_vertex_element_format(VertexElementFormat format)
     -> SDL_GPUVertexElementFormat;
 

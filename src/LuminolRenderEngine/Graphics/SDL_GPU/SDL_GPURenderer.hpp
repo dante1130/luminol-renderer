@@ -100,6 +100,13 @@ public:
     // measure.
     auto set_debug_gpu_profiling_enabled(bool enabled) -> void;
 
+    // Best-effort perf-testing toggle: see GPUDevice::set_present_mode.
+    // Vsync-bound frames spend most of their time waiting for the display
+    // rather than the GPU, which hides the effect of GPU/CPU-side
+    // optimizations on wall-clock frame time - switch to Immediate/Mailbox
+    // to measure real render cost instead.
+    auto set_debug_present_mode(PresentMode mode) -> void;
+
 private:
     // Empties queued_draws for the next frame without destroying its
     // per-renderable vectors, so their heap capacity carries over instead of
