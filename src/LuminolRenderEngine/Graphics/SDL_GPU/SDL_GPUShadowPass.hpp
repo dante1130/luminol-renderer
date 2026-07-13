@@ -10,6 +10,7 @@
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBufferCache.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceCullPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
@@ -42,6 +43,8 @@ public:
         const Maths::Vector3f& light_direction,
         const Maths::Matrix4x4f& view_matrix,
         const Maths::Matrix4x4f& projection_matrix,
+        const Texture& hiz_pyramid,
+        const Sampler& hiz_sampler,
         Utilities::PerformanceLogger& performance_logger
     ) -> void;
 
@@ -58,6 +61,13 @@ private:
 
     Texture shadow_map_texture;
     Sampler shadow_map_sampler;
+
+    // GPU-driven per-instance frustum culling, one instance per cascade
+    // (each cascade has its own light-space frustum and therefore its own
+    // visible-instance set). Hi-Z occlusion is never used here (no
+    // light-space Hi-Z pyramid exists) - only the frustum test applies.
+    std::array<SDL_GPUInstanceCullPass, shadow_pass_num_cascades>
+        cascade_cull_passes;
 
     std::array<Maths::Matrix4x4f, shadow_pass_num_cascades>
         cascade_light_space_matrices;

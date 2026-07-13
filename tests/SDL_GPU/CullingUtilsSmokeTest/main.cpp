@@ -142,7 +142,17 @@ auto main() -> int {
     command_buffer.submit();
     gpu_device->wait_for_idle();
 
-    const auto test_cases = std::array<TestCase, 5>{
+    const auto rotation_y =
+        Transform::rotate_y<float, 4>(Units::Degrees_f{37.0F}.as<Units::Radian>());
+    const auto rotation_x =
+        Transform::rotate_x<float, 4>(Units::Degrees_f{21.0F}.as<Units::Radian>());
+    const auto rotation = rotation_y * rotation_x;
+    const auto non_uniform_scale =
+        Transform::scale_4x4(Vector3f{1.0F, 2.0F, 3.0F});
+    const auto translation =
+        Transform::translate_4x4(Vector3f{5.0F, -3.0F, 8.0F});
+
+    const auto test_cases = std::array<TestCase, 8>{
         TestCase{
             .name = "identity",
             .model_matrices = {Matrix4x4f::identity()},
@@ -164,6 +174,18 @@ auto main() -> int {
         TestCase{
             .name = "empty span",
             .model_matrices = {},
+        },
+        TestCase{
+            .name = "rotation",
+            .model_matrices = {rotation},
+        },
+        TestCase{
+            .name = "non-uniform scale",
+            .model_matrices = {non_uniform_scale},
+        },
+        TestCase{
+            .name = "rotation + non-uniform scale + translation combined",
+            .model_matrices = {rotation * non_uniform_scale * translation},
         },
     };
 

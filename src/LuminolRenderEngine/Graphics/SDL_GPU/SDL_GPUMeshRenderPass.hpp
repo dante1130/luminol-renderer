@@ -2,6 +2,7 @@
 
 #include <array>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <gsl/gsl>
@@ -104,11 +105,20 @@ class SDL_GPUMeshRenderPass {
 public:
     SDL_GPUMeshRenderPass(GPUDevice& device, SampleCount sample_count);
 
+    // static_renderables/pending_static_uploads: renderable ids registered as
+    // static (see SDL_GPURenderer::queue_draw_instanced_static) and, of
+    // those, the subset that actually need a GPU (re-)upload this frame. A
+    // renderable id present in queued_draws but absent from
+    // pending_static_uploads while present in static_renderables reuses its
+    // previously uploaded instance buffer instead of re-uploading unchanged
+    // data.
     [[nodiscard]] auto upload_instances(
         GPUDevice& device,
         CopyPass& copy_pass,
         const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
-            queued_draws
+            queued_draws,
+        const std::unordered_set<RenderableId>& static_renderables,
+        const std::unordered_set<RenderableId>& pending_static_uploads
     ) -> std::vector<InstanceBatch>;
 
     auto draw(

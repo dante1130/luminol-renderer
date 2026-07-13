@@ -4,6 +4,7 @@
 #include <memory>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <LuminolMaths/Vector.hpp>
@@ -55,6 +56,24 @@ public:
     ) -> void;
 
     auto queue_draw_instanced(
+        RenderableId renderable_id,
+        gsl::span<const Maths::Matrix4x4f> model_matrices
+    ) -> void;
+
+    // Registers renderable_id's instance data as static. Unlike
+    // queue_draw_instanced (which appends and is expected to be called once
+    // per frame for batches that may change), this REPLACES any previous
+    // instance list for renderable_id and is intended to be called ONCE
+    // (e.g. right after building model_matrices, before the render loop
+    // starts), not every frame. The renderer copies model_matrices once here,
+    // uploads it to the GPU once on the next draw() call, and then reuses
+    // that GPU buffer and CPU-side copy on every subsequent frame without
+    // re-copying or re-uploading, until this is called again for the same
+    // renderable_id (which forces exactly one more upload on the next
+    // draw()). Do not call queue_draw / queue_draw_instanced for a
+    // renderable_id that has ever been passed to this function - mixing the
+    // two is unsupported (asserted against in debug builds).
+    auto queue_draw_instanced_static(
         RenderableId renderable_id,
         gsl::span<const Maths::Matrix4x4f> model_matrices
     ) -> void;
@@ -220,6 +239,17 @@ private:
 
     std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>
         queued_draws;
+
+    // Renderable ids registered via queue_draw_instanced_static. Entries here
+    // are exempt from clear_queued_draws()'s per-frame clear - their
+    // queued_draws entry is left populated across frames instead of being
+    // emptied.
+    std::unordered_set<RenderableId> static_renderables;
+    // Static renderable ids that have been (re-)registered but not yet
+    // uploaded to the GPU, i.e. need exactly one instance buffer upload on
+    // the next draw() call. Populated by queue_draw_instanced_static, drained
+    // once that upload has happened.
+    std::unordered_set<RenderableId> pending_static_uploads;
 
     Maths::Matrix4x4f view_matrix = Maths::Matrix4x4f::identity();
     Maths::Matrix4x4f projection_matrix = Maths::Matrix4x4f::identity();

@@ -137,6 +137,10 @@ auto main() -> int {
 
     const auto model_matrices = make_grid_model_matrices();
 
+    luminol_engine.get_renderer().queue_draw_instanced_static(
+        model_id, model_matrices
+    );
+
     auto last_frame_time_seconds = 0.0;
 
     auto occlusion_disabled = false;
@@ -180,10 +184,6 @@ auto main() -> int {
         luminol_engine.get_renderer().set_view_matrix(camera.get_view_matrix());
         luminol_engine.get_renderer().set_projection_matrix(
             camera.get_projection_matrix()
-        );
-
-        luminol_engine.get_renderer().queue_draw_instanced(
-            model_id, model_matrices
         );
 
         luminol_engine.get_renderer().draw();

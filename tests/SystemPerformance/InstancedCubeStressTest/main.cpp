@@ -29,7 +29,7 @@ constexpr auto grid_spacing = 5.0F;
 constexpr auto warmup_frames = 30;
 constexpr auto measured_frames = 120;
 
-constexpr auto max_average_frame_time_ms = 12.0;
+constexpr auto max_average_frame_time_ms = 7.0;
 
 auto make_grid_model_matrices() -> std::vector<Maths::Matrix4x4f> {
     auto model_matrices = std::vector<Maths::Matrix4x4f>{};
@@ -84,6 +84,10 @@ auto main() -> int {
         luminol_engine.get_renderer().create_renderable("res/models/cube/cube.obj");
     const auto model_matrices = make_grid_model_matrices();
 
+    luminol_engine.get_renderer().queue_draw_instanced_static(
+        model_id, model_matrices
+    );
+
     camera.set_aspect_ratio(
         static_cast<float>(luminol_engine.get_window().get_width()) /
         static_cast<float>(luminol_engine.get_window().get_height())
@@ -96,9 +100,6 @@ auto main() -> int {
         luminol_engine.get_renderer().set_view_matrix(camera.get_view_matrix());
         luminol_engine.get_renderer().set_projection_matrix(
             camera.get_projection_matrix()
-        );
-        luminol_engine.get_renderer().queue_draw_instanced(
-            model_id, model_matrices
         );
         luminol_engine.get_renderer().draw();
     };

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cmath>
 #include <numbers>
 #include <utility>
@@ -296,18 +297,42 @@ auto SDL_GPURenderer::clear_color(const Maths::Vector4f& color) const -> void {
 auto SDL_GPURenderer::queue_draw(
     RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
 ) -> void {
+    assert(
+        !static_renderables.contains(renderable_id) &&
+        "queue_draw called for a renderable_id registered via "
+        "queue_draw_instanced_static; use queue_draw_instanced_static "
+        "instead of mixing APIs for the same renderable_id"
+    );
     queued_draws[renderable_id].push_back(model_matrix);
 }
 
 auto SDL_GPURenderer::queue_draw_instanced(
     RenderableId renderable_id, gsl::span<const Maths::Matrix4x4f> model_matrices
 ) -> void {
+    assert(
+        !static_renderables.contains(renderable_id) &&
+        "queue_draw_instanced called for a renderable_id registered via "
+        "queue_draw_instanced_static; use queue_draw_instanced_static "
+        "instead of mixing APIs for the same renderable_id"
+    );
     auto& batch = queued_draws[renderable_id];
     batch.insert(batch.end(), model_matrices.begin(), model_matrices.end());
 }
 
+auto SDL_GPURenderer::queue_draw_instanced_static(
+    RenderableId renderable_id, gsl::span<const Maths::Matrix4x4f> model_matrices
+) -> void {
+    auto& batch = queued_draws[renderable_id];
+    batch.assign(model_matrices.begin(), model_matrices.end());
+    static_renderables.insert(renderable_id);
+    pending_static_uploads.insert(renderable_id);
+}
+
 auto SDL_GPURenderer::clear_queued_draws() -> void {
     for (auto& [renderable_id, model_matrices] : queued_draws) {
+        if (static_renderables.contains(renderable_id)) {
+            continue;
+        }
         model_matrices.clear();
     }
 }
@@ -345,8 +370,11 @@ auto SDL_GPURenderer::upload_instances_and_compute_frustum(
         const auto pass_timer = Utilities::Timer{};
 
         auto copy_pass = command_buffer.begin_copy_pass();
-        instance_batches =
-            mesh_render_pass.upload_instances(*gpu_device, copy_pass, queued_draws);
+        instance_batches = mesh_render_pass.upload_instances(
+            *gpu_device, copy_pass, queued_draws, static_renderables,
+            pending_static_uploads
+        );
+        pending_static_uploads.clear();
 
         performance_logger.record(
             "instance_upload", Units::Seconds{pass_timer.elapsed_seconds()}
@@ -577,6 +605,8 @@ auto SDL_GPURenderer::record_shadows(
         },
         view_matrix,
         projection_matrix,
+        hiz_pass.get_pyramid_texture(),
+        hiz_pass.get_pyramid_sampler(),
         performance_logger
     );
 

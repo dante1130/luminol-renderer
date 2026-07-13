@@ -28,8 +28,14 @@ using namespace Luminol::Graphics::SDL_GPU;
 auto create_sdl_gpu_device(SDL_Window* window) -> SDL_GPUDevice* {
     SDL_SetLogPriority(SDL_LOG_CATEGORY_GPU, SDL_LOG_PRIORITY_VERBOSE);
 
+#ifndef NDEBUG
+    constexpr auto debug_mode = true;
+#else
+    constexpr auto debug_mode = false;
+#endif
+
     auto* gpu_device =
-        SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, nullptr);
+        SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, debug_mode, nullptr);
 
     if (gpu_device == nullptr) {
         SDL_LogError(

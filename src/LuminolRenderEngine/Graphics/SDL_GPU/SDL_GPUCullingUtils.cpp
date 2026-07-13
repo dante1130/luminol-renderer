@@ -1,6 +1,7 @@
 #include "SDL_GPUCullingUtils.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 #include <LuminolRenderEngine/Graphics/Frustum.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
@@ -24,6 +25,25 @@ auto transform_point(const Matrix4x4f& matrix, const Vector3f& point)
     };
 }
 
+// Transforms a local-space half-extent into world space by applying the
+// component-wise absolute value of the matrix's 3x3 linear part. Combined
+// with a transformed center, this yields the exact AABB of the 8 transformed
+// corners for any affine matrix, without transforming all 8 corners.
+auto transform_extent(const Matrix4x4f& matrix, const Vector3f& extent)
+    -> Vector3f {
+    return Vector3f{
+        (extent.x() * std::abs(matrix[0][0])) +
+            (extent.y() * std::abs(matrix[1][0])) +
+            (extent.z() * std::abs(matrix[2][0])),
+        (extent.x() * std::abs(matrix[0][1])) +
+            (extent.y() * std::abs(matrix[1][1])) +
+            (extent.z() * std::abs(matrix[2][1])),
+        (extent.x() * std::abs(matrix[0][2])) +
+            (extent.y() * std::abs(matrix[1][2])) +
+            (extent.z() * std::abs(matrix[2][2])),
+    };
+}
+
 }  // namespace
 
 auto compute_mesh_world_bounds(
@@ -35,15 +55,15 @@ auto compute_mesh_world_bounds(
         return local_bounds;
     }
 
-    const auto local_corners = std::array{
-        Vector3f{local_bounds.min.x(), local_bounds.min.y(), local_bounds.min.z()},
-        Vector3f{local_bounds.max.x(), local_bounds.min.y(), local_bounds.min.z()},
-        Vector3f{local_bounds.min.x(), local_bounds.max.y(), local_bounds.min.z()},
-        Vector3f{local_bounds.max.x(), local_bounds.max.y(), local_bounds.min.z()},
-        Vector3f{local_bounds.min.x(), local_bounds.min.y(), local_bounds.max.z()},
-        Vector3f{local_bounds.max.x(), local_bounds.min.y(), local_bounds.max.z()},
-        Vector3f{local_bounds.min.x(), local_bounds.max.y(), local_bounds.max.z()},
-        Vector3f{local_bounds.max.x(), local_bounds.max.y(), local_bounds.max.z()},
+    const auto local_center = Vector3f{
+        (local_bounds.min.x() + local_bounds.max.x()) * 0.5F,
+        (local_bounds.min.y() + local_bounds.max.y()) * 0.5F,
+        (local_bounds.min.z() + local_bounds.max.z()) * 0.5F,
+    };
+    const auto local_half_extent = Vector3f{
+        (local_bounds.max.x() - local_bounds.min.x()) * 0.5F,
+        (local_bounds.max.y() - local_bounds.min.y()) * 0.5F,
+        (local_bounds.max.z() - local_bounds.min.z()) * 0.5F,
     };
 
     auto world_min = Vector3f{0.0F, 0.0F, 0.0F};
@@ -51,27 +71,37 @@ auto compute_mesh_world_bounds(
     auto bounds_initialized = false;
 
     for (const auto& transform : model_matrices) {
-        for (const auto& corner : local_corners) {
-            const auto world_corner = transform_point(transform, corner);
+        const auto world_center = transform_point(transform, local_center);
+        const auto world_extent =
+            transform_extent(transform, local_half_extent);
+        const auto instance_min = Vector3f{
+            world_center.x() - world_extent.x(),
+            world_center.y() - world_extent.y(),
+            world_center.z() - world_extent.z(),
+        };
+        const auto instance_max = Vector3f{
+            world_center.x() + world_extent.x(),
+            world_center.y() + world_extent.y(),
+            world_center.z() + world_extent.z(),
+        };
 
-            if (!bounds_initialized) {
-                world_min = world_corner;
-                world_max = world_corner;
-                bounds_initialized = true;
-                continue;
-            }
-
-            world_min = Vector3f{
-                std::min(world_min.x(), world_corner.x()),
-                std::min(world_min.y(), world_corner.y()),
-                std::min(world_min.z(), world_corner.z()),
-            };
-            world_max = Vector3f{
-                std::max(world_max.x(), world_corner.x()),
-                std::max(world_max.y(), world_corner.y()),
-                std::max(world_max.z(), world_corner.z()),
-            };
+        if (!bounds_initialized) {
+            world_min = instance_min;
+            world_max = instance_max;
+            bounds_initialized = true;
+            continue;
         }
+
+        world_min = Vector3f{
+            std::min(world_min.x(), instance_min.x()),
+            std::min(world_min.y(), instance_min.y()),
+            std::min(world_min.z(), instance_min.z()),
+        };
+        world_max = Vector3f{
+            std::max(world_max.x(), instance_max.x()),
+            std::max(world_max.y(), instance_max.y()),
+            std::max(world_max.z(), instance_max.z()),
+        };
     }
 
     return BoundingBox{.min = world_min, .max = world_max};

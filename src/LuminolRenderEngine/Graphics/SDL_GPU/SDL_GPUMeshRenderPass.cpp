@@ -243,15 +243,23 @@ auto SDL_GPUMeshRenderPass::upload_instances(
     GPUDevice& device,
     CopyPass& copy_pass,
     const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
-        queued_draws
+        queued_draws,
+    const std::unordered_set<RenderableId>& static_renderables,
+    const std::unordered_set<RenderableId>& pending_static_uploads
 ) -> std::vector<InstanceBatch> {
     auto instance_batches = std::vector<InstanceBatch>{};
     instance_batches.reserve(queued_draws.size());
 
     for (const auto& [renderable_id, model_matrices] : queued_draws) {
-        instance_buffer_cache.upload(
-            device, copy_pass, renderable_id, model_matrices
-        );
+        const auto is_static = static_renderables.contains(renderable_id);
+        const auto needs_gpu_upload =
+            !is_static || pending_static_uploads.contains(renderable_id);
+
+        if (needs_gpu_upload) {
+            instance_buffer_cache.upload(
+                device, copy_pass, renderable_id, model_matrices
+            );
+        }
 
         instance_batches.push_back(InstanceBatch{
             .renderable_id = renderable_id,

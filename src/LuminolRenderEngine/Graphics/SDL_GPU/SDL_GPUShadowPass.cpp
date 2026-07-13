@@ -242,6 +242,10 @@ SDL_GPUShadowPass::SDL_GPUShadowPass(GPUDevice& device)
           .address_mode_v = SamplerAddressMode::ClampToEdge,
           .enable_compare = true,
       })},
+      cascade_cull_passes{
+          SDL_GPUInstanceCullPass{device}, SDL_GPUInstanceCullPass{device},
+          SDL_GPUInstanceCullPass{device}, SDL_GPUInstanceCullPass{device}
+      },
       cascade_light_space_matrices{
           Matrix4x4f::identity(), Matrix4x4f::identity(),
           Matrix4x4f::identity(), Matrix4x4f::identity()
@@ -257,6 +261,8 @@ auto SDL_GPUShadowPass::draw(
     const Maths::Vector3f& light_direction,
     const Maths::Matrix4x4f& view_matrix,
     const Maths::Matrix4x4f& projection_matrix,
+    const Texture& hiz_pyramid,
+    const Sampler& hiz_sampler,
     Utilities::PerformanceLogger& performance_logger
 ) -> void {
     const auto pass_timer = Utilities::Timer{};
@@ -275,6 +281,16 @@ auto SDL_GPUShadowPass::draw(
     const auto shadow_map_texture_view =
         TextureView{shadow_map_texture.native_handle()};
 
+    // Phase 1: per-cascade GPU instance culling. Must all happen before any
+    // render pass is opened below - SDL_GPU forbids opening a compute/copy
+    // pass while a render pass is active, so every cascade's cull() (which
+    // opens its own copy + compute passes) runs first, and its results
+    // (filtered batch list + resulting layout) are stashed for phase 2.
+    auto cascade_filtered_batches =
+        std::array<std::vector<InstanceBatch>, shadow_pass_num_cascades>{};
+    auto cascade_cull_layouts =
+        std::array<InstanceCullLayout, shadow_pass_num_cascades>{};
+
     for (auto cascade_index = 0U; cascade_index < shadow_pass_num_cascades;
          ++cascade_index) {
         const auto split_near = splits.at(cascade_index);
@@ -291,6 +307,45 @@ auto SDL_GPUShadowPass::draw(
             cascade_light_space_matrices.at(cascade_index)
         );
 
+        // Coarse pre-filter: skip this batch entirely for this cascade if
+        // none of its submeshes' world-space bounds intersect the cascade's
+        // orthographic frustum, so the per-instance GPU cull dispatch below
+        // isn't even issued for batches nowhere near this cascade.
+        auto& filtered_batches = cascade_filtered_batches[cascade_index];
+        for (auto batch_index = std::size_t{0};
+             batch_index < instance_batches.size(); ++batch_index) {
+            const auto& batch = instance_batches[batch_index];
+            const auto& mesh_bounds = batch_mesh_world_bounds[batch_index];
+            const auto batch_in_frustum = std::any_of(
+                mesh_bounds.begin(), mesh_bounds.end(),
+                [&cascade_frustum_planes](const BoundingBox& bounds) {
+                    return aabb_in_frustum(
+                        cascade_frustum_planes, bounds.min, bounds.max
+                    );
+                }
+            );
+            if (batch_in_frustum) {
+                filtered_batches.push_back(batch);
+            }
+        }
+
+        cascade_cull_layouts[cascade_index] =
+            cascade_cull_passes[cascade_index].cull(
+                graphics_factory, command_buffer, instance_buffer_cache,
+                filtered_batches, cascade_frustum_planes,
+                cascade_light_space_matrices.at(cascade_index), hiz_pyramid,
+                hiz_sampler, 0U
+            );
+    }
+
+    // Phase 2: per-cascade render passes, drawing only the instances each
+    // cascade's cull pass compacted into visible_instance_indices.
+    for (auto cascade_index = 0U; cascade_index < shadow_pass_num_cascades;
+         ++cascade_index) {
+        const auto& filtered_batches = cascade_filtered_batches[cascade_index];
+        const auto& cull_layout = cascade_cull_layouts[cascade_index];
+        const auto& cull_pass = cascade_cull_passes[cascade_index];
+
         const auto depth_stencil_target = DepthStencilTargetInfo{
             .texture = &shadow_map_texture_view,
             .clear_depth = 1.0F,
@@ -304,45 +359,17 @@ auto SDL_GPUShadowPass::draw(
             command_buffer.begin_render_pass({}, &depth_stencil_target);
         render_pass.bind_graphics_pipeline(shadow_pipeline);
 
-        const auto vertex_ubo = VertexUBO{
-            .light_space_matrix =
-                cascade_light_space_matrices.at(cascade_index),
-            .instance_base_offset = {0, 0, 0, 0},
-        };
-        command_buffer.push_vertex_uniform_data(
-            0,
-            gsl::span{
-                reinterpret_cast<const std::byte*>(&vertex_ubo),
-                sizeof(vertex_ubo)
-            }
-        );
-
         for (auto batch_index = std::size_t{0};
-             batch_index < instance_batches.size(); ++batch_index) {
-            const auto& batch = instance_batches[batch_index];
-
-            // Skip this batch entirely for this cascade if none of its
-            // submeshes' world-space bounds intersect the cascade's
-            // orthographic frustum.
-            const auto& mesh_bounds = batch_mesh_world_bounds[batch_index];
-            const auto batch_in_frustum = std::any_of(
-                mesh_bounds.begin(), mesh_bounds.end(),
-                [&cascade_frustum_planes](const BoundingBox& bounds) {
-                    return aabb_in_frustum(
-                        cascade_frustum_planes, bounds.min, bounds.max
-                    );
-                }
-            );
-            if (!batch_in_frustum) {
-                continue;
-            }
+             batch_index < filtered_batches.size(); ++batch_index) {
+            const auto& batch = filtered_batches[batch_index];
 
             const auto& instance_buffer =
                 instance_buffer_cache.get(batch.renderable_id);
-            const auto& identity_indices_buffer =
-                instance_buffer_cache.get_identity_indices_buffer();
-            const auto storage_buffer_bindings =
-                std::array{&instance_buffer, &identity_indices_buffer};
+            const auto& visible_instance_indices_buffer =
+                cull_pass.get_visible_instance_indices_buffer();
+            const auto storage_buffer_bindings = std::array{
+                &instance_buffer, &visible_instance_indices_buffer
+            };
             render_pass.bind_vertex_storage_buffers(
                 0, storage_buffer_bindings
             );
@@ -358,10 +385,29 @@ auto SDL_GPUShadowPass::draw(
                 IndexElementSize::Bits32, 0
             );
 
-            for (const auto& mesh :
-                 graphics_factory.get_meshes(batch.renderable_id)) {
-                mesh.draw_instanced_geometry_only(
-                    static_cast<int32_t>(batch.instance_count), render_pass
+            const auto& submesh_infos = cull_layout[batch_index];
+            const auto meshes = graphics_factory.get_meshes(batch.renderable_id);
+            for (auto mesh_index = std::size_t{0}; mesh_index < meshes.size();
+                 ++mesh_index) {
+                const auto& submesh_info = submesh_infos[mesh_index];
+
+                const auto vertex_ubo = VertexUBO{
+                    .light_space_matrix =
+                        cascade_light_space_matrices.at(cascade_index),
+                    .instance_base_offset =
+                        {submesh_info.instance_base_offset, 0, 0, 0},
+                };
+                command_buffer.push_vertex_uniform_data(
+                    0,
+                    gsl::span{
+                        reinterpret_cast<const std::byte*>(&vertex_ubo),
+                        sizeof(vertex_ubo)
+                    }
+                );
+
+                meshes[mesh_index].draw_indirect_geometry_only(
+                    render_pass, cull_pass.get_indirect_command_buffer(),
+                    submesh_info.indirect_command_byte_offset
                 );
             }
         }
