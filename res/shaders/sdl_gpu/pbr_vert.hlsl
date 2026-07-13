@@ -1,8 +1,5 @@
 cbuffer UBO : register(b0, space1) {
     row_major float4x4 view_proj;
-    // x: base offset into visible_instance_indices for this draw call;
-    // y/z/w unused (kept so the cbuffer stays a clean multiple of 16 bytes).
-    uint4 instance_base_offset;
 };
 
 StructuredBuffer<row_major float4x4> instance_models : register(t0, space0);
@@ -10,8 +7,17 @@ StructuredBuffer<row_major float4x4> instance_models : register(t0, space0);
 // (instance_cull.hlsl): maps a compacted 0..num_instances-1 range back to
 // the original instance index in instance_models, so a culled/compacted
 // indirect draw can still fetch the right model matrix per instance. Passes
-// that don't cull (shadow passes) bind an identity mapping instead (see
+// that don't cull (point/spot shadows) bind an identity mapping instead (see
 // SDL_GPUInstanceBufferCache::get_identity_indices_buffer).
+//
+// Indexed directly by input.instance_id, with no per-draw base-offset
+// uniform: each submesh's IndirectDrawCommand carries its own base offset
+// into visible_instance_indices via first_instance
+// (SDL_GPUInstanceCullPass::cull), and every target graphics API guarantees
+// SV_InstanceID for an indirect/instanced draw already incorporates
+// first_instance. That's what lets multiple submeshes' commands be drawn in
+// one multi-draw-indirect call instead of one draw per submesh - varying
+// first_instance per sub-draw works where a per-draw uniform push wouldn't.
 StructuredBuffer<uint> visible_instance_indices : register(t1, space0);
 
 struct VSInput {
@@ -32,7 +38,7 @@ struct VSOutput {
 
 VSOutput main(VSInput input) {
     const uint original_instance_index =
-        visible_instance_indices[instance_base_offset.x + input.instance_id];
+        visible_instance_indices[input.instance_id];
     const row_major float4x4 instance_model = instance_models[original_instance_index];
     const float3x3 normal_matrix = (float3x3)instance_model;
 

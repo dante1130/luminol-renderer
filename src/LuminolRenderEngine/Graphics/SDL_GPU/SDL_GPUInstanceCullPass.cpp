@@ -173,16 +173,25 @@ auto SDL_GPUInstanceCullPass::cull(
 
         for (const auto& mesh : meshes) {
             const auto command_index = static_cast<uint32_t>(commands.size());
+            const auto instance_base_offset = running_index_base;
+            running_index_base += batch.instance_count;
+
+            // first_instance carries this submesh's base offset into
+            // visible_instance_indices - every target graphics API
+            // guarantees SV_InstanceID for an indirect/instanced draw
+            // already incorporates first_instance, so the vertex shader
+            // (pbr_vert.hlsl) can index visible_instance_indices with
+            // input.instance_id directly, with no per-draw uniform needed.
+            // This is what lets geometry-only passes (shadow cascades,
+            // occlusion depth) multi-draw all of a batch's submeshes in one
+            // call instead of one draw per submesh.
             commands.push_back(IndirectDrawCommand{
                 .num_indices = mesh.get_index_count(),
                 .num_instances = 0U,
                 .first_index = mesh.get_first_index(),
                 .vertex_offset = mesh.get_vertex_offset(),
-                .first_instance = 0U,
+                .first_instance = instance_base_offset,
             });
-
-            const auto instance_base_offset = running_index_base;
-            running_index_base += batch.instance_count;
 
             submesh_infos.push_back(SubmeshCullInfo{
                 .indirect_command_byte_offset =

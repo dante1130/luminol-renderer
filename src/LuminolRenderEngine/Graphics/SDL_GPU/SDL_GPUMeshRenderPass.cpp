@@ -99,7 +99,6 @@ auto make_mesh_shader(
 // Mirrors cbuffer UBO in pbr_vert.hlsl.
 struct VertexUBO {
     Luminol::Maths::Matrix4x4f view_proj;
-    std::array<uint32_t, 4> instance_base_offset;
 };
 
 struct TransparentDrawItem {
@@ -383,9 +382,13 @@ auto SDL_GPUMeshRenderPass::draw(
     // Each submesh is drawn indirectly with a GPU-culled, per-instance-
     // compacted num_instances (see SDL_GPUInstanceCullPass) - one indirect
     // draw call per submesh, since each needs its own material samplers
-    // bound (SDL_GPUMesh::draw_indirect) and its own instance_base_offset
-    // uniform, so submeshes can't be collapsed into one indirect multi-draw
-    // call sharing a single bind state.
+    // bound (SDL_GPUMesh::draw_indirect), so submeshes can't be collapsed
+    // into one indirect multi-draw call sharing a single bind state. Unlike
+    // the geometry-only passes (shadow cascades, occlusion depth, AO
+    // normal-prepass), material binding is the actual blocker here - those
+    // passes have no per-submesh state left to vary once
+    // instance_base_offset moved into IndirectDrawCommand.first_instance
+    // (see SDL_GPUInstanceCullPass::cull), so they can multi-draw.
     const auto draw_batches_matching =
         [&](Utilities::ModelLoader::AlphaMode mode) {
             for (auto batch_index = std::size_t{0};
@@ -426,8 +429,6 @@ auto SDL_GPUMeshRenderPass::draw(
                     const auto& info = submesh_infos[mesh_index];
                     const auto vertex_ubo = VertexUBO{
                         .view_proj = view_proj,
-                        .instance_base_offset =
-                            {info.instance_base_offset, 0, 0, 0},
                     };
                     command_buffer.push_vertex_uniform_data(
                         0,
@@ -514,7 +515,6 @@ auto SDL_GPUMeshRenderPass::draw(
     // indirection a no-op.
     const auto identity_vertex_ubo = VertexUBO{
         .view_proj = view_proj,
-        .instance_base_offset = {0, 0, 0, 0},
     };
     command_buffer.push_vertex_uniform_data(
         0,

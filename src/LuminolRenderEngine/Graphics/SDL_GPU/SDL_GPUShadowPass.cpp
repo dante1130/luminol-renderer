@@ -57,7 +57,6 @@ constexpr auto up_fallback = Vector3f{0.0F, 0.0F, 1.0F};
 // Mirrors cbuffer UBO in pbr_vert.hlsl.
 struct VertexUBO {
     Matrix4x4f light_space_matrix;
-    std::array<uint32_t, 4> instance_base_offset;
 };
 
 auto left_handed_orthographic_projection_matrix(
@@ -360,9 +359,25 @@ auto SDL_GPUShadowPass::draw(
             command_buffer.begin_render_pass({}, &depth_stencil_target);
         render_pass.bind_graphics_pipeline(shadow_pipeline);
 
+        const auto vertex_ubo = VertexUBO{
+            .light_space_matrix = cascade_light_space_matrices.at(cascade_index),
+        };
+        command_buffer.push_vertex_uniform_data(
+            0,
+            gsl::span{
+                reinterpret_cast<const std::byte*>(&vertex_ubo),
+                sizeof(vertex_ubo)
+            }
+        );
+
         for (auto batch_index = std::size_t{0};
              batch_index < filtered_batches.size(); ++batch_index) {
             const auto& batch = filtered_batches[batch_index];
+            const auto& submesh_infos = cull_layout[batch_index];
+
+            if (submesh_infos.empty()) {
+                continue;
+            }
 
             const auto& instance_buffer =
                 instance_buffer_cache.get(batch.renderable_id);
@@ -386,31 +401,16 @@ auto SDL_GPUShadowPass::draw(
                 IndexElementSize::Bits32, 0
             );
 
-            const auto& submesh_infos = cull_layout[batch_index];
-            const auto meshes = graphics_factory.get_meshes(batch.renderable_id);
-            for (auto mesh_index = std::size_t{0}; mesh_index < meshes.size();
-                 ++mesh_index) {
-                const auto& submesh_info = submesh_infos[mesh_index];
-
-                const auto vertex_ubo = VertexUBO{
-                    .light_space_matrix =
-                        cascade_light_space_matrices.at(cascade_index),
-                    .instance_base_offset =
-                        {submesh_info.instance_base_offset, 0, 0, 0},
-                };
-                command_buffer.push_vertex_uniform_data(
-                    0,
-                    gsl::span{
-                        reinterpret_cast<const std::byte*>(&vertex_ubo),
-                        sizeof(vertex_ubo)
-                    }
-                );
-
-                meshes[mesh_index].draw_indirect_geometry_only(
-                    render_pass, cull_pass.get_indirect_command_buffer(),
-                    submesh_info.indirect_command_byte_offset
-                );
-            }
+            // Every submesh in this batch's IndirectDrawCommand slice is
+            // contiguous (SDL_GPUInstanceCullPass::cull builds them that
+            // way), and each carries its own visible_instance_indices base
+            // offset via first_instance, so one multi-draw call covers the
+            // whole batch instead of one draw per submesh.
+            render_pass.draw_indexed_primitives_indirect(
+                cull_pass.get_indirect_command_buffer(),
+                submesh_infos.front().indirect_command_byte_offset,
+                static_cast<uint32_t>(submesh_infos.size())
+            );
         }
     }
 

@@ -25,7 +25,6 @@ constexpr auto ao_texture_format = TextureFormat::R8G8B8A8_Unorm;
 // Mirrors cbuffer UBO in pbr_vert.hlsl.
 struct VertexUBO {
     Matrix4x4f view_proj;
-    std::array<uint32_t, 4> instance_base_offset;
 };
 
 struct SSAOUniforms {
@@ -198,11 +197,23 @@ auto SDL_GPUAmbientOcclusionPass::draw(
             }
         );
 
+        const auto vertex_ubo = VertexUBO{.view_proj = view_proj};
+        command_buffer.push_vertex_uniform_data(
+            0,
+            gsl::span{
+                reinterpret_cast<const std::byte*>(&vertex_ubo),
+                sizeof(vertex_ubo)
+            }
+        );
+
         for (auto batch_index = std::size_t{0};
              batch_index < instance_batches.size(); ++batch_index) {
             const auto& batch = instance_batches[batch_index];
             const auto& submesh_infos = instance_cull_layout[batch_index];
-            const auto meshes = graphics_factory.get_meshes(batch.renderable_id);
+
+            if (submesh_infos.empty()) {
+                continue;
+            }
 
             const auto& instance_buffer =
                 instance_buffer_cache.get(batch.renderable_id);
@@ -224,26 +235,16 @@ auto SDL_GPUAmbientOcclusionPass::draw(
                 IndexElementSize::Bits32, 0
             );
 
-            for (auto mesh_index = std::size_t{0}; mesh_index < meshes.size();
-                 ++mesh_index) {
-                const auto& info = submesh_infos[mesh_index];
-                const auto vertex_ubo = VertexUBO{
-                    .view_proj = view_proj,
-                    .instance_base_offset = {info.instance_base_offset, 0, 0, 0},
-                };
-                command_buffer.push_vertex_uniform_data(
-                    0,
-                    gsl::span{
-                        reinterpret_cast<const std::byte*>(&vertex_ubo),
-                        sizeof(vertex_ubo)
-                    }
-                );
-
-                meshes[mesh_index].draw_indirect_geometry_only(
-                    render_pass, indirect_command_buffer,
-                    info.indirect_command_byte_offset
-                );
-            }
+            // Every submesh in this batch's IndirectDrawCommand slice is
+            // contiguous (SDL_GPUInstanceCullPass::cull builds them that
+            // way), and each carries its own visible_instance_indices base
+            // offset via first_instance, so one multi-draw call covers the
+            // whole batch instead of one draw per submesh.
+            render_pass.draw_indexed_primitives_indirect(
+                indirect_command_buffer,
+                submesh_infos.front().indirect_command_byte_offset,
+                static_cast<uint32_t>(submesh_infos.size())
+            );
         }
 
         command_buffer.pop_debug_group();
