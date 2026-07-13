@@ -193,7 +193,15 @@ auto SDL_GPUFactory::create_font(
         return font_id;
     }
 
-    this->fonts_by_id.emplace(font_id, SDL_GPUFont{font_path, point_size});
+    auto command_buffer = gpu_device->create_command_buffer();
+    {
+        auto copy_pass = command_buffer.begin_copy_pass();
+        this->fonts_by_id.emplace(
+            font_id,
+            SDL_GPUFont{*gpu_device, copy_pass, font_path, point_size}
+        );
+    }
+    command_buffer.submit();
 
     return font_id;
 }

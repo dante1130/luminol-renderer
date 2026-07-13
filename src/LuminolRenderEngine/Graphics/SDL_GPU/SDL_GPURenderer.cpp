@@ -797,6 +797,8 @@ auto SDL_GPURenderer::draw() -> void {
     auto frame_prep =
         upload_instances_and_compute_frustum(command_buffer, camera.position);
 
+    text_render_pass.flush_frame_geometry(*gpu_device, command_buffer);
+
     run_occlusion_prepass(
         command_buffer, frame_prep.instance_batches,
         frame_prep.camera_frustum_planes, frame_prep.current_view_projection
@@ -917,8 +919,7 @@ auto SDL_GPURenderer::queue_draw_text(
     const Maths::Vector4f& color
 ) -> void {
     text_render_pass.queue_draw(
-        *gpu_device, font_id, sdl_gpu_factory->get_font(font_id), text,
-        position, color
+        font_id, sdl_gpu_factory->get_font(font_id), text, position, color
     );
 }
 
