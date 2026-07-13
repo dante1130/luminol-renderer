@@ -1,5 +1,6 @@
 #include "SDL_GPUCommandBuffer.hpp"
 
+#include <string>
 #include <vector>
 
 #include <gsl/gsl>
@@ -259,6 +260,21 @@ auto CommandBuffer::push_compute_uniform_data(
     );
 }
 
+auto CommandBuffer::push_debug_group(std::string_view name) -> void {
+    Expects(command_buffer != nullptr);
+    SDL_PushGPUDebugGroup(command_buffer, std::string{name}.c_str());
+}
+
+auto CommandBuffer::pop_debug_group() -> void {
+    Expects(command_buffer != nullptr);
+    SDL_PopGPUDebugGroup(command_buffer);
+}
+
+auto CommandBuffer::insert_debug_label(std::string_view name) -> void {
+    Expects(command_buffer != nullptr);
+    SDL_InsertGPUDebugLabel(command_buffer, std::string{name}.c_str());
+}
+
 auto CommandBuffer::submit() -> void {
     Expects(command_buffer != nullptr);
 
@@ -270,6 +286,21 @@ auto CommandBuffer::submit() -> void {
         );
     }
     command_buffer = nullptr;
+}
+
+auto CommandBuffer::submit_and_acquire_fence() -> SDL_GPUFence* {
+    Expects(command_buffer != nullptr);
+
+    auto* fence = SDL_SubmitGPUCommandBufferAndAcquireFence(command_buffer);
+    if (fence == nullptr) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_ERROR,
+            "Failed to submit GPU command buffer: %s",
+            SDL_GetError()
+        );
+    }
+    command_buffer = nullptr;
+    return fence;
 }
 
 auto CommandBuffer::cancel() -> void {

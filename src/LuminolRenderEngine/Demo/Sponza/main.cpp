@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <iostream>
 #include <random>
 
@@ -46,6 +47,28 @@ auto handle_key_events(
     if (engine.get_window().is_key_event('q', KeyEvent::Press)) {
         engine.get_window().close();
     }
+}
+
+// Debug-only: 'g' toggles the coarse whole-frame GPU-time proxy on/off (see
+// SDL_GPURenderer::set_debug_gpu_profiling_enabled), for manual testing
+// alongside an external GPU capture tool (RenderDoc/PIX/Nsight) attached to
+// this demo. is_key_event is level-triggered (true every frame the key is
+// held), so press-edge tracking is needed to fire once per physical press.
+auto handle_debug_gpu_profiling_key(
+    RenderEngine& engine, bool& gpu_profiling_enabled, bool& g_key_was_down
+) -> void {
+    const auto g_key_down = engine.get_window().is_key_event('g', KeyEvent::Press);
+    if (g_key_down && !g_key_was_down) {
+        gpu_profiling_enabled = !gpu_profiling_enabled;
+        engine.get_renderer().set_debug_gpu_profiling_enabled(
+            gpu_profiling_enabled
+        );
+        std::printf(
+            "[GpuProfiling] whole-frame GPU-time proxy %s\n",
+            gpu_profiling_enabled ? "ON" : "off"
+        );
+    }
+    g_key_was_down = g_key_down;
 }
 
 }  // namespace
@@ -165,6 +188,9 @@ auto main() -> int {
 
     auto last_frame_time_seconds = 0.0;
 
+    auto gpu_profiling_enabled = false;
+    auto g_key_was_down = false;
+
     while (!luminol_engine.get_window().should_close()) {
         const auto current_frame_time_seconds = timer.elapsed_seconds();
         const auto delta_time_seconds =
@@ -175,6 +201,10 @@ auto main() -> int {
 
         handle_key_events(
             luminol_engine, camera, gsl::narrow_cast<float>(delta_time_seconds)
+        );
+
+        handle_debug_gpu_profiling_key(
+            luminol_engine, gpu_profiling_enabled, g_key_was_down
         );
 
         const auto mouse_delta = luminol_engine.get_window().get_mouse_delta();

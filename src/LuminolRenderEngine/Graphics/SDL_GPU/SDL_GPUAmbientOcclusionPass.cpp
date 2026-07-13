@@ -167,6 +167,7 @@ auto SDL_GPUAmbientOcclusionPass::draw(
     // Normal + depth prepass.
     {
         const auto pass_timer = Utilities::Timer{};
+        command_buffer.push_debug_group("ao_normal_prepass");
 
         const auto color_targets = std::array{ColorTargetInfo{
             .texture = &normal_texture_view,
@@ -245,6 +246,7 @@ auto SDL_GPUAmbientOcclusionPass::draw(
             }
         }
 
+        command_buffer.pop_debug_group();
         performance_logger.record(
             "ao_normal_prepass", Units::Seconds{pass_timer.elapsed_seconds()}
         );
@@ -253,6 +255,7 @@ auto SDL_GPUAmbientOcclusionPass::draw(
     // SSAO pass.
     {
         const auto pass_timer = Utilities::Timer{};
+        command_buffer.push_debug_group("ao_ssao");
 
         const auto color_targets = std::array{ColorTargetInfo{
             .texture = &ssao_raw_texture_view,
@@ -296,6 +299,7 @@ auto SDL_GPUAmbientOcclusionPass::draw(
 
         render_pass.draw_primitives(3, 1, 0, 0);
 
+        command_buffer.pop_debug_group();
         performance_logger.record(
             "ao_ssao", Units::Seconds{pass_timer.elapsed_seconds()}
         );
@@ -304,6 +308,7 @@ auto SDL_GPUAmbientOcclusionPass::draw(
     // Blur pass.
     {
         const auto pass_timer = Utilities::Timer{};
+        command_buffer.push_debug_group("ao_blur");
 
         const auto color_targets = std::array{ColorTargetInfo{
             .texture = &ssao_texture_view,
@@ -339,6 +344,7 @@ auto SDL_GPUAmbientOcclusionPass::draw(
 
         render_pass.draw_primitives(3, 1, 0, 0);
 
+        command_buffer.pop_debug_group();
         performance_logger.record(
             "ao_blur", Units::Seconds{pass_timer.elapsed_seconds()}
         );

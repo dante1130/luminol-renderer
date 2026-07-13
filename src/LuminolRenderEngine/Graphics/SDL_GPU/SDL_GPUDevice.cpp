@@ -1,6 +1,7 @@
 #include "SDL_GPUDevice.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cfloat>
 #include <cmath>
 #include <fstream>
@@ -698,6 +699,31 @@ auto GPUDevice::wait_for_idle() const -> void {
             SDL_GetError()
         );
     }
+}
+
+auto GPUDevice::wait_for_fence(SDL_GPUFence* fence) const -> void {
+    if (fence == nullptr) {
+        return;
+    }
+
+    const auto fences = std::array<SDL_GPUFence*, 1>{fence};
+    if (!SDL_WaitForGPUFences(
+            this->device.get(), true, fences.data(), 1U
+        )) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_ERROR,
+            "Failed to wait for GPU fence: %s",
+            SDL_GetError()
+        );
+    }
+}
+
+auto GPUDevice::release_fence(SDL_GPUFence* fence) const -> void {
+    if (fence == nullptr) {
+        return;
+    }
+
+    SDL_ReleaseGPUFence(this->device.get(), fence);
 }
 
 }  // namespace Luminol::Graphics::SDL_GPU

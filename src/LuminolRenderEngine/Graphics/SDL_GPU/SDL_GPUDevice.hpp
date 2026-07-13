@@ -7,6 +7,7 @@
 
 struct SDL_Window;
 struct SDL_GPUDevice;
+struct SDL_GPUFence;
 
 namespace Luminol::Graphics::SDL_GPU {
 
@@ -54,6 +55,16 @@ public:
     // Blocks the calling thread until all submitted GPU work has completed.
     // Intended for readback/debug paths, not per-frame use.
     auto wait_for_idle() const -> void;
+
+    // Blocks the calling thread until fence is signaled. fence must have come
+    // from this device's CommandBuffer::submit_and_acquire_fence(); a null
+    // fence is a no-op. Does not release the fence - call release_fence
+    // afterward.
+    auto wait_for_fence(SDL_GPUFence* fence) const -> void;
+
+    // Releases a fence acquired from
+    // CommandBuffer::submit_and_acquire_fence(). A null fence is a no-op.
+    auto release_fence(SDL_GPUFence* fence) const -> void;
 
 private:
     using SDL_GPUDeviceDeleter = std::function<void(SDL_GPUDevice*)>;

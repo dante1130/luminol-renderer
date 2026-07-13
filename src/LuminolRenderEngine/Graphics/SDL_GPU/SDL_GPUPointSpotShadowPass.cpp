@@ -698,6 +698,7 @@ auto SDL_GPUPointSpotShadowPass::draw(
     Utilities::PerformanceLogger& performance_logger
 ) -> void {
     const auto pass_timer = Utilities::Timer{};
+    command_buffer.push_debug_group("point_spot_shadow_pass");
 
     const auto selected_point_lights = collect_selected_point_lights(light_data);
     const auto selected_spot_lights = collect_selected_spot_lights(light_data);
@@ -756,6 +757,7 @@ auto SDL_GPUPointSpotShadowPass::draw(
         spot_shadow_texture_view, shadow_pipeline, indirect_draw_buffer
     );
 
+    command_buffer.pop_debug_group();
     performance_logger.record(
         "point_spot_shadow_pass", Units::Seconds{pass_timer.elapsed_seconds()}
     );

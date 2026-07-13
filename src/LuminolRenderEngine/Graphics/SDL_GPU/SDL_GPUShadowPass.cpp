@@ -266,6 +266,7 @@ auto SDL_GPUShadowPass::draw(
     Utilities::PerformanceLogger& performance_logger
 ) -> void {
     const auto pass_timer = Utilities::Timer{};
+    command_buffer.push_debug_group("shadow_pass");
 
     const auto camera_near_far = extract_camera_near_far(projection_matrix);
     const auto splits = compute_cascade_splits(
@@ -413,6 +414,7 @@ auto SDL_GPUShadowPass::draw(
         }
     }
 
+    command_buffer.pop_debug_group();
     performance_logger.record(
         "shadow_pass", Units::Seconds{pass_timer.elapsed_seconds()}
     );

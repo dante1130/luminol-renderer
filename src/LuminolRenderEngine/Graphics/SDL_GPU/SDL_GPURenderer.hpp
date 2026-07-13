@@ -91,6 +91,15 @@ public:
     auto debug_log_visible_instance_count() -> void;
     auto set_debug_visualize_hiz(bool enabled) -> void;
 
+    // When enabled, draw() submits the frame via a fence and waits on it to
+    // measure a coarse whole-frame GPU-time proxy (recorded through
+    // performance_logger as "gpu_frame_proxy"). Off by default: waiting on
+    // the fence forces a CPU/GPU sync point every frame, which kills normal
+    // CPU/GPU pipelining. See the doc comment on
+    // PerformanceLogger::log_and_reset for what this metric does and doesn't
+    // measure.
+    auto set_debug_gpu_profiling_enabled(bool enabled) -> void;
+
 private:
     // Empties queued_draws for the next frame without destroying its
     // per-renderable vectors, so their heap capacity carries over instead of
@@ -263,6 +272,9 @@ private:
     // applies) for A/B comparison while investigating occlusion-culling
     // correctness. See Renderer::set_debug_disable_occlusion_culling.
     bool debug_disable_occlusion_culling = false;
+
+    // Debug-only: see set_debug_gpu_profiling_enabled.
+    bool debug_gpu_profiling_enabled = false;
 
     mutable Maths::Vector4f clear_color_value = {0.0F, 0.0F, 0.0F, 1.0F};
     float exposure = 1.0F;

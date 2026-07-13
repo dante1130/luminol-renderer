@@ -118,6 +118,7 @@ auto SDL_GPUScreenSpaceReflectionPass::draw(
     // Trace pass: cast the reflection rays into ssr_texture.
     {
         const auto pass_timer = Utilities::Timer{};
+        command_buffer.push_debug_group("ssr_trace");
 
         const auto ssr_texture_view = TextureView{ssr_texture.native_handle()};
 
@@ -166,6 +167,7 @@ auto SDL_GPUScreenSpaceReflectionPass::draw(
 
         render_pass.draw_primitives(3, 1, 0, 0);
 
+        command_buffer.pop_debug_group();
         performance_logger.record(
             "ssr_trace", Units::Seconds{pass_timer.elapsed_seconds()}
         );
@@ -175,6 +177,7 @@ auto SDL_GPUScreenSpaceReflectionPass::draw(
     // denoising the jittered trace result.
     {
         const auto pass_timer = Utilities::Timer{};
+        command_buffer.push_debug_group("ssr_resolve");
 
         const auto resolved_texture_view =
             TextureView{ssr_resolved_texture.native_handle()};
@@ -208,6 +211,7 @@ auto SDL_GPUScreenSpaceReflectionPass::draw(
 
         render_pass.draw_primitives(3, 1, 0, 0);
 
+        command_buffer.pop_debug_group();
         performance_logger.record(
             "ssr_resolve", Units::Seconds{pass_timer.elapsed_seconds()}
         );

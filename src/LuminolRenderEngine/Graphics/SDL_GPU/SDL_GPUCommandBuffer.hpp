@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 
 #include <gsl/gsl>
 #include <LuminolMaths/Vector.hpp>
@@ -14,6 +15,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
 
 struct SDL_GPUCommandBuffer;
+struct SDL_GPUFence;
 struct SDL_Window;
 
 namespace Luminol::Graphics::SDL_GPU {
@@ -124,7 +126,24 @@ public:
         uint32_t slot, gsl::span<const std::byte> data
     ) -> void;
 
+    // Annotations for external GPU capture/profiling tools (RenderDoc, PIX,
+    // Nsight Graphics, Xcode Metal capture). SDL_GPU has no timestamp/query
+    // API of its own, so these are the only way to get true per-pass GPU
+    // timing today - see the doc comment on PerformanceLogger::log_and_reset.
+    auto push_debug_group(std::string_view name) -> void;
+    auto pop_debug_group() -> void;
+    auto insert_debug_label(std::string_view name) -> void;
+
     auto submit() -> void;
+
+    // Like submit(), but returns a fence the caller can wait on to find out
+    // when the GPU has finished this frame's work. Intended for coarse,
+    // opt-in whole-frame GPU-time measurement (see
+    // SDL_GPURenderer::set_debug_gpu_profiling_enabled) - waiting on the
+    // fence blocks the CPU until the GPU catches up, which kills CPU/GPU
+    // overlap, so this must not be used unconditionally every frame.
+    [[nodiscard]] auto submit_and_acquire_fence() -> SDL_GPUFence*;
+
     auto cancel() -> void;
 
 private:

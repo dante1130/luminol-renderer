@@ -368,6 +368,7 @@ auto SDL_GPURenderer::upload_instances_and_compute_frustum(
     auto instance_batches = std::vector<InstanceBatch>{};
     {
         const auto pass_timer = Utilities::Timer{};
+        command_buffer.push_debug_group("instance_upload");
 
         auto copy_pass = command_buffer.begin_copy_pass();
         instance_batches = mesh_render_pass.upload_instances(
@@ -376,6 +377,7 @@ auto SDL_GPURenderer::upload_instances_and_compute_frustum(
         );
         pending_static_uploads.clear();
 
+        command_buffer.pop_debug_group();
         performance_logger.record(
             "instance_upload", Units::Seconds{pass_timer.elapsed_seconds()}
         );
@@ -436,6 +438,8 @@ auto SDL_GPURenderer::run_occlusion_prepass(
     const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
     const Maths::Matrix4x4f& current_view_projection
 ) -> void {
+    command_buffer.push_debug_group("occlusion_prepass");
+
     // Phase 1: cheap early-out cull against LAST FRAME's Hi-Z (built from
     // depth_texture, which still holds last frame's contents - nothing has
     // written it yet this frame), using THIS frame's camera. Its result only
@@ -476,6 +480,8 @@ auto SDL_GPURenderer::run_occlusion_prepass(
     hiz_pass.build(
         command_buffer, occlusion_depth_pass.get_depth_texture(), point_sampler
     );
+
+    command_buffer.pop_debug_group();
 }
 
 auto SDL_GPURenderer::record_debug_hiz_visualize(
@@ -575,10 +581,12 @@ auto SDL_GPURenderer::record_shadows(
 
     {
         const auto pass_timer = Utilities::Timer{};
+        command_buffer.push_debug_group("cluster_build");
         cluster_pass.build_cluster_grid(
             command_buffer, camera.vertical_fov_degrees, camera.aspect_ratio,
             camera.near_plane, camera.far_plane
         );
+        command_buffer.pop_debug_group();
         performance_logger.record(
             "cluster_build", Units::Seconds{pass_timer.elapsed_seconds()}
         );
@@ -586,7 +594,9 @@ auto SDL_GPURenderer::record_shadows(
 
     {
         const auto pass_timer = Utilities::Timer{};
+        command_buffer.push_debug_group("cluster_cull");
         cluster_pass.cull_lights(command_buffer, light_manager_data, view_matrix);
+        command_buffer.pop_debug_group();
         performance_logger.record(
             "cluster_cull", Units::Seconds{pass_timer.elapsed_seconds()}
         );
@@ -657,6 +667,7 @@ auto SDL_GPURenderer::record_main_pass(
     };
 
     const auto pass_timer = Utilities::Timer{};
+    command_buffer.push_debug_group("main_pass");
 
     auto render_pass =
         command_buffer.begin_render_pass(color_targets, &depth_stencil_target);
@@ -741,6 +752,7 @@ auto SDL_GPURenderer::record_main_pass(
         command_buffer, render_pass, view_matrix, projection_matrix
     );
 
+    command_buffer.pop_debug_group();
     performance_logger.record(
         "main_pass", Units::Seconds{pass_timer.elapsed_seconds()}
     );
@@ -750,6 +762,7 @@ auto SDL_GPURenderer::record_tonemap_and_text(
     CommandBuffer& command_buffer, const SwapchainTexture& swapchain
 ) -> void {
     const auto pass_timer = Utilities::Timer{};
+    command_buffer.push_debug_group("tonemap");
 
     const auto tonemap_color_targets = std::array{ColorTargetInfo{
         .texture = &swapchain.texture,
@@ -768,6 +781,7 @@ auto SDL_GPURenderer::record_tonemap_and_text(
         command_buffer, tonemap_render_pass, swapchain.width, swapchain.height
     );
 
+    command_buffer.pop_debug_group();
     performance_logger.record(
         "tonemap", Units::Seconds{pass_timer.elapsed_seconds()}
     );
@@ -833,7 +847,17 @@ auto SDL_GPURenderer::draw() -> void {
 
     record_tonemap_and_text(command_buffer, *swapchain);
 
-    command_buffer.submit();
+    if (debug_gpu_profiling_enabled) {
+        const auto gpu_timer = Utilities::Timer{};
+        auto* fence = command_buffer.submit_and_acquire_fence();
+        gpu_device->wait_for_fence(fence);
+        performance_logger.record(
+            "gpu_frame_proxy", Units::Seconds{gpu_timer.elapsed_seconds()}
+        );
+        gpu_device->release_fence(fence);
+    } else {
+        command_buffer.submit();
+    }
     clear_queued_draws();
 
     has_valid_previous_depth = true;
@@ -858,6 +882,10 @@ auto SDL_GPURenderer::set_debug_disable_occlusion_culling(bool disabled)
 
 auto SDL_GPURenderer::set_debug_visualize_hiz(bool enabled) -> void {
     debug_visualize_hiz = enabled;
+}
+
+auto SDL_GPURenderer::set_debug_gpu_profiling_enabled(bool enabled) -> void {
+    debug_gpu_profiling_enabled = enabled;
 }
 
 auto SDL_GPURenderer::debug_log_visible_instance_count() -> void {

@@ -43,12 +43,13 @@ auto PerformanceLogger::end_frame() -> void {
 auto PerformanceLogger::log_and_reset() -> void {
     auto message = std::string{"[Perf]"};
 
-    // Every sample here (other than "frame" and "acquire_swapchain") times a
-    // plain CPU std::chrono span around SDL_GPU command-recording calls, not
-    // GPU execution: SDL_GPU submission is asynchronous, so these measure how
-    // long the CPU took to encode commands, which is not the same as how
-    // long the GPU took to run them. SDL_GPU has no timestamp/query API, so
-    // there is currently no way to measure true per-pass GPU duration.
+    // Every sample here (other than "frame", "acquire_swapchain", and
+    // "gpu_frame_proxy") times a plain CPU std::chrono span around SDL_GPU
+    // command-recording calls, not GPU execution: SDL_GPU submission is
+    // asynchronous, so these measure how long the CPU took to encode
+    // commands, which is not the same as how long the GPU took to run them.
+    // SDL_GPU has no timestamp/query API, so there is currently no way to
+    // measure true per-pass GPU duration.
     //
     // "acquire_swapchain" (SDL_WaitAndAcquireGPUSwapchainTexture) is the one
     // place actual GPU cost differences are likely to surface: it blocks the
@@ -57,6 +58,17 @@ auto PerformanceLogger::log_and_reset() -> void {
     // from prior frames. Do not exclude it when comparing GPU-bound changes
     // between builds - excluding it (as an earlier version of this function
     // did) hides exactly the signal you'd be looking for.
+    //
+    // "gpu_frame_proxy" (only present when
+    // SDL_GPURenderer::set_debug_gpu_profiling_enabled(true) has been called)
+    // is a coarse approximation of whole-frame GPU execution time: the CPU
+    // submits the frame via a fence-acquiring submit and times how long it
+    // takes for that fence to signal. It is NOT per-pass GPU time - it's the
+    // entire frame's GPU work, and forces a CPU/GPU sync point every frame
+    // (killing normal pipelining), which is why it's opt-in and off by
+    // default. For true per-pass GPU timing, use an external capture tool
+    // (RenderDoc, PIX, Nsight Graphics, Xcode) against the debug groups
+    // pushed around each pass.
     auto cpu_record_total_milliseconds = 0.0;
 
     for (const auto& sample : samples) {
@@ -68,7 +80,8 @@ auto PerformanceLogger::log_and_reset() -> void {
         message += " " + sample.name + ": " +
                    std::to_string(average_milliseconds) + "ms |";
 
-        if (sample.name != "acquire_swapchain" && sample.name != "frame") {
+        if (sample.name != "acquire_swapchain" && sample.name != "frame" &&
+            sample.name != "gpu_frame_proxy") {
             cpu_record_total_milliseconds += average_milliseconds;
         }
     }
