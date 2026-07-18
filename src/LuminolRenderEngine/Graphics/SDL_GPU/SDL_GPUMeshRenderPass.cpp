@@ -255,20 +255,21 @@ auto SDL_GPUMeshRenderPass::get_instance_buffer_cache() const
 }
 
 auto SDL_GPUMeshRenderPass::upload_instances(
-    GPUDevice& device,
-    CopyPass& copy_pass,
-    const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
-        queued_draws,
-    const std::unordered_set<RenderableId>& static_renderables,
-    const std::unordered_set<RenderableId>& pending_static_uploads
+    GPUDevice& device, CopyPass& copy_pass, const QueuedDraws& queued_draws
 ) -> std::vector<InstanceBatch> {
     auto instance_batches = std::vector<InstanceBatch>{};
-    instance_batches.reserve(queued_draws.size());
+    instance_batches.reserve(queued_draws.model_matrices.size());
 
-    for (const auto& [renderable_id, model_matrices] : queued_draws) {
-        const auto is_static = static_renderables.contains(renderable_id);
+    for (auto renderable_id = RenderableId{0};
+         renderable_id < queued_draws.model_matrices.size(); ++renderable_id) {
+        if (queued_draws.registered[renderable_id] == 0) {
+            continue;
+        }
+
+        const auto& model_matrices = queued_draws.model_matrices[renderable_id];
+        const auto is_static = queued_draws.is_static[renderable_id] != 0;
         const auto needs_gpu_upload =
-            !is_static || pending_static_uploads.contains(renderable_id);
+            !is_static || queued_draws.pending_static_upload[renderable_id] != 0;
 
         if (needs_gpu_upload) {
             instance_buffer_cache.upload(
@@ -373,8 +374,7 @@ auto SDL_GPUMeshRenderPass::draw(
     CommandBuffer& command_buffer,
     RenderPass& render_pass,
     gsl::span<const InstanceBatch> instance_batches,
-    const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
-        queued_draws,
+    const QueuedDraws& queued_draws,
     const Maths::Matrix4x4f& view_proj,
     const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
     const Buffer& indirect_command_buffer,
@@ -568,7 +568,8 @@ auto SDL_GPUMeshRenderPass::draw(
             continue;
         }
 
-        const auto& model_matrices = queued_draws.at(batch.renderable_id);
+        const auto& model_matrices =
+            queued_draws.model_matrices[batch.renderable_id];
         const auto distance_squared = batch_distance_squared_to_camera(
             model_matrices, light_data.view_position
         );

@@ -3,8 +3,6 @@
 #include <array>
 #include <memory>
 #include <string_view>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include <LuminolMaths/Vector.hpp>
@@ -253,19 +251,13 @@ private:
 
     Utilities::PerformanceLogger performance_logger;
 
-    std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>
-        queued_draws;
-
-    // Renderable ids registered via queue_draw_instanced_static. Entries here
-    // are exempt from clear_queued_draws()'s per-frame clear - their
-    // queued_draws entry is left populated across frames instead of being
-    // emptied.
-    std::unordered_set<RenderableId> static_renderables;
-    // Static renderable ids that have been (re-)registered but not yet
-    // uploaded to the GPU, i.e. need exactly one instance buffer upload on
-    // the next draw() call. Populated by queue_draw_instanced_static, drained
-    // once that upload has happened.
-    std::unordered_set<RenderableId> pending_static_uploads;
+    // is_static entries are exempt from clear_queued_draws()'s per-frame
+    // clear - their model_matrices are left populated across frames instead
+    // of being emptied. pending_static_upload marks ids that have been
+    // (re-)registered but not yet uploaded to the GPU, i.e. need exactly one
+    // instance buffer upload on the next draw() call - populated by
+    // queue_draw_instanced_static, drained once that upload has happened.
+    QueuedDraws queued_draws;
 
     Maths::Matrix4x4f view_matrix = Maths::Matrix4x4f::identity();
     Maths::Matrix4x4f projection_matrix = Maths::Matrix4x4f::identity();

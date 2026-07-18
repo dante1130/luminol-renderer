@@ -1,8 +1,6 @@
 #pragma once
 
 #include <array>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include <gsl/gsl>
@@ -105,20 +103,14 @@ class SDL_GPUMeshRenderPass {
 public:
     SDL_GPUMeshRenderPass(GPUDevice& device, SampleCount sample_count);
 
-    // static_renderables/pending_static_uploads: renderable ids registered as
-    // static (see SDL_GPURenderer::queue_draw_instanced_static) and, of
+    // queued_draws.is_static/pending_static_upload: renderable ids registered
+    // as static (see SDL_GPURenderer::queue_draw_instanced_static) and, of
     // those, the subset that actually need a GPU (re-)upload this frame. A
-    // renderable id present in queued_draws but absent from
-    // pending_static_uploads while present in static_renderables reuses its
-    // previously uploaded instance buffer instead of re-uploading unchanged
-    // data.
+    // registered renderable id with is_static set but pending_static_upload
+    // clear reuses its previously uploaded instance buffer instead of
+    // re-uploading unchanged data.
     [[nodiscard]] auto upload_instances(
-        GPUDevice& device,
-        CopyPass& copy_pass,
-        const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
-            queued_draws,
-        const std::unordered_set<RenderableId>& static_renderables,
-        const std::unordered_set<RenderableId>& pending_static_uploads
+        GPUDevice& device, CopyPass& copy_pass, const QueuedDraws& queued_draws
     ) -> std::vector<InstanceBatch>;
 
     auto draw(
@@ -126,8 +118,7 @@ public:
         CommandBuffer& command_buffer,
         RenderPass& render_pass,
         gsl::span<const InstanceBatch> instance_batches,
-        const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
-            queued_draws,
+        const QueuedDraws& queued_draws,
         const Maths::Matrix4x4f& view_proj,
         const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
         const Buffer& indirect_command_buffer,

@@ -5,7 +5,6 @@
 #include <cmath>
 #include <cstring>
 #include <numbers>
-#include <unordered_map>
 #include <vector>
 
 #include <LuminolMaths/Transform.hpp>
@@ -692,8 +691,7 @@ auto SDL_GPUPointSpotShadowPass::draw(
     CommandBuffer& command_buffer,
     const SDL_GPUInstanceBufferCache& instance_buffer_cache,
     gsl::span<const InstanceBatch> instance_batches,
-    const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
-        queued_draws,
+    const QueuedDraws& queued_draws,
     const Light& light_data,
     Utilities::PerformanceLogger& performance_logger
 ) -> void {

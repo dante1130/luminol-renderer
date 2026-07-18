@@ -2,7 +2,9 @@
 
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <unordered_map>
+#include <vector>
 
 #include <gsl/gsl>
 
@@ -65,7 +67,11 @@ private:
 
     std::shared_ptr<GPUDevice> gpu_device;
     RenderableManager renderable_manager;
-    std::unordered_map<RenderableId, RenderableMeshes> meshes_by_id;
+    // Indexed directly by RenderableId (allocated monotonically, never
+    // reused - see RenderableManager::get_free_renderable_id), so lookups
+    // used every frame by every render pass are a direct index instead of a
+    // hash probe. nullopt for an id that was removed via remove_renderable.
+    std::vector<std::optional<RenderableMeshes>> meshes_by_id;
 
     RenderableManager font_manager;
     std::unordered_map<FontId, SDL_GPUFont> fonts_by_id;

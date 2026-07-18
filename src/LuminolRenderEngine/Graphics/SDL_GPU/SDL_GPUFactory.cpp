@@ -135,14 +135,14 @@ auto SDL_GPUFactory::create_mesh(
 
     command_buffer.submit();
 
-    this->meshes_by_id.emplace(
-        renderable_id,
-        RenderableMeshes{
-            .vertex_buffer = std::move(vertex_buffer).value(),
-            .index_buffer = std::move(index_buffer).value(),
-            .meshes = std::move(meshes),
-        }
-    );
+    if (renderable_id >= this->meshes_by_id.size()) {
+        this->meshes_by_id.resize(renderable_id + 1);
+    }
+    this->meshes_by_id[renderable_id] = RenderableMeshes{
+        .vertex_buffer = std::move(vertex_buffer).value(),
+        .index_buffer = std::move(index_buffer).value(),
+        .meshes = std::move(meshes),
+    };
 
     return renderable_id;
 }
@@ -153,35 +153,40 @@ auto SDL_GPUFactory::create_model(const std::filesystem::path& model_path)
 
     const auto renderable_id = this->renderable_manager.allocate_id(model_path);
 
-    if (this->meshes_by_id.contains(renderable_id)) {
+    if (renderable_id < this->meshes_by_id.size() &&
+        this->meshes_by_id[renderable_id].has_value()) {
         return renderable_id;
     }
 
-    this->meshes_by_id.emplace(
-        renderable_id, load_meshes_from_model(*gpu_device, model_path)
-    );
+    if (renderable_id >= this->meshes_by_id.size()) {
+        this->meshes_by_id.resize(renderable_id + 1);
+    }
+    this->meshes_by_id[renderable_id] =
+        load_meshes_from_model(*gpu_device, model_path);
 
     return renderable_id;
 }
 
 auto SDL_GPUFactory::remove_renderable(RenderableId renderable_id) -> void {
-    this->meshes_by_id.erase(renderable_id);
+    if (renderable_id < this->meshes_by_id.size()) {
+        this->meshes_by_id[renderable_id].reset();
+    }
     this->renderable_manager.remove_renderable(renderable_id);
 }
 
 auto SDL_GPUFactory::get_meshes(RenderableId renderable_id) const
     -> gsl::span<const SDL_GPUMesh> {
-    return this->meshes_by_id.at(renderable_id).meshes;
+    return gsl::at(this->meshes_by_id, renderable_id).value().meshes;
 }
 
 auto SDL_GPUFactory::get_vertex_buffer(RenderableId renderable_id) const
     -> const Buffer& {
-    return this->meshes_by_id.at(renderable_id).vertex_buffer;
+    return gsl::at(this->meshes_by_id, renderable_id).value().vertex_buffer;
 }
 
 auto SDL_GPUFactory::get_index_buffer(RenderableId renderable_id) const
     -> const Buffer& {
-    return this->meshes_by_id.at(renderable_id).index_buffer;
+    return gsl::at(this->meshes_by_id, renderable_id).value().index_buffer;
 }
 
 auto SDL_GPUFactory::create_font(

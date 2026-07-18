@@ -1,7 +1,7 @@
 #pragma once
 
 #include <optional>
-#include <unordered_map>
+#include <vector>
 
 #include <gsl/gsl>
 #include <LuminolMaths/Matrix.hpp>
@@ -39,8 +39,11 @@ public:
     [[nodiscard]] auto get_identity_indices_buffer() const -> const Buffer&;
 
 private:
-    std::unordered_map<RenderableId, Buffer> instance_buffers;
-    std::unordered_map<RenderableId, TransferBuffer> instance_transfer_buffers;
+    // Indexed directly by RenderableId (allocated monotonically, never
+    // reused), so upload()/get() are a direct index instead of a hash probe.
+    // nullopt until the first upload() call for that id.
+    std::vector<std::optional<Buffer>> instance_buffers;
+    std::vector<std::optional<TransferBuffer>> instance_transfer_buffers;
 
     std::optional<Buffer> identity_indices_buffer;
     std::optional<TransferBuffer> identity_indices_transfer_buffer;

@@ -297,43 +297,51 @@ auto SDL_GPURenderer::clear_color(const Maths::Vector4f& color) const -> void {
 auto SDL_GPURenderer::queue_draw(
     RenderableId renderable_id, const Maths::Matrix4x4f& model_matrix
 ) -> void {
+    ensure_capacity(queued_draws, renderable_id);
     assert(
-        !static_renderables.contains(renderable_id) &&
+        gsl::at(queued_draws.is_static, renderable_id) == 0 &&
         "queue_draw called for a renderable_id registered via "
         "queue_draw_instanced_static; use queue_draw_instanced_static "
         "instead of mixing APIs for the same renderable_id"
     );
-    queued_draws[renderable_id].push_back(model_matrix);
+    gsl::at(queued_draws.model_matrices, renderable_id).push_back(model_matrix);
+    gsl::at(queued_draws.registered, renderable_id) = 1;
 }
 
 auto SDL_GPURenderer::queue_draw_instanced(
     RenderableId renderable_id, gsl::span<const Maths::Matrix4x4f> model_matrices
 ) -> void {
+    ensure_capacity(queued_draws, renderable_id);
     assert(
-        !static_renderables.contains(renderable_id) &&
+        gsl::at(queued_draws.is_static, renderable_id) == 0 &&
         "queue_draw_instanced called for a renderable_id registered via "
         "queue_draw_instanced_static; use queue_draw_instanced_static "
         "instead of mixing APIs for the same renderable_id"
     );
-    auto& batch = queued_draws[renderable_id];
+    auto& batch = gsl::at(queued_draws.model_matrices, renderable_id);
     batch.insert(batch.end(), model_matrices.begin(), model_matrices.end());
+    gsl::at(queued_draws.registered, renderable_id) = 1;
 }
 
 auto SDL_GPURenderer::queue_draw_instanced_static(
     RenderableId renderable_id, gsl::span<const Maths::Matrix4x4f> model_matrices
 ) -> void {
-    auto& batch = queued_draws[renderable_id];
+    ensure_capacity(queued_draws, renderable_id);
+    auto& batch = gsl::at(queued_draws.model_matrices, renderable_id);
     batch.assign(model_matrices.begin(), model_matrices.end());
-    static_renderables.insert(renderable_id);
-    pending_static_uploads.insert(renderable_id);
+    gsl::at(queued_draws.registered, renderable_id) = 1;
+    gsl::at(queued_draws.is_static, renderable_id) = 1;
+    gsl::at(queued_draws.pending_static_upload, renderable_id) = 1;
 }
 
 auto SDL_GPURenderer::clear_queued_draws() -> void {
-    for (auto& [renderable_id, model_matrices] : queued_draws) {
-        if (static_renderables.contains(renderable_id)) {
+    for (auto renderable_id = RenderableId{0};
+         renderable_id < queued_draws.model_matrices.size(); ++renderable_id) {
+        if (queued_draws.registered[renderable_id] == 0 ||
+            queued_draws.is_static[renderable_id] != 0) {
             continue;
         }
-        model_matrices.clear();
+        queued_draws.model_matrices[renderable_id].clear();
     }
 }
 
@@ -371,11 +379,9 @@ auto SDL_GPURenderer::upload_instances_and_compute_frustum(
         command_buffer.push_debug_group("instance_upload");
 
         auto copy_pass = command_buffer.begin_copy_pass();
-        instance_batches = mesh_render_pass.upload_instances(
-            *gpu_device, copy_pass, queued_draws, static_renderables,
-            pending_static_uploads
-        );
-        pending_static_uploads.clear();
+        instance_batches =
+            mesh_render_pass.upload_instances(*gpu_device, copy_pass, queued_draws);
+        std::ranges::fill(queued_draws.pending_static_upload, 0);
 
         command_buffer.pop_debug_group();
         performance_logger.record(
@@ -391,11 +397,12 @@ auto SDL_GPURenderer::upload_instances_and_compute_frustum(
     const auto batch_distance_squared = [this, &camera_position](
                                              const InstanceBatch& batch
                                          ) -> float {
-        const auto it = queued_draws.find(batch.renderable_id);
-        if (it == queued_draws.end() || it->second.empty()) {
+        const auto& model_matrices =
+            queued_draws.model_matrices[batch.renderable_id];
+        if (model_matrices.empty()) {
             return 0.0F;
         }
-        const auto& matrix = it->second.front();
+        const auto& matrix = model_matrices.front();
         const auto delta_x = matrix[3][0] - camera_position.x();
         const auto delta_y = matrix[3][1] - camera_position.y();
         const auto delta_z = matrix[3][2] - camera_position.z();

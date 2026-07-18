@@ -2,7 +2,6 @@
 
 #include <array>
 #include <optional>
-#include <unordered_map>
 #include <vector>
 
 #include <gsl/gsl>
@@ -45,8 +44,7 @@ using BatchMeshBounds = std::vector<std::vector<BoundingBox>>;
 [[nodiscard]] auto compute_batch_mesh_world_bounds(
     const SDL_GPUFactory& graphics_factory,
     gsl::span<const InstanceBatch> instance_batches,
-    const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
-        queued_draws
+    const QueuedDraws& queued_draws
 ) -> BatchMeshBounds;
 
 // World-space AABB for a single submesh, covering the union of every given

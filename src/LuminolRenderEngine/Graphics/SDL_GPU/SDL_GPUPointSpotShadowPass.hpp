@@ -1,6 +1,5 @@
 #pragma once
 
-#include <unordered_map>
 #include <vector>
 
 #include <gsl/gsl>
@@ -45,8 +44,7 @@ public:
         CommandBuffer& command_buffer,
         const SDL_GPUInstanceBufferCache& instance_buffer_cache,
         gsl::span<const InstanceBatch> instance_batches,
-        const std::unordered_map<RenderableId, std::vector<Maths::Matrix4x4f>>&
-            queued_draws,
+        const QueuedDraws& queued_draws,
         const Light& light_data,
         Utilities::PerformanceLogger& performance_logger
     ) -> void;

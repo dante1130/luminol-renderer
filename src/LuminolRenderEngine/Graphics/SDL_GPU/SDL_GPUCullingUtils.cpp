@@ -110,8 +110,7 @@ auto compute_mesh_world_bounds(
 auto compute_batch_mesh_world_bounds(
     const SDL_GPUFactory& graphics_factory,
     gsl::span<const InstanceBatch> instance_batches,
-    const std::unordered_map<RenderableId, std::vector<Matrix4x4f>>&
-        queued_draws
+    const QueuedDraws& queued_draws
 ) -> BatchMeshBounds {
     auto result = BatchMeshBounds{};
     result.reserve(instance_batches.size());
@@ -121,10 +120,9 @@ auto compute_batch_mesh_world_bounds(
         auto mesh_bounds = std::vector<BoundingBox>{};
         mesh_bounds.reserve(meshes.size());
 
-        const auto transforms_it = queued_draws.find(batch.renderable_id);
-        const auto model_matrices = transforms_it != queued_draws.end()
-            ? gsl::span<const Matrix4x4f>{transforms_it->second}
-            : gsl::span<const Matrix4x4f>{};
+        const auto model_matrices = gsl::span<const Matrix4x4f>{
+            queued_draws.model_matrices[batch.renderable_id]
+        };
 
         for (const auto& mesh : meshes) {
             mesh_bounds.push_back(
