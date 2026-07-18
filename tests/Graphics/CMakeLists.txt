@@ -1,6 +1,7 @@
 add_executable(Luminol.Graphics.Tests
     FrustumTests.cpp
     CameraTests.cpp
+    IdPoolTests.cpp
     LightManagerTests.cpp
     RenderableManagerTests.cpp
     SDL_GPUTypeConversionsTests.cpp

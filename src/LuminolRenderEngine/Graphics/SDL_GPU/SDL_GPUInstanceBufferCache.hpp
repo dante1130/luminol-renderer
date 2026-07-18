@@ -39,9 +39,10 @@ public:
     [[nodiscard]] auto get_identity_indices_buffer() const -> const Buffer&;
 
 private:
-    // Indexed directly by RenderableId (allocated monotonically, never
-    // reused), so upload()/get() are a direct index instead of a hash probe.
-    // nullopt until the first upload() call for that id.
+    // Indexed directly by RenderableId, so upload()/get() are a direct index
+    // instead of a hash probe. Grows to cover the largest id seen; a reused
+    // (recycled) id already has a valid slot. nullopt until the first
+    // upload() call for that id.
     std::vector<std::optional<Buffer>> instance_buffers;
     std::vector<std::optional<TransferBuffer>> instance_transfer_buffers;
 

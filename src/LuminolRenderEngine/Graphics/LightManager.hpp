@@ -4,11 +4,11 @@
 #include <cstdint>
 #include <limits>
 #include <optional>
-#include <set>
 
 #include <LuminolMaths/Matrix.hpp>
 #include <LuminolMaths/Vector.hpp>
 
+#include <LuminolRenderEngine/Graphics/IdPool.hpp>
 #include <LuminolRenderEngine/Graphics/Light.hpp>
 
 namespace Luminol::Graphics {
@@ -55,13 +55,14 @@ public:
 private:
     Light light_data = {};
 
-    std::set<LightId> free_point_light_ids;
-    std::set<LightId> free_spot_light_ids;
+    IdPool<LightId> point_light_ids;
+    IdPool<LightId> spot_light_ids;
 
     // Dense, fixed-capacity storage indexed directly by LightId (ids are
     // handed out from a bounded 0..max_point_lights-1 / 0..max_spot_lights-1
-    // pool - see create_free_light_ids), so every per-frame lookup/update is
-    // a direct array index instead of a tree traversal. Active flags use
+    // pool - see point_light_ids/spot_light_ids), so every per-frame
+    // lookup/update is a direct array index instead of a tree traversal.
+    // Active flags use
     // uint8_t rather than array<bool, N> so they're span-able (array<bool, N>
     // has no special packing like vector<bool>, but uint8_t keeps this
     // consistent with the rest of the flags here).

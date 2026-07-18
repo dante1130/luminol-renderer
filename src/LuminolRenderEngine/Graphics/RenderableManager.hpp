@@ -1,9 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include <set>
-#include <unordered_map>
 #include <filesystem>
+#include <unordered_map>
+
+#include <LuminolRenderEngine/Graphics/IdPool.hpp>
 
 namespace Luminol::Graphics {
 
@@ -19,10 +20,9 @@ public:
     auto remove_renderable(RenderableId renderable_id) -> void;
 
 private:
-    [[nodiscard]] auto get_free_renderable_id() -> RenderableId;
-
-    std::set<RenderableId> used_renderable_ids;
-    std::unordered_map<std::filesystem::path, RenderableId> renderable_ids_map;
+    IdPool<RenderableId> id_pool;
+    std::unordered_map<std::filesystem::path, RenderableId> path_to_id;
+    std::unordered_map<RenderableId, std::filesystem::path> id_to_path;
 };
 
 }  // namespace Luminol::Graphics

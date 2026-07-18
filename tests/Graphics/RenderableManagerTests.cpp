@@ -31,7 +31,7 @@ TEST_CASE("allocate_id(path) returns different ids for different paths") {
     CHECK(id_a != id_b);
 }
 
-TEST_CASE("removing a non-max id leaves a permanent gap, not reused") {
+TEST_CASE("removing a non-max id is reused before growing past the max") {
     auto manager = RenderableManager{};
 
     const auto id0 = manager.allocate_id();
@@ -44,7 +44,7 @@ TEST_CASE("removing a non-max id leaves a permanent gap, not reused") {
     manager.remove_renderable(id1);
 
     const auto next_id = manager.allocate_id();
-    CHECK(next_id == 3);
+    CHECK(next_id == 1);
 }
 
 TEST_CASE("removing the current max id makes that slot reusable") {

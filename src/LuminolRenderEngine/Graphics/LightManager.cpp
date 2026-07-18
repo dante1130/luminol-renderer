@@ -15,17 +15,6 @@ namespace {
 using namespace Luminol::Graphics;
 using namespace Luminol::Maths;
 
-auto create_free_light_ids(uint32_t max_lights)
-    -> std::set<LightManager::LightId> {
-    auto free_light_ids = std::set<LightManager::LightId>{};
-
-    for (auto i = 0u; i < max_lights; ++i) {
-        free_light_ids.insert(i);
-    }
-
-    return free_light_ids;
-}
-
 // Must match the light_cull_radius cutoff in pbr_frag.hlsl /
 // cluster_light_count.hlsl / cluster_light_compact.hlsl exactly, so a
 // shadow-caster's frustum test is consistent with the sphere used to cull
@@ -154,8 +143,7 @@ auto update_shadow_slot_assignments(
 namespace Luminol::Graphics {
 
 LightManager::LightManager()
-    : free_point_light_ids{create_free_light_ids(max_point_lights)},
-      free_spot_light_ids{create_free_light_ids(max_spot_lights)} {
+    : point_light_ids{max_point_lights}, spot_light_ids{max_spot_lights} {
     point_shadow_slots.fill(LightManager::no_shadow_slot);
     spot_shadow_slots.fill(LightManager::no_shadow_slot);
 }
@@ -183,15 +171,13 @@ auto LightManager::update_directional_light(
 
 auto LightManager::add_point_light(const PointLight& point_light)
     -> std::optional<LightId> {
-    if (this->free_point_light_ids.empty()) {
+    const auto point_light_id = this->point_light_ids.allocate();
+    if (!point_light_id.has_value()) {
         return std::nullopt;
     }
 
-    const auto point_light_id = *this->free_point_light_ids.begin();
-    this->free_point_light_ids.erase(point_light_id);
-
-    gsl::at(this->point_lights, point_light_id) = point_light;
-    gsl::at(this->point_light_active, point_light_id) = 1;
+    gsl::at(this->point_lights, *point_light_id) = point_light;
+    gsl::at(this->point_light_active, *point_light_id) = 1;
     ++this->light_data.point_light_count;
 
     return point_light_id;
@@ -212,7 +198,7 @@ auto LightManager::remove_point_light(LightId point_light_id) -> void {
         return;
     }
 
-    this->free_point_light_ids.insert(point_light_id);
+    this->point_light_ids.free(point_light_id);
     gsl::at(this->point_light_active, point_light_id) = 0;
     gsl::at(this->point_shadow_slots, point_light_id) =
         LightManager::no_shadow_slot;
@@ -221,15 +207,13 @@ auto LightManager::remove_point_light(LightId point_light_id) -> void {
 
 auto LightManager::add_spot_light(const SpotLight& spot_light)
     -> std::optional<LightId> {
-    if (this->free_spot_light_ids.empty()) {
+    const auto spot_light_id = this->spot_light_ids.allocate();
+    if (!spot_light_id.has_value()) {
         return std::nullopt;
     }
 
-    const auto spot_light_id = *this->free_spot_light_ids.begin();
-    this->free_spot_light_ids.erase(spot_light_id);
-
-    gsl::at(this->spot_lights, spot_light_id) = spot_light;
-    gsl::at(this->spot_light_active, spot_light_id) = 1;
+    gsl::at(this->spot_lights, *spot_light_id) = spot_light;
+    gsl::at(this->spot_light_active, *spot_light_id) = 1;
     ++this->light_data.spot_light_count;
 
     return spot_light_id;
@@ -250,7 +234,7 @@ auto LightManager::remove_spot_light(LightId spot_light_id) -> void {
         return;
     }
 
-    this->free_spot_light_ids.insert(spot_light_id);
+    this->spot_light_ids.free(spot_light_id);
     gsl::at(this->spot_light_active, spot_light_id) = 0;
     gsl::at(this->spot_shadow_slots, spot_light_id) =
         LightManager::no_shadow_slot;
