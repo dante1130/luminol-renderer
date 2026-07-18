@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <span>
 #include <vector>
 
 #include <gsl/gsl>
@@ -43,25 +44,32 @@ struct ShadowCandidate {
     float score;
 };
 
-// Re-ranks lights_map by an in-frustum, nearest/brightest-first score, then
-// updates current_slots so at most max_slots lights hold a slot. A light
-// already holding a slot keeps it as long as it's still within a soft margin
-// of the cutoff rank (not just the strict top max_slots), which stops lights
-// that hover right at the boundary from popping their shadow in and out
-// every frame; it can never displace a strictly higher-ranked light though,
-// so the physical slot count is always respected.
+// Re-ranks the active lights in `lights` by an in-frustum,
+// nearest/brightest-first score, then updates current_slots so at most
+// max_slots lights hold a slot. A light already holding a slot keeps it as
+// long as it's still within a soft margin of the cutoff rank (not just the
+// strict top max_slots), which stops lights that hover right at the boundary
+// from popping their shadow in and out every frame; it can never displace a
+// strictly higher-ranked light though, so the physical slot count is always
+// respected.
 template <typename LightT>
 auto update_shadow_slot_assignments(
-    const std::map<LightManager::LightId, LightT>& lights_map,
-    std::map<LightManager::LightId, uint32_t>& current_slots,
+    std::span<const LightT> lights,
+    std::span<const std::uint8_t> active,
+    std::span<uint32_t> current_slots,
     const std::array<Vector4f, 6>& frustum_planes,
     const Vector3f& camera_position,
     uint32_t max_slots
 ) -> void {
     auto candidates = std::vector<ShadowCandidate>{};
-    candidates.reserve(lights_map.size());
+    candidates.reserve(lights.size());
 
-    for (const auto& [id, light] : lights_map) {
+    for (auto id = 0u; id < lights.size(); ++id) {
+        if (active[id] == 0) {
+            continue;
+        }
+
+        const auto& light = lights[id];
         const auto radius = light_cull_radius(light.color);
         if (!sphere_in_frustum(frustum_planes, light.position, radius)) {
             continue;
@@ -87,7 +95,9 @@ auto update_shadow_slot_assignments(
     );
     const auto soft_count = std::min(candidates.size(), soft_limit);
 
-    auto new_slots = std::map<LightManager::LightId, uint32_t>{};
+    auto new_slots = std::vector<uint32_t>(
+        current_slots.size(), LightManager::no_shadow_slot
+    );
     auto used_slots = std::vector<bool>(max_slots, false);
 
     // Strict winners: always get a slot, preferring to keep whichever slot
@@ -95,11 +105,11 @@ auto update_shadow_slot_assignments(
     auto unassigned_winners = std::vector<LightManager::LightId>{};
     for (size_t i = 0; i < strict_count; ++i) {
         const auto id = candidates[i].id;
-        const auto existing = current_slots.find(id);
-        if (existing != current_slots.end() &&
-            existing->second < max_slots && !used_slots[existing->second]) {
-            new_slots[id] = existing->second;
-            used_slots[existing->second] = true;
+        const auto existing = current_slots[id];
+        if (existing != LightManager::no_shadow_slot &&
+            existing < max_slots && !used_slots[existing]) {
+            new_slots[id] = existing;
+            used_slots[existing] = true;
         } else {
             unassigned_winners.push_back(id);
         }
@@ -128,15 +138,15 @@ auto update_shadow_slot_assignments(
     // away from a strict winner.
     for (size_t i = strict_count; i < soft_count; ++i) {
         const auto id = candidates[i].id;
-        const auto existing = current_slots.find(id);
-        if (existing != current_slots.end() &&
-            existing->second < max_slots && !used_slots[existing->second]) {
-            new_slots[id] = existing->second;
-            used_slots[existing->second] = true;
+        const auto existing = current_slots[id];
+        if (existing != LightManager::no_shadow_slot &&
+            existing < max_slots && !used_slots[existing]) {
+            new_slots[id] = existing;
+            used_slots[existing] = true;
         }
     }
 
-    current_slots = std::move(new_slots);
+    std::ranges::copy(new_slots, current_slots.begin());
 }
 
 }  // namespace
@@ -145,7 +155,10 @@ namespace Luminol::Graphics {
 
 LightManager::LightManager()
     : free_point_light_ids{create_free_light_ids(max_point_lights)},
-      free_spot_light_ids{create_free_light_ids(max_spot_lights)} {}
+      free_spot_light_ids{create_free_light_ids(max_spot_lights)} {
+    point_shadow_slots.fill(LightManager::no_shadow_slot);
+    spot_shadow_slots.fill(LightManager::no_shadow_slot);
+}
 
 auto LightManager::update_directional_light(
     const DirectionalLight& directional_light
@@ -177,9 +190,9 @@ auto LightManager::add_point_light(const PointLight& point_light)
     const auto point_light_id = *this->free_point_light_ids.begin();
     this->free_point_light_ids.erase(point_light_id);
 
-    this->point_lights_map[point_light_id] = point_light;
-    this->light_data.point_light_count =
-        gsl::narrow<uint32_t>(this->point_lights_map.size());
+    gsl::at(this->point_lights, point_light_id) = point_light;
+    gsl::at(this->point_light_active, point_light_id) = 1;
+    ++this->light_data.point_light_count;
 
     return point_light_id;
 }
@@ -187,22 +200,23 @@ auto LightManager::add_point_light(const PointLight& point_light)
 auto LightManager::update_point_light(
     LightId point_light_id, const PointLight& point_light
 ) -> void {
-    if (!this->point_lights_map.contains(point_light_id)) {
+    if (gsl::at(this->point_light_active, point_light_id) == 0) {
         return;
     }
 
-    this->point_lights_map[point_light_id] = point_light;
+    gsl::at(this->point_lights, point_light_id) = point_light;
 }
 
 auto LightManager::remove_point_light(LightId point_light_id) -> void {
-    if (!this->point_lights_map.contains(point_light_id)) {
+    if (gsl::at(this->point_light_active, point_light_id) == 0) {
         return;
     }
 
     this->free_point_light_ids.insert(point_light_id);
-    this->point_lights_map.erase(point_light_id);
-    this->light_data.point_light_count =
-        gsl::narrow<uint32_t>(this->point_lights_map.size());
+    gsl::at(this->point_light_active, point_light_id) = 0;
+    gsl::at(this->point_shadow_slots, point_light_id) =
+        LightManager::no_shadow_slot;
+    --this->light_data.point_light_count;
 }
 
 auto LightManager::add_spot_light(const SpotLight& spot_light)
@@ -214,9 +228,9 @@ auto LightManager::add_spot_light(const SpotLight& spot_light)
     const auto spot_light_id = *this->free_spot_light_ids.begin();
     this->free_spot_light_ids.erase(spot_light_id);
 
-    this->spot_lights_map[spot_light_id] = spot_light;
-    this->light_data.spot_light_count =
-        gsl::narrow<uint32_t>(this->spot_lights_map.size());
+    gsl::at(this->spot_lights, spot_light_id) = spot_light;
+    gsl::at(this->spot_light_active, spot_light_id) = 1;
+    ++this->light_data.spot_light_count;
 
     return spot_light_id;
 }
@@ -224,22 +238,23 @@ auto LightManager::add_spot_light(const SpotLight& spot_light)
 auto LightManager::update_spot_light(
     LightId spot_light_id, const SpotLight& spot_light
 ) -> void {
-    if (!this->spot_lights_map.contains(spot_light_id)) {
+    if (gsl::at(this->spot_light_active, spot_light_id) == 0) {
         return;
     }
 
-    this->spot_lights_map[spot_light_id] = spot_light;
+    gsl::at(this->spot_lights, spot_light_id) = spot_light;
 }
 
 auto LightManager::remove_spot_light(LightId spot_light_id) -> void {
-    if (!this->spot_lights_map.contains(spot_light_id)) {
+    if (gsl::at(this->spot_light_active, spot_light_id) == 0) {
         return;
     }
 
     this->free_spot_light_ids.insert(spot_light_id);
-    this->spot_lights_map.erase(spot_light_id);
-    this->light_data.spot_light_count =
-        gsl::narrow<uint32_t>(this->spot_lights_map.size());
+    gsl::at(this->spot_light_active, spot_light_id) = 0;
+    gsl::at(this->spot_shadow_slots, spot_light_id) =
+        LightManager::no_shadow_slot;
+    --this->light_data.spot_light_count;
 }
 
 auto LightManager::update_shadow_casters(
@@ -248,13 +263,13 @@ auto LightManager::update_shadow_casters(
 ) -> void {
     const auto frustum_planes = extract_frustum_planes(view_projection_matrix);
 
-    update_shadow_slot_assignments(
-        this->point_lights_map, this->point_shadow_slots, frustum_planes,
-        camera_position, max_shadow_casting_point_lights
+    update_shadow_slot_assignments<PointLight>(
+        this->point_lights, this->point_light_active, this->point_shadow_slots,
+        frustum_planes, camera_position, max_shadow_casting_point_lights
     );
-    update_shadow_slot_assignments(
-        this->spot_lights_map, this->spot_shadow_slots, frustum_planes,
-        camera_position, max_shadow_casting_spot_lights
+    update_shadow_slot_assignments<SpotLight>(
+        this->spot_lights, this->spot_light_active, this->spot_shadow_slots,
+        frustum_planes, camera_position, max_shadow_casting_spot_lights
     );
 }
 
@@ -262,12 +277,17 @@ auto LightManager::update_shadow_casters(
     /// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     {
         size_t array_index = 0;
-        for (const auto& [point_light_id, point_light] :
-             this->point_lights_map) {
-            const auto shadow_slot_it =
-                this->point_shadow_slots.find(point_light_id);
-            const auto shadow_slot = shadow_slot_it != this->point_shadow_slots.end()
-                ? static_cast<float>(shadow_slot_it->second)
+        for (auto point_light_id = 0u; point_light_id < this->point_lights.size();
+             ++point_light_id) {
+            if (this->point_light_active[point_light_id] == 0) {
+                continue;
+            }
+
+            const auto& point_light = this->point_lights[point_light_id];
+            const auto shadow_slot_value =
+                this->point_shadow_slots[point_light_id];
+            const auto shadow_slot = shadow_slot_value != LightManager::no_shadow_slot
+                ? static_cast<float>(shadow_slot_value)
                 : -1.0f;
 
             this->light_data.point_lights[array_index] = AlignedPointLight{
@@ -294,11 +314,17 @@ auto LightManager::update_shadow_casters(
 
     {
         size_t array_index = 0;
-        for (const auto& [spot_light_id, spot_light] : this->spot_lights_map) {
-            const auto shadow_slot_it =
-                this->spot_shadow_slots.find(spot_light_id);
-            const auto shadow_slot = shadow_slot_it != this->spot_shadow_slots.end()
-                ? static_cast<float>(shadow_slot_it->second)
+        for (auto spot_light_id = 0u; spot_light_id < this->spot_lights.size();
+             ++spot_light_id) {
+            if (this->spot_light_active[spot_light_id] == 0) {
+                continue;
+            }
+
+            const auto& spot_light = this->spot_lights[spot_light_id];
+            const auto shadow_slot_value =
+                this->spot_shadow_slots[spot_light_id];
+            const auto shadow_slot = shadow_slot_value != LightManager::no_shadow_slot
+                ? static_cast<float>(shadow_slot_value)
                 : -1.0f;
 
             this->light_data.spot_lights[array_index] = AlignedSpotLight{

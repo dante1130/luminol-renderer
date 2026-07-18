@@ -1,8 +1,10 @@
 #pragma once
 
-#include <set>
-#include <map>
+#include <array>
+#include <cstdint>
+#include <limits>
 #include <optional>
+#include <set>
 
 #include <LuminolMaths/Matrix.hpp>
 #include <LuminolMaths/Vector.hpp>
@@ -46,16 +48,30 @@ public:
 
     [[nodiscard]] auto get_light_data() -> const Light&;
 
+    // Sentinel stored in point_shadow_slots/spot_shadow_slots for a light
+    // that doesn't currently hold a shadow slot.
+    static constexpr auto no_shadow_slot = std::numeric_limits<uint32_t>::max();
+
 private:
     Light light_data = {};
 
     std::set<LightId> free_point_light_ids;
     std::set<LightId> free_spot_light_ids;
-    std::map<LightId, PointLight> point_lights_map;
-    std::map<LightId, SpotLight> spot_lights_map;
 
-    std::map<LightId, uint32_t> point_shadow_slots;
-    std::map<LightId, uint32_t> spot_shadow_slots;
+    // Dense, fixed-capacity storage indexed directly by LightId (ids are
+    // handed out from a bounded 0..max_point_lights-1 / 0..max_spot_lights-1
+    // pool - see create_free_light_ids), so every per-frame lookup/update is
+    // a direct array index instead of a tree traversal. Active flags use
+    // uint8_t rather than array<bool, N> so they're span-able (array<bool, N>
+    // has no special packing like vector<bool>, but uint8_t keeps this
+    // consistent with the rest of the flags here).
+    std::array<PointLight, max_point_lights> point_lights{};
+    std::array<std::uint8_t, max_point_lights> point_light_active{};
+    std::array<uint32_t, max_point_lights> point_shadow_slots{};
+
+    std::array<SpotLight, max_spot_lights> spot_lights{};
+    std::array<std::uint8_t, max_spot_lights> spot_light_active{};
+    std::array<uint32_t, max_spot_lights> spot_shadow_slots{};
 };
 
 }  // namespace Luminol::Graphics
