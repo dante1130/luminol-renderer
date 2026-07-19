@@ -47,6 +47,7 @@ target_link_libraries(Luminol.Graphics.SDL_GPU PRIVATE
     GSL
     Luminol.Utilities
     SDL3_ttf::SDL3_ttf
+    meshoptimizer
 )
 
 target_link_libraries(Luminol.Graphics.SDL_GPU PUBLIC

@@ -7,6 +7,7 @@
 #include <stdexcept>
 
 #include <gsl/gsl>
+#include <meshoptimizer.h>
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCopyPass.hpp>
@@ -650,9 +651,27 @@ auto load_meshes_from_model(
             mesh_vertices.push_back(mesh_data.tangents[i].z());
         }
 
+        auto mesh_indices = mesh_data.indices;
+        const auto vertex_stride = vertex_components * sizeof(float);
+
+        meshopt_optimizeVertexCache(
+            mesh_indices.data(), mesh_indices.data(), mesh_indices.size(),
+            mesh_data.vertices.size()
+        );
+        meshopt_optimizeOverdraw(
+            mesh_indices.data(), mesh_indices.data(), mesh_indices.size(),
+            mesh_vertices.data(), mesh_data.vertices.size(), vertex_stride,
+            1.05F
+        );
+        const auto new_vertex_count = meshopt_optimizeVertexFetch(
+            mesh_vertices.data(), mesh_indices.data(), mesh_indices.size(),
+            mesh_vertices.data(), mesh_data.vertices.size(), vertex_stride
+        );
+        mesh_vertices.resize(new_vertex_count * vertex_components);
+
         submesh_infos.push_back(SubmeshInfo{
             .first_index = running_first_index,
-            .index_count = static_cast<uint32_t>(mesh_data.indices.size()),
+            .index_count = static_cast<uint32_t>(mesh_indices.size()),
             .vertex_offset = running_vertex_offset,
             .local_bounds = compute_mesh_local_bounds(mesh_vertices),
             .mesh_data = &mesh_data,
@@ -662,12 +681,11 @@ auto load_meshes_from_model(
             combined_vertices.end(), mesh_vertices.begin(), mesh_vertices.end()
         );
         combined_indices.insert(
-            combined_indices.end(), mesh_data.indices.begin(),
-            mesh_data.indices.end()
+            combined_indices.end(), mesh_indices.begin(), mesh_indices.end()
         );
 
-        running_vertex_offset += static_cast<int32_t>(mesh_data.vertices.size());
-        running_first_index += static_cast<uint32_t>(mesh_data.indices.size());
+        running_vertex_offset += static_cast<int32_t>(new_vertex_count);
+        running_first_index += static_cast<uint32_t>(mesh_indices.size());
     }
 
     auto meshes = std::vector<SDL_GPUMesh>{};

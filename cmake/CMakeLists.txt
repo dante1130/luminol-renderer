@@ -79,6 +79,19 @@ CPMAddPackage(
 )
 
 CPMAddPackage(
+    NAME meshoptimizer
+    GITHUB_REPOSITORY zeux/meshoptimizer
+    GIT_TAG v1.2
+    OPTIONS
+        "MESHOPT_BUILD_DEMO OFF"
+        "MESHOPT_BUILD_GLTFPACK OFF"
+        "MESHOPT_BUILD_SHARED_LIBS OFF"
+        "MESHOPT_INSTALL OFF"
+    EXCLUDE_FROM_ALL
+    SYSTEM
+)
+
+CPMAddPackage(
     NAME luminol-maths
     GITHUB_REPOSITORY dante1130/luminol-maths
     GIT_TAG main
