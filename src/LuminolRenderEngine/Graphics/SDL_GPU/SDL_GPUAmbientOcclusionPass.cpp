@@ -257,13 +257,17 @@ auto SDL_GPUAmbientOcclusionPass::draw(
 
             // Every submesh in this batch's IndirectDrawCommand slice is
             // contiguous (SDL_GPUInstanceCullPass::cull builds them that
-            // way), and each carries its own visible_instance_indices base
-            // offset via first_instance, so one multi-draw call covers the
-            // whole batch instead of one draw per submesh.
+            // way, max_lod_levels commands per submesh), and each carries
+            // its own visible_instance_indices base offset via
+            // first_instance, so one multi-draw call covers the whole batch
+            // instead of one draw per submesh/LOD. LOD-disabled cull passes
+            // (see cull()'s enable_lod) leave every non-LOD0 command's
+            // num_instances at 0, so those extra draws are no-ops.
             render_pass.draw_indexed_primitives_indirect(
                 indirect_command_buffer,
-                submesh_infos.front().indirect_command_byte_offset,
-                static_cast<uint32_t>(submesh_infos.size())
+                submesh_infos.front().indirect_command_byte_offsets[0],
+                static_cast<uint32_t>(submesh_infos.size()) *
+                    static_cast<uint32_t>(max_lod_levels)
             );
         }
 

@@ -333,7 +333,7 @@ auto SDL_GPUShadowPass::draw(
                 graphics_factory, command_buffer, instance_buffer_cache,
                 filtered_batches, cascade_frustum_planes,
                 cascade_light_space_matrices.at(cascade_index), hiz_pyramid,
-                hiz_sampler, 0U
+                hiz_sampler, 0U, Vector3f{}, false
             );
     }
 
@@ -402,13 +402,18 @@ auto SDL_GPUShadowPass::draw(
 
             // Every submesh in this batch's IndirectDrawCommand slice is
             // contiguous (SDL_GPUInstanceCullPass::cull builds them that
-            // way), and each carries its own visible_instance_indices base
-            // offset via first_instance, so one multi-draw call covers the
-            // whole batch instead of one draw per submesh.
+            // way, max_lod_levels commands per submesh), and each carries
+            // its own visible_instance_indices base offset via
+            // first_instance, so one multi-draw call covers the whole batch
+            // instead of one draw per submesh/LOD. Shadow cascades cull with
+            // enable_lod = false (see cull() call below), so every
+            // non-LOD0 command's num_instances stays 0 and those extra
+            // draws are no-ops - shadows always render LOD0.
             render_pass.draw_indexed_primitives_indirect(
                 cull_pass.get_indirect_command_buffer(),
-                submesh_infos.front().indirect_command_byte_offset,
-                static_cast<uint32_t>(submesh_infos.size())
+                submesh_infos.front().indirect_command_byte_offsets[0],
+                static_cast<uint32_t>(submesh_infos.size()) *
+                    static_cast<uint32_t>(max_lod_levels)
             );
         }
     }

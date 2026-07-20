@@ -118,11 +118,19 @@ auto SDL_GPUFactory::create_mesh(
 
         const auto local_bounds = compute_mesh_local_bounds(vertices);
 
+        // Procedural meshes aren't simplified (no meshoptimizer LOD
+        // generation for caller-supplied raw vertex data) - every LOD level
+        // points at the same single full-detail range.
+        auto lod_ranges = std::array<LodRange, max_lod_levels>{};
+        lod_ranges.fill(LodRange{
+            .first_index = 0U,
+            .index_count = static_cast<uint32_t>(indices.size()),
+        });
+
         meshes.emplace_back(
             *gpu_device,
             copy_pass,
-            0U,
-            static_cast<uint32_t>(indices.size()),
+            lod_ranges,
             0,
             local_bounds,
             texture_paths

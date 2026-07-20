@@ -145,7 +145,8 @@ private:
         CommandBuffer& command_buffer,
         gsl::span<const InstanceBatch> instance_batches,
         const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
-        const Maths::Matrix4x4f& current_view_projection
+        const Maths::Matrix4x4f& current_view_projection,
+        const Maths::Vector3f& camera_position
     ) -> void;
 
     // Debug-only short-circuit: blits the Hi-Z pyramid to the swapchain

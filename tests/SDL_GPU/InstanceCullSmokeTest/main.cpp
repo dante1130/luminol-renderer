@@ -186,7 +186,9 @@ auto main() -> int {
         view_projection,
         dummy_hiz_texture,
         dummy_hiz_sampler,
-        0
+        0,
+        Maths::Vector3f{},
+        false
     );
 
     const auto& submesh_info = layout.at(0).at(0);
@@ -210,14 +212,14 @@ auto main() -> int {
         auto copy_pass = command_buffer.begin_copy_pass();
         copy_pass.download_from_buffer(
             instance_cull_pass.get_indirect_command_buffer(),
-            submesh_info.indirect_command_byte_offset,
+            submesh_info.indirect_command_byte_offsets[0],
             indirect_download_buffer,
             0,
             indirect_command_size
         );
         copy_pass.download_from_buffer(
             instance_cull_pass.get_visible_instance_indices_buffer(),
-            submesh_info.instance_base_offset * static_cast<uint32_t>(sizeof(uint32_t)),
+            submesh_info.instance_base_offsets[0] * static_cast<uint32_t>(sizeof(uint32_t)),
             indices_download_buffer,
             0,
             max_visible_indices_size

@@ -30,9 +30,16 @@ constexpr auto initial_visible_index_capacity = uint32_t{4096};
 constexpr auto initial_metadata_capacity = uint32_t{64};
 constexpr auto initial_group_capacity = uint32_t{64};
 
+// Global default LOD switch distances (world units, squared), ascending:
+// entry i is the distance beyond which LOD i is no longer used in favor of
+// LOD i+1. Not configurable per model yet.
+constexpr auto default_lod_distances_sq = std::array<float, max_lod_levels - 1>{
+    15.0F * 15.0F, 40.0F * 40.0F, 100.0F * 100.0F
+};
+
 // Mirrors cbuffer InstanceCullParams in instance_cull.hlsl. Per-submesh
-// fields (bounds, command_index, instance_base_offset, instance_count) live
-// in SubmeshCullMetadata instead, looked up per thread group via
+// fields (bounds, command_indices, instance_base_offsets, instance_count)
+// live in SubmeshCullMetadata instead, looked up per thread group via
 // group_to_submesh - see the doc comment on SDL_GPUInstanceCullPass::cull.
 struct InstanceCullParams {
     std::array<Vector4f, 6> frustum_planes;
@@ -40,16 +47,24 @@ struct InstanceCullParams {
     uint32_t hiz_mip_levels;
     uint32_t group_to_submesh_base;
     std::array<float, 2> hiz_pyramid_size;
+    Vector3f lod_reference_position;
+    uint32_t enable_lod;
 };
 
 // One submesh's culling inputs. Mirrors struct SubmeshCullMetadata in
 // instance_cull.hlsl exactly (StructuredBuffer element layout, not a cbuffer
 // - no 16-byte-vector packing rules, just matching contiguous layout).
+// command_indices/instance_base_offsets/lod_distances_sq are indexed by LOD
+// level: the cull shader computes each instance's distance to
+// lod_reference_position, picks the smallest LOD whose distance threshold
+// isn't exceeded, and compacts that instance under the matching LOD's
+// command/offset instead of a single fixed one per submesh.
 struct SubmeshCullMetadata {
     Vector4f local_bounds_min;
     Vector4f local_bounds_max;
-    uint32_t command_index;
-    uint32_t instance_base_offset;
+    std::array<uint32_t, max_lod_levels> command_indices;
+    std::array<uint32_t, max_lod_levels> instance_base_offsets;
+    std::array<float, max_lod_levels - 1> lod_distances_sq;
     uint32_t instance_count;
     uint32_t first_group;
 };
@@ -150,7 +165,9 @@ auto SDL_GPUInstanceCullPass::cull(
     const Matrix4x4f& current_view_projection,
     const Texture& hiz_pyramid,
     const Sampler& hiz_sampler,
-    uint32_t hiz_mip_levels
+    uint32_t hiz_mip_levels,
+    const Vector3f& lod_reference_position,
+    bool enable_lod
 ) -> InstanceCullLayout {
     auto layout = InstanceCullLayout{};
     layout.reserve(instance_batches.size());
@@ -172,31 +189,51 @@ auto SDL_GPUInstanceCullPass::cull(
         auto batch_group_count = uint32_t{0};
 
         for (const auto& mesh : meshes) {
-            const auto command_index = static_cast<uint32_t>(commands.size());
-            const auto instance_base_offset = running_index_base;
-            running_index_base += batch.instance_count;
+            // Reserve one IndirectDrawCommand and one visible_instance_indices
+            // slice per LOD level (sized to the batch's full instance count -
+            // worst case every instance selects that LOD), since GPU LOD
+            // selection happens per-instance and can't share slots across
+            // LODs the way a single-LOD submesh could.
+            auto submesh_command_indices = std::array<uint32_t, max_lod_levels>{};
+            auto submesh_instance_base_offsets =
+                std::array<uint32_t, max_lod_levels>{};
+            auto submesh_command_byte_offsets =
+                std::array<uint32_t, max_lod_levels>{};
 
-            // first_instance carries this submesh's base offset into
-            // visible_instance_indices - every target graphics API
-            // guarantees SV_InstanceID for an indirect/instanced draw
-            // already incorporates first_instance, so the vertex shader
-            // (pbr_vert.hlsl) can index visible_instance_indices with
-            // input.instance_id directly, with no per-draw uniform needed.
-            // This is what lets geometry-only passes (shadow cascades,
-            // occlusion depth) multi-draw all of a batch's submeshes in one
-            // call instead of one draw per submesh.
-            commands.push_back(IndirectDrawCommand{
-                .num_indices = mesh.get_index_count(),
-                .num_instances = 0U,
-                .first_index = mesh.get_first_index(),
-                .vertex_offset = mesh.get_vertex_offset(),
-                .first_instance = instance_base_offset,
-            });
+            for (auto lod = std::size_t{0}; lod < max_lod_levels; ++lod) {
+                const auto command_index =
+                    static_cast<uint32_t>(commands.size());
+                const auto instance_base_offset = running_index_base;
+                running_index_base += batch.instance_count;
+
+                const auto& lod_range = mesh.get_lod_range(lod);
+
+                // first_instance carries this LOD's base offset into
+                // visible_instance_indices - every target graphics API
+                // guarantees SV_InstanceID for an indirect/instanced draw
+                // already incorporates first_instance, so the vertex shader
+                // (pbr_vert.hlsl) can index visible_instance_indices with
+                // input.instance_id directly, with no per-draw uniform
+                // needed. This is what lets geometry-only passes (shadow
+                // cascades, occlusion depth) multi-draw all of a batch's
+                // submeshes/LODs in one call instead of one draw per submesh.
+                commands.push_back(IndirectDrawCommand{
+                    .num_indices = lod_range.index_count,
+                    .num_instances = 0U,
+                    .first_index = lod_range.first_index,
+                    .vertex_offset = mesh.get_vertex_offset(),
+                    .first_instance = instance_base_offset,
+                });
+
+                submesh_command_indices.at(lod) = command_index;
+                submesh_instance_base_offsets.at(lod) = instance_base_offset;
+                submesh_command_byte_offsets.at(lod) = command_index *
+                    static_cast<uint32_t>(sizeof(IndirectDrawCommand));
+            }
 
             submesh_infos.push_back(SubmeshCullInfo{
-                .indirect_command_byte_offset =
-                    command_index * static_cast<uint32_t>(sizeof(IndirectDrawCommand)),
-                .instance_base_offset = instance_base_offset,
+                .indirect_command_byte_offsets = submesh_command_byte_offsets,
+                .instance_base_offsets = submesh_instance_base_offsets,
             });
 
             const auto local_bounds = mesh.get_local_bounds();
@@ -215,8 +252,9 @@ auto SDL_GPUInstanceCullPass::cull(
                     local_bounds.max.x(), local_bounds.max.y(),
                     local_bounds.max.z(), 0.0F
                 },
-                .command_index = command_index,
-                .instance_base_offset = instance_base_offset,
+                .command_indices = submesh_command_indices,
+                .instance_base_offsets = submesh_instance_base_offsets,
+                .lod_distances_sq = default_lod_distances_sq,
                 .instance_count = batch.instance_count,
                 .first_group = first_group,
             });
@@ -371,6 +409,8 @@ auto SDL_GPUInstanceCullPass::cull(
                 .hiz_mip_levels = hiz_mip_levels,
                 .group_to_submesh_base = info.group_to_submesh_base,
                 .hiz_pyramid_size = hiz_pyramid_size,
+                .lod_reference_position = lod_reference_position,
+                .enable_lod = enable_lod ? 1U : 0U,
             };
             command_buffer.push_compute_uniform_data(
                 0,

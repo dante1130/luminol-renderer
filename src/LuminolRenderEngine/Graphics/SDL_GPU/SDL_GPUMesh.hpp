@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <filesystem>
 #include <vector>
@@ -19,6 +20,20 @@ class GPUDevice;
 class RenderPass;
 class CopyPass;
 class CommandBuffer;
+
+// LOD0 = full detail ... LOD(max_lod_levels - 1) = coarsest. Shared by mesh
+// loading (LOD generation), the GPU cull pass (per-instance LOD selection),
+// and the render passes that draw per-LOD indirect commands.
+inline constexpr auto max_lod_levels = std::size_t{4};
+
+// A LOD level's draw range into a submesh's shared index buffer - all LOD
+// levels of a submesh reference the same vertex range (vertex_offset),
+// since simplification only selects a subset of existing vertices rather
+// than creating new ones.
+struct LodRange {
+    uint32_t first_index;
+    uint32_t index_count;
+};
 
 struct TextureImages {
     std::optional<Utilities::ImageLoader::Image> diffuse_texture;
@@ -52,8 +67,7 @@ public:
     SDL_GPUMesh(
         GPUDevice& device,
         CopyPass& copy_pass,
-        uint32_t first_index,
-        uint32_t index_count,
+        const std::array<LodRange, max_lod_levels>& lod_ranges,
         int32_t vertex_offset,
         const BoundingBox& local_bounds,
         const TexturePaths& texture_paths
@@ -62,8 +76,7 @@ public:
     SDL_GPUMesh(
         GPUDevice& device,
         CopyPass& copy_pass,
-        uint32_t first_index,
-        uint32_t index_count,
+        const std::array<LodRange, max_lod_levels>& lod_ranges,
         int32_t vertex_offset,
         const BoundingBox& local_bounds,
         const TextureImages& texture_images
@@ -104,9 +117,15 @@ public:
 
     [[nodiscard]] auto alpha_mode() const -> Utilities::ModelLoader::AlphaMode;
 
+    // LOD0's draw range - used by the non-indirect draw paths (CPU-sorted
+    // transparent submeshes, point/spot shadow instancing), which don't
+    // participate in GPU LOD selection.
     [[nodiscard]] auto get_first_index() const -> uint32_t;
     [[nodiscard]] auto get_index_count() const -> uint32_t;
     [[nodiscard]] auto get_vertex_offset() const -> int32_t;
+
+    [[nodiscard]] auto get_lod_range(std::size_t lod_index) const
+        -> const LodRange&;
 
     // Local-space bounding box derived from vertex positions at construction
     // time, used for CPU-side frustum culling (e.g. per-light shadow pass
@@ -118,8 +137,7 @@ public:
     auto generate_mipmaps(CommandBuffer& command_buffer) const -> void;
 
 private:
-    uint32_t first_index;
-    uint32_t index_count;
+    std::array<LodRange, max_lod_levels> lod_ranges;
     int32_t vertex_offset;
     BoundingBox local_bounds;
 

@@ -361,10 +361,12 @@ auto SDL_GPUMeshRenderPass::draw_depth_prepass(
                 }
             );
 
-            mesh.draw_indirect_geometry_only(
-                render_pass, indirect_command_buffer,
-                info.indirect_command_byte_offset
-            );
+            for (auto lod = std::size_t{0}; lod < max_lod_levels; ++lod) {
+                mesh.draw_indirect_geometry_only(
+                    render_pass, indirect_command_buffer,
+                    info.indirect_command_byte_offsets.at(lod)
+                );
+            }
         }
     }
 }
@@ -537,10 +539,13 @@ auto SDL_GPUMeshRenderPass::draw(
                         }
                     );
 
-                    mesh.draw_indirect(
-                        render_pass, indirect_command_buffer,
-                        info.indirect_command_byte_offset
-                    );
+                    for (auto lod = std::size_t{0}; lod < max_lod_levels;
+                         ++lod) {
+                        mesh.draw_indirect(
+                            render_pass, indirect_command_buffer,
+                            info.indirect_command_byte_offsets.at(lod)
+                        );
+                    }
                 }
             }
         };

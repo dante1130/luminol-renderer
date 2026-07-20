@@ -32,6 +32,9 @@
 // SDL_GPU compute HLSL register convention: space0 = read-only t/s,
 // space1 = read-write u, space2 = uniform b.
 
+// Must match Luminol::Graphics::SDL_GPU::max_lod_levels (SDL_GPUMesh.hpp).
+#define MAX_LOD_LEVELS 4
+
 // Memory layout must exactly match SDL_GPUIndexedIndirectDrawCommand (see
 // SDL_gpu.h) and Luminol::Graphics::SDL_GPU::IndirectDrawCommand
 // (SDL_GPUCullingUtils.hpp).
@@ -53,12 +56,16 @@ SamplerState hiz_sampler : register(s0, space0);
 StructuredBuffer<row_major float4x4> instance_models : register(t1, space0);
 
 // One entry per submesh. Mirrors struct SubmeshCullMetadata in
-// SDL_GPUInstanceCullPass.cpp exactly.
+// SDL_GPUInstanceCullPass.cpp exactly. command_indices/instance_base_offsets
+// are indexed by LOD level (see main()'s LOD selection); lod_distances_sq
+// holds MAX_LOD_LEVELS-1 ascending squared-distance switch thresholds -
+// lod_distances_sq[i] is the distance beyond which LOD i is no longer used.
 struct SubmeshCullMetadata {
     float4 local_bounds_min;
     float4 local_bounds_max;
-    uint command_index;
-    uint instance_base_offset;
+    uint command_indices[MAX_LOD_LEVELS];
+    uint instance_base_offsets[MAX_LOD_LEVELS];
+    float lod_distances_sq[MAX_LOD_LEVELS - 1];
     uint instance_count;
     uint first_group;
 };
@@ -80,13 +87,20 @@ RWStructuredBuffer<uint> visible_instance_indices : register(u1, space1);
 // group_to_submesh_base: this dispatch's (i.e. this batch's) slice offset
 // into group_to_submesh - every other batch dispatched this cull() call has
 // its own base, into the same shared buffer. hiz_pyramid_size: mip-0
-// width/height, for screen-rect -> mip selection.
+// width/height, for screen-rect -> mip selection. lod_reference_position:
+// world-space point (normally the main camera's position) instances measure
+// their LOD-selection distance from - meaningless when enable_lod is 0.
+// enable_lod: 0 forces every instance to LOD0 (used by the per-cascade
+// shadow cull passes, whose light-space frustum has no single camera
+// distance to measure against).
 cbuffer InstanceCullParams : register(b0, space2) {
     float4 frustum_planes[6];
     row_major float4x4 current_view_projection;
     uint hiz_mip_levels;
     uint group_to_submesh_base;
     float2 hiz_pyramid_size;
+    float3 lod_reference_position;
+    uint enable_lod;
 };
 
 bool aabb_in_frustum(float3 box_min, float3 box_max) {
@@ -247,7 +261,31 @@ void main(uint3 group_id : SV_GroupID, uint3 group_thread_id : SV_GroupThreadID)
         }
     }
 
+    // Pick this instance's LOD by distance from lod_reference_position to
+    // its world-space bounds center - the smallest LOD whose switch
+    // threshold isn't exceeded, else the coarsest level. enable_lod == 0
+    // (per-cascade shadow cull passes) always keeps LOD0.
+    uint selected_lod = 0;
+    if (enable_lod != 0) {
+        float3 world_center = (world_min + world_max) * 0.5;
+        float distance_sq = dot(
+            world_center - lod_reference_position,
+            world_center - lod_reference_position
+        );
+        selected_lod = MAX_LOD_LEVELS - 1;
+        for (uint lod = 0; lod < MAX_LOD_LEVELS - 1; ++lod) {
+            if (distance_sq < metadata.lod_distances_sq[lod]) {
+                selected_lod = lod;
+                break;
+            }
+        }
+    }
+
     uint dest_slot;
-    InterlockedAdd(indirect_commands[metadata.command_index].num_instances, 1, dest_slot);
-    visible_instance_indices[metadata.instance_base_offset + dest_slot] = instance_index;
+    InterlockedAdd(
+        indirect_commands[metadata.command_indices[selected_lod]].num_instances,
+        1, dest_slot
+    );
+    visible_instance_indices[metadata.instance_base_offsets[selected_lod] + dest_slot] =
+        instance_index;
 }

@@ -132,11 +132,14 @@ auto main() -> int {
     const auto local_bounds =
         BoundingBox{.min = Vector3f{-1.0F, -1.0F, -1.0F}, .max = Vector3f{1.0F, 1.0F, 1.0F}};
 
+    auto lod_ranges = std::array<LodRange, max_lod_levels>{};
+    lod_ranges.fill(LodRange{.first_index = 0U, .index_count = 36U});
+
     auto command_buffer = gpu_device->create_command_buffer();
     const auto mesh = [&] {
         auto copy_pass = command_buffer.begin_copy_pass();
         return SDL_GPUMesh{
-            *gpu_device, copy_pass, 0, 36, 0, local_bounds, TextureImages{}
+            *gpu_device, copy_pass, lod_ranges, 0, local_bounds, TextureImages{}
         };
     }();
     command_buffer.submit();

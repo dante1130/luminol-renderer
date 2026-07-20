@@ -12,6 +12,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUComputePipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBatch.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMesh.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTransferBuffer.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
@@ -23,15 +24,19 @@ class SDL_GPUInstanceBufferCache;
 class Texture;
 class Sampler;
 
-// Where one submesh's culled draw lives: indirect_command_byte_offset
-// indexes into get_indirect_command_buffer() (pass straight to
-// draw_indexed_primitives_indirect / SDL_GPUMesh::draw_indirect);
-// instance_base_offset is this submesh's slice base in
-// get_visible_instance_indices_buffer(), and must be pushed as the vertex
-// shader's instance_base_offset uniform before that submesh's draw call.
+// Where one submesh's culled draws live, one entry per LOD level:
+// indirect_command_byte_offsets[lod] indexes into
+// get_indirect_command_buffer() (pass straight to
+// draw_indexed_primitives_indirect / SDL_GPUMesh::draw_indirect) for that
+// LOD's draw call; instance_base_offsets[lod] is that LOD's slice base in
+// get_visible_instance_indices_buffer() (also readable from the matching
+// IndirectDrawCommand.first_instance after it's been written/downloaded).
+// The GPU cull pass picks each instance's LOD and writes its compacted
+// index under that LOD's slice - see SubmeshCullMetadata in
+// SDL_GPUInstanceCullPass.cpp / instance_cull.hlsl.
 struct SubmeshCullInfo {
-    uint32_t indirect_command_byte_offset;
-    uint32_t instance_base_offset;
+    std::array<uint32_t, max_lod_levels> indirect_command_byte_offsets;
+    std::array<uint32_t, max_lod_levels> instance_base_offsets;
 };
 
 // One entry per batch, one inner entry per submesh - same shape as
@@ -63,6 +68,11 @@ public:
     // it opens its own copy pass and compute pass(es).
     // hiz_mip_levels = 0 disables the occlusion test (first frame after
     // construction/resize, when there is no valid previous-frame depth).
+    // enable_lod = false always selects LOD0 (used by the per-cascade shadow
+    // cull passes, which have no single camera-distance metric that makes
+    // sense for a light-space frustum); when true, lod_reference_position
+    // (normally the main camera's world position) is used to pick each
+    // instance's LOD by distance - see instance_cull.hlsl.
     [[nodiscard]] auto cull(
         const SDL_GPUFactory& graphics_factory,
         CommandBuffer& command_buffer,
@@ -72,7 +82,9 @@ public:
         const Maths::Matrix4x4f& current_view_projection,
         const Texture& hiz_pyramid,
         const Sampler& hiz_sampler,
-        uint32_t hiz_mip_levels
+        uint32_t hiz_mip_levels,
+        const Maths::Vector3f& lod_reference_position,
+        bool enable_lod
     ) -> InstanceCullLayout;
 
     [[nodiscard]] auto get_indirect_command_buffer() const -> const Buffer&;

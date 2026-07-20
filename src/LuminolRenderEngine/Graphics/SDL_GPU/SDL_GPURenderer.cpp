@@ -443,7 +443,8 @@ auto SDL_GPURenderer::run_occlusion_prepass(
     CommandBuffer& command_buffer,
     gsl::span<const InstanceBatch> instance_batches,
     const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
-    const Maths::Matrix4x4f& current_view_projection
+    const Maths::Matrix4x4f& current_view_projection,
+    const Maths::Vector3f& camera_position
 ) -> void {
     command_buffer.push_debug_group("occlusion_prepass");
 
@@ -465,7 +466,8 @@ auto SDL_GPURenderer::run_occlusion_prepass(
         hiz_pass.get_pyramid_texture(), hiz_pass.get_pyramid_sampler(),
         (has_valid_previous_depth && !debug_disable_occlusion_culling)
             ? hiz_pass.get_mip_levels()
-            : 0U
+            : 0U,
+        camera_position, true
     );
 
     occlusion_depth_pass.draw(
@@ -841,6 +843,9 @@ auto SDL_GPURenderer::draw() -> void {
     handle_resize(*swapchain);
 
     const auto camera = compute_camera_frame_data();
+    const auto camera_position_3f = Maths::Vector3f{
+        camera.position.x(), camera.position.y(), camera.position.z()
+    };
 
     auto frame_prep =
         upload_instances_and_compute_frustum(command_buffer, camera.position);
@@ -849,7 +854,8 @@ auto SDL_GPURenderer::draw() -> void {
 
     run_occlusion_prepass(
         command_buffer, frame_prep.instance_batches,
-        frame_prep.camera_frustum_planes, frame_prep.current_view_projection
+        frame_prep.camera_frustum_planes, frame_prep.current_view_projection,
+        camera_position_3f
     );
 
     if (record_debug_hiz_visualize(command_buffer, *swapchain, camera)) {
@@ -865,7 +871,8 @@ auto SDL_GPURenderer::draw() -> void {
         mesh_render_pass.get_instance_buffer_cache(), frame_prep.instance_batches,
         frame_prep.camera_frustum_planes, frame_prep.current_view_projection,
         hiz_pass.get_pyramid_texture(), hiz_pass.get_pyramid_sampler(),
-        debug_disable_occlusion_culling ? 0U : hiz_pass.get_mip_levels()
+        debug_disable_occlusion_culling ? 0U : hiz_pass.get_mip_levels(),
+        camera_position_3f, true
     );
 
     record_ao_and_ssr(command_buffer, frame_prep.instance_batches, instance_cull_layout);

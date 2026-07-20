@@ -286,14 +286,12 @@ auto compute_mesh_local_bounds(gsl::span<const float> vertices) -> BoundingBox {
 SDL_GPUMesh::SDL_GPUMesh(
     GPUDevice& device,
     CopyPass& copy_pass,
-    uint32_t first_index,
-    uint32_t index_count,
+    const std::array<LodRange, max_lod_levels>& lod_ranges,
     int32_t vertex_offset,
     const BoundingBox& local_bounds,
     const TexturePaths& texture_paths
 )
-    : first_index{first_index},
-      index_count{index_count},
+    : lod_ranges{lod_ranges},
       vertex_offset{vertex_offset},
       local_bounds{local_bounds},
       diffuse_texture{create_texture_from_path(
@@ -385,14 +383,12 @@ SDL_GPUMesh::SDL_GPUMesh(
 SDL_GPUMesh::SDL_GPUMesh(
     GPUDevice& device,
     CopyPass& copy_pass,
-    uint32_t first_index,
-    uint32_t index_count,
+    const std::array<LodRange, max_lod_levels>& lod_ranges,
     int32_t vertex_offset,
     const BoundingBox& local_bounds,
     const TextureImages& texture_images
 )
-    : first_index{first_index},
-      index_count{index_count},
+    : lod_ranges{lod_ranges},
       vertex_offset{vertex_offset},
       local_bounds{local_bounds},
       diffuse_texture{create_texture_from_image(
@@ -491,8 +487,8 @@ auto SDL_GPUMesh::draw_instanced(
     sdl_gpu_pass.bind_fragment_samplers(0, sampler_bindings);
 
     sdl_gpu_pass.draw_indexed_primitives(
-        index_count, static_cast<uint32_t>(instance_count), first_index,
-        vertex_offset
+        lod_ranges[0].index_count, static_cast<uint32_t>(instance_count),
+        lod_ranges[0].first_index, vertex_offset
     );
 }
 
@@ -500,8 +496,8 @@ auto SDL_GPUMesh::draw_instanced_geometry_only(
     int32_t instance_count, RenderPass& sdl_gpu_pass
 ) const -> void {
     sdl_gpu_pass.draw_indexed_primitives(
-        index_count, static_cast<uint32_t>(instance_count), first_index,
-        vertex_offset
+        lod_ranges[0].index_count, static_cast<uint32_t>(instance_count),
+        lod_ranges[0].first_index, vertex_offset
     );
 }
 
@@ -545,12 +541,21 @@ auto SDL_GPUMesh::alpha_mode() const -> Utilities::ModelLoader::AlphaMode {
     return mesh_alpha_mode;
 }
 
-auto SDL_GPUMesh::get_first_index() const -> uint32_t { return first_index; }
+auto SDL_GPUMesh::get_first_index() const -> uint32_t {
+    return lod_ranges[0].first_index;
+}
 
-auto SDL_GPUMesh::get_index_count() const -> uint32_t { return index_count; }
+auto SDL_GPUMesh::get_index_count() const -> uint32_t {
+    return lod_ranges[0].index_count;
+}
 
 auto SDL_GPUMesh::get_vertex_offset() const -> int32_t {
     return vertex_offset;
+}
+
+auto SDL_GPUMesh::get_lod_range(std::size_t lod_index) const
+    -> const LodRange& {
+    return lod_ranges.at(lod_index);
 }
 
 auto SDL_GPUMesh::generate_mipmaps(CommandBuffer& command_buffer) const
@@ -612,14 +617,24 @@ auto load_meshes_from_model(
     // vertex/index buffer (required for indirect multi-draw batching, see
     // SDL_GPUPointSpotShadowPass). Each submesh's indices in ModelLoader
     // output are already local/0-based, so they're concatenated as-is; only
-    // first_index/vertex_offset need to track the running totals.
+    // first_index/vertex_offset need to track the running totals. Each
+    // submesh also gets max_lod_levels-1 additional simplified index ranges
+    // appended after its LOD0 range, all referencing the same vertex range
+    // (see LodRange).
     struct SubmeshInfo {
-        uint32_t first_index;
-        uint32_t index_count;
+        std::array<LodRange, max_lod_levels> lod_ranges;
         int32_t vertex_offset;
         BoundingBox local_bounds;
         Utilities::ModelLoader::MeshData const* mesh_data;
     };
+
+    // Target index-count ratios (relative to LOD0) for LOD1.. onward, and the
+    // meshopt_simplify target error tolerated to reach them. Global defaults
+    // for now - not configurable per model.
+    constexpr auto lod_index_ratios =
+        std::array<float, max_lod_levels - 1>{0.5F, 0.25F, 0.1F};
+    constexpr auto lod_target_error = 0.02F;
+    constexpr auto min_lod_index_count = std::size_t{96};
 
     auto combined_vertices = std::vector<float>{};
     auto combined_indices = std::vector<uint32_t>{};
@@ -669,9 +684,85 @@ auto load_meshes_from_model(
         );
         mesh_vertices.resize(new_vertex_count * vertex_components);
 
-        submesh_infos.push_back(SubmeshInfo{
+        auto lod_ranges = std::array<LodRange, max_lod_levels>{};
+        lod_ranges[0] = LodRange{
             .first_index = running_first_index,
             .index_count = static_cast<uint32_t>(mesh_indices.size()),
+        };
+
+        combined_indices.insert(
+            combined_indices.end(), mesh_indices.begin(), mesh_indices.end()
+        );
+        running_first_index += static_cast<uint32_t>(mesh_indices.size());
+
+        // Generate coarser LODs by repeatedly simplifying the previous LOD's
+        // index buffer. meshopt_simplify only selects a subset of the
+        // existing vertices (it never introduces new ones), so every LOD
+        // level can keep referencing this submesh's single vertex range.
+        auto previous_lod_indices = mesh_indices;
+        for (auto lod = std::size_t{1}; lod < max_lod_levels; ++lod) {
+            auto target_index_count = std::max(
+                min_lod_index_count,
+                static_cast<std::size_t>(
+                    static_cast<float>(mesh_indices.size()) *
+                    lod_index_ratios.at(lod - 1)
+                )
+            );
+            target_index_count -= target_index_count % 3;
+
+            if (target_index_count >= previous_lod_indices.size()) {
+                lod_ranges.at(lod) = lod_ranges.at(lod - 1);
+                continue;
+            }
+
+            auto simplified_indices =
+                std::vector<uint32_t>(previous_lod_indices.size());
+            auto result_error = 0.0F;
+            const auto simplified_count = meshopt_simplify(
+                simplified_indices.data(),
+                previous_lod_indices.data(),
+                previous_lod_indices.size(),
+                mesh_vertices.data(),
+                new_vertex_count,
+                vertex_stride,
+                target_index_count,
+                lod_target_error,
+                meshopt_SimplifyLockBorder,
+                &result_error
+            );
+            simplified_indices.resize(simplified_count);
+
+            // meshopt_simplify can stop early once its error bound is hit,
+            // producing few or no fewer triangles than the previous LOD -
+            // reuse the previous (finer) LOD's range rather than storing a
+            // degenerate or non-simplified duplicate.
+            if (simplified_count < 3 ||
+                simplified_count >= previous_lod_indices.size()) {
+                lod_ranges.at(lod) = lod_ranges.at(lod - 1);
+                continue;
+            }
+
+            meshopt_optimizeVertexCache(
+                simplified_indices.data(), simplified_indices.data(),
+                simplified_indices.size(), new_vertex_count
+            );
+
+            lod_ranges.at(lod) = LodRange{
+                .first_index = running_first_index,
+                .index_count = static_cast<uint32_t>(simplified_indices.size()),
+            };
+            combined_indices.insert(
+                combined_indices.end(), simplified_indices.begin(),
+                simplified_indices.end()
+            );
+            running_first_index +=
+                static_cast<uint32_t>(simplified_indices.size());
+
+            previous_lod_indices = std::move(simplified_indices);
+        }
+
+        submesh_infos.push_back(SubmeshInfo{
+            .lod_ranges = lod_ranges,
             .vertex_offset = running_vertex_offset,
             .local_bounds = compute_mesh_local_bounds(mesh_vertices),
             .mesh_data = &mesh_data,
@@ -680,12 +771,8 @@ auto load_meshes_from_model(
         combined_vertices.insert(
             combined_vertices.end(), mesh_vertices.begin(), mesh_vertices.end()
         );
-        combined_indices.insert(
-            combined_indices.end(), mesh_indices.begin(), mesh_indices.end()
-        );
 
         running_vertex_offset += static_cast<int32_t>(new_vertex_count);
-        running_first_index += static_cast<uint32_t>(mesh_indices.size());
     }
 
     auto meshes = std::vector<SDL_GPUMesh>{};
@@ -723,8 +810,7 @@ auto load_meshes_from_model(
             meshes.emplace_back(
                 device,
                 copy_pass,
-                info.first_index,
-                info.index_count,
+                info.lod_ranges,
                 info.vertex_offset,
                 info.local_bounds,
                 texture_images
