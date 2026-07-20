@@ -68,11 +68,12 @@ public:
     // it opens its own copy pass and compute pass(es).
     // hiz_mip_levels = 0 disables the occlusion test (first frame after
     // construction/resize, when there is no valid previous-frame depth).
-    // enable_lod = false always selects LOD0 (used by the per-cascade shadow
-    // cull passes, which have no single camera-distance metric that makes
-    // sense for a light-space frustum); when true, lod_reference_position
-    // (normally the main camera's world position) is used to pick each
-    // instance's LOD by distance - see instance_cull.hlsl.
+    // enable_lod = false always selects LOD0. When true, lod_reference_position
+    // is used to pick each instance's LOD by distance - see instance_cull.hlsl.
+    // The main view's cull passes and the shadow-cascade cull passes
+    // (SDL_GPUShadowPass) both pass the main camera's world position here,
+    // so a shadow caster selects the same LOD as its color-pass geometry
+    // despite the shadow cull using a light-space frustum.
     [[nodiscard]] auto cull(
         const SDL_GPUFactory& graphics_factory,
         CommandBuffer& command_buffer,

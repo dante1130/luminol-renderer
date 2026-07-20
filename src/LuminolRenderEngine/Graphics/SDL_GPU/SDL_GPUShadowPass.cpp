@@ -94,6 +94,22 @@ auto extract_camera_near_far(const Matrix4x4f& projection_matrix)
     };
 }
 
+// World-space camera position, recovered from the inverse view matrix's
+// translation row - same computation as SDL_GPURenderer.cpp's private
+// get_view_position helper, duplicated here since this file only ever
+// receives the already-computed view_matrix (mirrors extract_camera_near_far
+// above). Used to key shadow-caster LOD selection off the same camera
+// distance the main view uses (see the cull() call in draw()).
+auto get_view_position(const Matrix4x4f& view_matrix) -> Vector3f {
+    const auto inverse_view_matrix = view_matrix.inverse();
+
+    return Vector3f{
+        inverse_view_matrix[3][0],
+        inverse_view_matrix[3][1],
+        inverse_view_matrix[3][2],
+    };
+}
+
 // Builds the perspective projection covering just [split_near, split_far]
 // of the camera's frustum, reusing the camera's existing fov/aspect terms
 // (rows 0 and 1, which projection_matrix already encodes) and only
@@ -270,6 +286,7 @@ auto SDL_GPUShadowPass::draw(
     const auto splits = compute_cascade_splits(
         camera_near_far.near_plane, camera_near_far.far_plane
     );
+    const auto camera_position = get_view_position(view_matrix);
 
     // One world-space AABB per (batch, submesh), reused for every cascade's
     // frustum test below instead of being recomputed per cascade.
@@ -333,7 +350,7 @@ auto SDL_GPUShadowPass::draw(
                 graphics_factory, command_buffer, instance_buffer_cache,
                 filtered_batches, cascade_frustum_planes,
                 cascade_light_space_matrices.at(cascade_index), hiz_pyramid,
-                hiz_sampler, 0U, Vector3f{}, false
+                hiz_sampler, 0U, camera_position, true
             );
     }
 
@@ -406,9 +423,10 @@ auto SDL_GPUShadowPass::draw(
             // its own visible_instance_indices base offset via
             // first_instance, so one multi-draw call covers the whole batch
             // instead of one draw per submesh/LOD. Shadow cascades cull with
-            // enable_lod = false (see cull() call below), so every
-            // non-LOD0 command's num_instances stays 0 and those extra
-            // draws are no-ops - shadows always render LOD0.
+            // enable_lod = true and camera_position (see cull() call above),
+            // so each instance's shadow uses the same LOD its color-pass
+            // geometry does - only that LOD's command has non-zero
+            // num_instances, so the other 3 draws are no-ops.
             render_pass.draw_indexed_primitives_indirect(
                 cull_pass.get_indirect_command_buffer(),
                 submesh_infos.front().indirect_command_byte_offsets[0],
