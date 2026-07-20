@@ -33,8 +33,12 @@ constexpr auto initial_group_capacity = uint32_t{64};
 // Global default LOD switch distances (world units, squared), ascending:
 // entry i is the distance beyond which LOD i is no longer used in favor of
 // LOD i+1. Not configurable per model yet.
-constexpr auto default_lod_distances_sq = std::array<float, max_lod_levels - 1>{
-    15.0F * 15.0F, 40.0F * 40.0F, 100.0F * 100.0F
+// Sized to max_lod_levels (not max_lod_levels - 1) to match
+// SubmeshCullMetadata::lod_distances_sq's float4 layout on the HLSL side -
+// the trailing element is unused padding, never read by the shader (whose
+// threshold loop only goes up to MAX_LOD_LEVELS - 2).
+constexpr auto default_lod_distances_sq = std::array<float, max_lod_levels>{
+    15.0F * 15.0F, 40.0F * 40.0F, 100.0F * 100.0F, 0.0F
 };
 
 // Mirrors cbuffer InstanceCullParams in instance_cull.hlsl. Per-submesh
@@ -52,21 +56,37 @@ struct InstanceCullParams {
 };
 
 // One submesh's culling inputs. Mirrors struct SubmeshCullMetadata in
-// instance_cull.hlsl exactly (StructuredBuffer element layout, not a cbuffer
-// - no 16-byte-vector packing rules, just matching contiguous layout).
+// instance_cull.hlsl exactly (StructuredBuffer element layout).
 // command_indices/instance_base_offsets/lod_distances_sq are indexed by LOD
 // level: the cull shader computes each instance's distance to
 // lod_reference_position, picks the smallest LOD whose distance threshold
 // isn't exceeded, and compacts that instance under the matching LOD's
 // command/offset instead of a single fixed one per submesh.
+//
+// These three fields are exactly 4 elements each (matching HLSL's
+// uint4/float4) rather than max_lod_levels/max_lod_levels-1 raw C arrays:
+// DXC's default (non -fvk-use-dx-layout) SPIR-V codegen pads each element of
+// a raw scalar array field to a 16-byte stride, which this tightly-packed
+// std::array does NOT do - byte-identical layout on every backend requires
+// vector types on the HLSL side, so the C++ side must match their fixed
+// 4-element size exactly (see instance_cull.hlsl's SubmeshCullMetadata).
+//
+// _padding: the struct's own field-by-field byte size (88) isn't a multiple
+// of 16, but a StructuredBuffer's implicit per-element array STRIDE always
+// is (rounded up to the buffer's base alignment, 16, under the std430-style
+// layout DXC emits by default) - so without this padding, sizeof(*this)
+// (used everywhere below to size/grow/upload submesh_metadata_buffer) would
+// undershoot the GPU's actual 96-byte per-element stride by 8 bytes,
+// desyncing every element past index 0 by an accumulating 8 bytes each.
 struct SubmeshCullMetadata {
     Vector4f local_bounds_min;
     Vector4f local_bounds_max;
     std::array<uint32_t, max_lod_levels> command_indices;
     std::array<uint32_t, max_lod_levels> instance_base_offsets;
-    std::array<float, max_lod_levels - 1> lod_distances_sq;
+    std::array<float, max_lod_levels> lod_distances_sq;
     uint32_t instance_count;
     uint32_t first_group;
+    std::array<uint32_t, 2> _padding;
 };
 
 // One batch's culling dispatch inputs, built once per frame (cost
@@ -257,6 +277,7 @@ auto SDL_GPUInstanceCullPass::cull(
                 .lod_distances_sq = default_lod_distances_sq,
                 .instance_count = batch.instance_count,
                 .first_group = first_group,
+                ._padding = {},
             });
 
             group_to_submesh.insert(

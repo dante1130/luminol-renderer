@@ -58,16 +58,34 @@ StructuredBuffer<row_major float4x4> instance_models : register(t1, space0);
 // One entry per submesh. Mirrors struct SubmeshCullMetadata in
 // SDL_GPUInstanceCullPass.cpp exactly. command_indices/instance_base_offsets
 // are indexed by LOD level (see main()'s LOD selection); lod_distances_sq
-// holds MAX_LOD_LEVELS-1 ascending squared-distance switch thresholds -
-// lod_distances_sq[i] is the distance beyond which LOD i is no longer used.
+// holds MAX_LOD_LEVELS-1 ascending squared-distance switch thresholds in its
+// first 3 components (lod_distances_sq[i] is the distance beyond which LOD i
+// is no longer used) - the 4th component is unused padding.
+//
+// These three fields are fixed-size VECTORS (uint4/float4), not raw C-style
+// arrays (uint[4]/float[4]): DXC's default SPIR-V codegen (this project
+// doesn't pass -fvk-use-dx-layout) lays out StructuredBuffer arrays of
+// scalars using GLSL-style std430 rules, which pad each array ELEMENT to a
+// 16-byte stride - 4x the tightly-packed layout the C++ mirror struct
+// (std::array<uint32_t, 4>, 16 bytes total) assumes. Vector types have no
+// such per-element stride rule (always exactly 16 bytes, byte-identical to
+// the C++ side on every backend), which is why they're used here instead.
+// [] indexing with a dynamic index works identically on vector types.
+// The struct's own byte size (88) isn't a multiple of 16, but a
+// StructuredBuffer's implicit per-element array STRIDE always is (rounded up
+// to the buffer's base alignment, 16, under the std430-style layout DXC
+// emits by default for SPIR-V) - so submesh_metadata[i] is actually read at
+// byte i*96, not i*88. _padding makes the struct's real size match that
+// stride exactly, so no rounding-induced drift can occur between elements.
 struct SubmeshCullMetadata {
     float4 local_bounds_min;
     float4 local_bounds_max;
-    uint command_indices[MAX_LOD_LEVELS];
-    uint instance_base_offsets[MAX_LOD_LEVELS];
-    float lod_distances_sq[MAX_LOD_LEVELS - 1];
+    uint4 command_indices;
+    uint4 instance_base_offsets;
+    float4 lod_distances_sq;
     uint instance_count;
     uint first_group;
+    uint2 _padding;
 };
 StructuredBuffer<SubmeshCullMetadata> submesh_metadata : register(t2, space0);
 // One entry per thread group in this dispatch, indexed by
