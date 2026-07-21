@@ -18,6 +18,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUIBLRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceCullPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshletCullPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUOcclusionDepthPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUPointSpotShadowPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUScreenSpaceReflectionPass.hpp>
@@ -184,6 +185,7 @@ private:
         gsl::span<const InstanceBatch> instance_batches,
         const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
         const InstanceCullLayout& instance_cull_layout,
+        const MeshletCullLayout& meshlet_cull_layout,
         const Light& light_manager_data,
         const CameraFrameData& camera
     ) -> void;
@@ -213,6 +215,12 @@ private:
     // density, since there's no cross-frame data in this decision. Feeds
     // every downstream pass (AO, shadows, main pass) exactly as before.
     SDL_GPUInstanceCullPass instance_cull_pass;
+    // Phase B: further culls Phase 2's surviving (submesh, LOD) instances at
+    // meshlet granularity for the main color pass's Opaque/Mask draws only
+    // (see SDL_GPUMeshletCullPass, SDL_GPUMeshRenderPass::draw). Must run
+    // after instance_cull_pass.cull() on the same command_buffer, before any
+    // render pass is opened - see record_main_pass's caller in draw().
+    SDL_GPUMeshletCullPass meshlet_cull_pass;
     SDL_GPUClusterPass cluster_pass;
     SDL_GPUShadowPass shadow_pass;
     SDL_GPUPointSpotShadowPass point_spot_shadow_pass;

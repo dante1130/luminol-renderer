@@ -244,11 +244,110 @@ auto create_texture_from_image(
     );
 }
 
+// ~64 triangles/vertices per meshlet: within meshoptimizer's implementation
+// limits (<=256 vertices, <=512 triangles) and matches the engine's
+// existing compute thread-group size (see threads_per_group in
+// SDL_GPUInstanceCullPass.cpp / SDL_GPUMeshletCullPass), which is also why
+// it's the conventional choice for GPU-driven meshlet renderers.
+constexpr auto meshlet_max_vertices = std::size_t{64};
+constexpr auto meshlet_max_triangles = std::size_t{64};
+// 0 = no cone-based backface culling in this first cut (see
+// meshlet_cull.hlsl's bounding-sphere-only test) - cone data is still
+// computed and stored (GpuMeshletMetadata has room via bounds_center /
+// bounds_radius only, cone fields are not persisted) since
+// meshopt_computeMeshletBounds always returns them; simply unused for now.
+constexpr auto meshlet_cone_weight = 0.0F;
+
 }  // namespace
 
 namespace Luminol::Graphics::SDL_GPU {
 
 constexpr auto vertex_stride_in_floats = 11U;
+
+auto build_meshlets(
+    gsl::span<const uint32_t> indices,
+    gsl::span<const float> vertex_positions,
+    std::size_t vertex_count,
+    std::size_t vertex_positions_stride,
+    uint32_t submesh_vertex_offset,
+    std::vector<GpuMeshletMetadata>& combined_meshlets,
+    std::vector<uint32_t>& combined_meshlet_vertices,
+    std::vector<uint32_t>& combined_meshlet_triangles
+) -> MeshletRange {
+    const auto range_start = static_cast<uint32_t>(combined_meshlets.size());
+
+    if (indices.empty()) {
+        return MeshletRange{.first_meshlet = range_start, .meshlet_count = 0U};
+    }
+
+    const auto max_meshlets = meshopt_buildMeshletsBound(
+        indices.size(), meshlet_max_vertices, meshlet_max_triangles
+    );
+
+    auto raw_meshlets = std::vector<meshopt_Meshlet>(max_meshlets);
+    auto raw_meshlet_vertices =
+        std::vector<uint32_t>(max_meshlets * meshlet_max_vertices);
+    auto raw_meshlet_triangles =
+        std::vector<uint8_t>(max_meshlets * meshlet_max_triangles * 3U);
+
+    const auto meshlet_count = meshopt_buildMeshlets(
+        raw_meshlets.data(),
+        raw_meshlet_vertices.data(),
+        raw_meshlet_triangles.data(),
+        indices.data(),
+        indices.size(),
+        vertex_positions.data(),
+        vertex_count,
+        vertex_positions_stride,
+        meshlet_max_vertices,
+        meshlet_max_triangles,
+        meshlet_cone_weight
+    );
+    raw_meshlets.resize(meshlet_count);
+
+    for (const auto& meshlet : raw_meshlets) {
+        const auto bounds = meshopt_computeMeshletBounds(
+            &raw_meshlet_vertices[meshlet.vertex_offset],
+            &raw_meshlet_triangles[meshlet.triangle_offset],
+            meshlet.triangle_count,
+            vertex_positions.data(),
+            vertex_count,
+            vertex_positions_stride
+        );
+
+        combined_meshlets.push_back(GpuMeshletMetadata{
+            .vertex_offset =
+                static_cast<uint32_t>(combined_meshlet_vertices.size()),
+            .triangle_offset =
+                static_cast<uint32_t>(combined_meshlet_triangles.size()),
+            .vertex_count = meshlet.vertex_count,
+            .triangle_count = meshlet.triangle_count,
+            .bounds_center =
+                {bounds.center[0], bounds.center[1], bounds.center[2]},
+            .bounds_radius = bounds.radius,
+        });
+
+        for (auto local_vertex = uint32_t{0}; local_vertex < meshlet.vertex_count;
+             ++local_vertex) {
+            combined_meshlet_vertices.push_back(
+                raw_meshlet_vertices[meshlet.vertex_offset + local_vertex] +
+                submesh_vertex_offset
+            );
+        }
+
+        const auto triangle_index_count = meshlet.triangle_count * 3U;
+        for (auto i = uint32_t{0}; i < triangle_index_count; ++i) {
+            combined_meshlet_triangles.push_back(static_cast<uint32_t>(
+                raw_meshlet_triangles[meshlet.triangle_offset + i]
+            ));
+        }
+    }
+
+    return MeshletRange{
+        .first_meshlet = range_start,
+        .meshlet_count = static_cast<uint32_t>(meshlet_count),
+    };
+}
 
 auto compute_mesh_local_bounds(gsl::span<const float> vertices) -> BoundingBox {
     const auto vertex_count = vertices.size() / vertex_stride_in_floats;
@@ -287,11 +386,13 @@ SDL_GPUMesh::SDL_GPUMesh(
     GPUDevice& device,
     CopyPass& copy_pass,
     const std::array<LodRange, max_lod_levels>& lod_ranges,
+    const std::array<MeshletRange, max_lod_levels>& meshlet_ranges,
     int32_t vertex_offset,
     const BoundingBox& local_bounds,
     const TexturePaths& texture_paths
 )
     : lod_ranges{lod_ranges},
+      meshlet_ranges{meshlet_ranges},
       vertex_offset{vertex_offset},
       local_bounds{local_bounds},
       diffuse_texture{create_texture_from_path(
@@ -384,11 +485,13 @@ SDL_GPUMesh::SDL_GPUMesh(
     GPUDevice& device,
     CopyPass& copy_pass,
     const std::array<LodRange, max_lod_levels>& lod_ranges,
+    const std::array<MeshletRange, max_lod_levels>& meshlet_ranges,
     int32_t vertex_offset,
     const BoundingBox& local_bounds,
     const TextureImages& texture_images
 )
     : lod_ranges{lod_ranges},
+      meshlet_ranges{meshlet_ranges},
       vertex_offset{vertex_offset},
       local_bounds{local_bounds},
       diffuse_texture{create_texture_from_image(
@@ -501,7 +604,15 @@ auto SDL_GPUMesh::draw_instanced_geometry_only(
     );
 }
 
-auto SDL_GPUMesh::draw_indirect(
+auto SDL_GPUMesh::draw_indirect_geometry_only(
+    RenderPass& sdl_gpu_pass,
+    const Buffer& indirect_buffer,
+    uint32_t byte_offset
+) const -> void {
+    sdl_gpu_pass.draw_indexed_primitives_indirect(indirect_buffer, byte_offset, 1);
+}
+
+auto SDL_GPUMesh::draw_meshlet_indirect(
     RenderPass& sdl_gpu_pass,
     const Buffer& indirect_buffer,
     uint32_t byte_offset
@@ -526,15 +637,7 @@ auto SDL_GPUMesh::draw_indirect(
     };
     sdl_gpu_pass.bind_fragment_samplers(0, sampler_bindings);
 
-    sdl_gpu_pass.draw_indexed_primitives_indirect(indirect_buffer, byte_offset, 1);
-}
-
-auto SDL_GPUMesh::draw_indirect_geometry_only(
-    RenderPass& sdl_gpu_pass,
-    const Buffer& indirect_buffer,
-    uint32_t byte_offset
-) const -> void {
-    sdl_gpu_pass.draw_indexed_primitives_indirect(indirect_buffer, byte_offset, 1);
+    sdl_gpu_pass.draw_primitives_indirect(indirect_buffer, byte_offset, 1);
 }
 
 auto SDL_GPUMesh::alpha_mode() const -> Utilities::ModelLoader::AlphaMode {
@@ -556,6 +659,11 @@ auto SDL_GPUMesh::get_vertex_offset() const -> int32_t {
 auto SDL_GPUMesh::get_lod_range(std::size_t lod_index) const
     -> const LodRange& {
     return lod_ranges.at(lod_index);
+}
+
+auto SDL_GPUMesh::get_meshlet_range(std::size_t lod_index) const
+    -> const MeshletRange& {
+    return meshlet_ranges.at(lod_index);
 }
 
 auto SDL_GPUMesh::generate_mipmaps(CommandBuffer& command_buffer) const
@@ -623,6 +731,7 @@ auto load_meshes_from_model(
     // (see LodRange).
     struct SubmeshInfo {
         std::array<LodRange, max_lod_levels> lod_ranges;
+        std::array<MeshletRange, max_lod_levels> meshlet_ranges;
         int32_t vertex_offset;
         BoundingBox local_bounds;
         Utilities::ModelLoader::MeshData const* mesh_data;
@@ -638,6 +747,9 @@ auto load_meshes_from_model(
 
     auto combined_vertices = std::vector<float>{};
     auto combined_indices = std::vector<uint32_t>{};
+    auto combined_meshlets = std::vector<GpuMeshletMetadata>{};
+    auto combined_meshlet_vertices = std::vector<uint32_t>{};
+    auto combined_meshlet_triangles = std::vector<uint32_t>{};
     auto submesh_infos = std::vector<SubmeshInfo>{};
     submesh_infos.reserve(model_data.meshes.size());
 
@@ -690,6 +802,18 @@ auto load_meshes_from_model(
             .index_count = static_cast<uint32_t>(mesh_indices.size()),
         };
 
+        auto meshlet_ranges = std::array<MeshletRange, max_lod_levels>{};
+        meshlet_ranges[0] = build_meshlets(
+            mesh_indices,
+            mesh_vertices,
+            new_vertex_count,
+            vertex_stride,
+            static_cast<uint32_t>(running_vertex_offset),
+            combined_meshlets,
+            combined_meshlet_vertices,
+            combined_meshlet_triangles
+        );
+
         combined_indices.insert(
             combined_indices.end(), mesh_indices.begin(), mesh_indices.end()
         );
@@ -712,6 +836,7 @@ auto load_meshes_from_model(
 
             if (target_index_count >= previous_lod_indices.size()) {
                 lod_ranges.at(lod) = lod_ranges.at(lod - 1);
+                meshlet_ranges.at(lod) = meshlet_ranges.at(lod - 1);
                 continue;
             }
 
@@ -739,6 +864,7 @@ auto load_meshes_from_model(
             if (simplified_count < 3 ||
                 simplified_count >= previous_lod_indices.size()) {
                 lod_ranges.at(lod) = lod_ranges.at(lod - 1);
+                meshlet_ranges.at(lod) = meshlet_ranges.at(lod - 1);
                 continue;
             }
 
@@ -751,6 +877,16 @@ auto load_meshes_from_model(
                 .first_index = running_first_index,
                 .index_count = static_cast<uint32_t>(simplified_indices.size()),
             };
+            meshlet_ranges.at(lod) = build_meshlets(
+                simplified_indices,
+                mesh_vertices,
+                new_vertex_count,
+                vertex_stride,
+                static_cast<uint32_t>(running_vertex_offset),
+                combined_meshlets,
+                combined_meshlet_vertices,
+                combined_meshlet_triangles
+            );
             combined_indices.insert(
                 combined_indices.end(), simplified_indices.begin(),
                 simplified_indices.end()
@@ -763,6 +899,7 @@ auto load_meshes_from_model(
 
         submesh_infos.push_back(SubmeshInfo{
             .lod_ranges = lod_ranges,
+            .meshlet_ranges = meshlet_ranges,
             .vertex_offset = running_vertex_offset,
             .local_bounds = compute_mesh_local_bounds(mesh_vertices),
             .mesh_data = &mesh_data,
@@ -781,6 +918,9 @@ auto load_meshes_from_model(
     auto command_buffer = device.create_command_buffer();
     auto vertex_buffer = std::optional<Buffer>{};
     auto index_buffer = std::optional<Buffer>{};
+    auto meshlet_metadata_buffer = std::optional<Buffer>{};
+    auto meshlet_vertices_buffer = std::optional<Buffer>{};
+    auto meshlet_triangles_buffer = std::optional<Buffer>{};
     {
         auto copy_pass = command_buffer.begin_copy_pass();
 
@@ -791,7 +931,11 @@ auto load_meshes_from_model(
             static_cast<uint32_t>(
                 combined_vertices.size() * sizeof(float)
             ),
-            BufferUsage::Vertex
+            // StorageRead (in addition to Vertex): also bindable as a
+            // StructuredBuffer<float> for the main pass's meshlet
+            // vertex-pull path (pbr_vert_meshlet.hlsl) - purely additive,
+            // the existing fixed-function vertex buffer path is unchanged.
+            BufferUsage::Vertex | BufferUsage::StorageRead
         );
         index_buffer = create_uploaded_buffer(
             device,
@@ -802,6 +946,40 @@ auto load_meshes_from_model(
             ),
             BufferUsage::Index
         );
+        // StorageRead (not Vertex/Index): these are only ever read via
+        // manual StructuredBuffer fetch in meshlet_cull.hlsl /
+        // pbr_vert_meshlet.hlsl, never bound as a fixed-function
+        // vertex/index buffer - see SDL_GPUMeshletCullPass. meshlet_metadata
+        // additionally needs ComputeStorageRead: unlike the vertices/
+        // triangles buffers (vertex-stage-only), it's also read by
+        // meshlet_cull.hlsl's compute pass for per-meshlet bounds.
+        meshlet_metadata_buffer = create_uploaded_buffer(
+            device,
+            copy_pass,
+            combined_meshlets.data(),
+            static_cast<uint32_t>(
+                combined_meshlets.size() * sizeof(GpuMeshletMetadata)
+            ),
+            BufferUsage::StorageRead | BufferUsage::ComputeStorageRead
+        );
+        meshlet_vertices_buffer = create_uploaded_buffer(
+            device,
+            copy_pass,
+            combined_meshlet_vertices.data(),
+            static_cast<uint32_t>(
+                combined_meshlet_vertices.size() * sizeof(uint32_t)
+            ),
+            BufferUsage::StorageRead
+        );
+        meshlet_triangles_buffer = create_uploaded_buffer(
+            device,
+            copy_pass,
+            combined_meshlet_triangles.data(),
+            static_cast<uint32_t>(
+                combined_meshlet_triangles.size() * sizeof(uint32_t)
+            ),
+            BufferUsage::StorageRead
+        );
 
         for (const auto& info : submesh_infos) {
             const auto texture_images =
@@ -811,6 +989,7 @@ auto load_meshes_from_model(
                 device,
                 copy_pass,
                 info.lod_ranges,
+                info.meshlet_ranges,
                 info.vertex_offset,
                 info.local_bounds,
                 texture_images
@@ -827,6 +1006,9 @@ auto load_meshes_from_model(
     return RenderableMeshes{
         .vertex_buffer = std::move(vertex_buffer).value(),
         .index_buffer = std::move(index_buffer).value(),
+        .meshlet_metadata_buffer = std::move(meshlet_metadata_buffer).value(),
+        .meshlet_vertices_buffer = std::move(meshlet_vertices_buffer).value(),
+        .meshlet_triangles_buffer = std::move(meshlet_triangles_buffer).value(),
         .meshes = std::move(meshes),
     };
 }

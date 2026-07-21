@@ -21,6 +21,7 @@ add_library(Luminol.Graphics.SDL_GPU
     SDL_GPUScreenSpaceReflectionPass.cpp
     SDL_GPUClusterPass.cpp
     SDL_GPUInstanceCullPass.cpp
+    SDL_GPUMeshletCullPass.cpp
     SDL_GPUHiZPass.cpp
     SDL_GPUOcclusionDepthPass.cpp
     SDL_GPUShadowPass.cpp

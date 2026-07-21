@@ -82,6 +82,15 @@ public:
         uint32_t first_instance = 0
     ) -> void;
 
+    // Draws draw_count SDL_GPUIndirectDrawCommand entries starting at offset
+    // (bytes) within buffer - non-indexed (no index/vertex buffer needed;
+    // see SDL_GPUMeshletCullPass, whose vertex shader manually fetches
+    // geometry via SV_VertexID/SV_InstanceID instead). buffer must have been
+    // created with BufferUsage::Indirect.
+    auto draw_primitives_indirect(
+        const Buffer& buffer, uint32_t offset, uint32_t draw_count
+    ) -> void;
+
     [[nodiscard]] auto native_handle() const -> SDL_GPURenderPass*;
 
 private:

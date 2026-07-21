@@ -134,12 +134,17 @@ auto main() -> int {
 
     auto lod_ranges = std::array<LodRange, max_lod_levels>{};
     lod_ranges.fill(LodRange{.first_index = 0U, .index_count = 36U});
+    // This test only exercises compute_mesh_world_bounds, which never reads
+    // meshlet data - an empty/zeroed range per LOD is fine here.
+    const auto meshlet_ranges = std::array<MeshletRange, max_lod_levels>{};
 
     auto command_buffer = gpu_device->create_command_buffer();
     const auto mesh = [&] {
         auto copy_pass = command_buffer.begin_copy_pass();
         return SDL_GPUMesh{
-            *gpu_device, copy_pass, lod_ranges, 0, local_bounds, TextureImages{}
+            *gpu_device,   copy_pass,    lod_ranges,
+            meshlet_ranges, 0,           local_bounds,
+            TextureImages{}
         };
     }();
     command_buffer.submit();

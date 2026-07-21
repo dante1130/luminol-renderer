@@ -13,6 +13,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBatch.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBufferCache.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceCullPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshletCullPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 
@@ -121,9 +122,9 @@ public:
         const QueuedDraws& queued_draws,
         const Maths::Matrix4x4f& view_proj,
         const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
-        const Buffer& indirect_command_buffer,
-        const Buffer& visible_instance_indices_buffer,
-        const InstanceCullLayout& instance_cull_layout,
+        const Buffer& meshlet_indirect_command_buffer,
+        const Buffer& visible_meshlet_instances_buffer,
+        const MeshletCullLayout& meshlet_cull_layout,
         const LightData& light_data,
         const Texture& ssao_texture,
         const Sampler& ssao_sampler,
@@ -160,13 +161,20 @@ public:
 
 private:
     Shader mesh_vertex_shader;
+    Shader mesh_vertex_meshlet_shader;
     Shader mesh_fragment_shader;
     Shader mesh_alpha_test_fragment_shader;
     Shader depth_prepass_fragment_shader;
-    GraphicsPipeline mesh_pipeline;
-    GraphicsPipeline mesh_alpha_test_pipeline;
     GraphicsPipeline mesh_transparent_pipeline;
     GraphicsPipeline depth_prepass_pipeline;
+    // Vertex-pull mesh pipelines for the meshlet-culled main color pass draw
+    // (see SDL_GPUMeshletCullPass, pbr_vert_meshlet.hlsl) - bind zero
+    // vertex/index buffers, six vertex storage buffers instead.
+    // mesh_transparent_pipeline/depth_prepass_pipeline have no meshlet
+    // counterpart (see draw()'s doc comment / the plan's scope note: main
+    // color pass Opaque+Mask only).
+    GraphicsPipeline mesh_meshlet_pipeline;
+    GraphicsPipeline mesh_alpha_test_meshlet_pipeline;
 
     SDL_GPUInstanceBufferCache instance_buffer_cache;
 };

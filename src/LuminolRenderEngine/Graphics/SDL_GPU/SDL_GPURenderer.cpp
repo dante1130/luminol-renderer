@@ -222,6 +222,7 @@ SDL_GPURenderer::SDL_GPURenderer(
       phase1_cull_pass{*this->gpu_device},
       occlusion_depth_pass{*this->gpu_device, sdl_window},
       instance_cull_pass{*this->gpu_device},
+      meshlet_cull_pass{*this->gpu_device},
       cluster_pass{*this->gpu_device},
       shadow_pass{*this->gpu_device},
       point_spot_shadow_pass{*this->gpu_device},
@@ -648,6 +649,7 @@ auto SDL_GPURenderer::record_main_pass(
     gsl::span<const InstanceBatch> instance_batches,
     const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
     const InstanceCullLayout& instance_cull_layout,
+    const MeshletCullLayout& meshlet_cull_layout,
     const Light& light_manager_data,
     const CameraFrameData& camera
 ) -> void {
@@ -744,9 +746,9 @@ auto SDL_GPURenderer::record_main_pass(
         queued_draws,
         view_matrix * projection_matrix,
         camera_frustum_planes,
-        instance_cull_pass.get_indirect_command_buffer(),
-        instance_cull_pass.get_visible_instance_indices_buffer(),
-        instance_cull_layout,
+        meshlet_cull_pass.get_indirect_command_buffer(),
+        meshlet_cull_pass.get_visible_meshlet_instances_buffer(),
+        meshlet_cull_layout,
         light_data,
         ao_pass.get_ao_texture(),
         ao_pass.get_sampler(),
@@ -875,6 +877,19 @@ auto SDL_GPURenderer::draw() -> void {
         camera_position_3f, true
     );
 
+    // Phase B: further culls Phase 2's surviving (submesh, LOD) instances at
+    // meshlet granularity for the main color pass's Opaque/Mask draws only -
+    // must run on this same command_buffer before any render pass opens
+    // below (see SDL_GPUMeshletCullPass's doc comment).
+    const auto meshlet_cull_layout = meshlet_cull_pass.cull(
+        *this->sdl_gpu_factory, command_buffer,
+        mesh_render_pass.get_instance_buffer_cache(), frame_prep.instance_batches,
+        instance_cull_layout, instance_cull_pass, frame_prep.camera_frustum_planes,
+        frame_prep.current_view_projection, hiz_pass.get_pyramid_texture(),
+        hiz_pass.get_pyramid_sampler(),
+        debug_disable_occlusion_culling ? 0U : hiz_pass.get_mip_levels()
+    );
+
     record_ao_and_ssr(command_buffer, frame_prep.instance_batches, instance_cull_layout);
 
     const auto& light_manager_data =
@@ -882,8 +897,8 @@ auto SDL_GPURenderer::draw() -> void {
 
     record_main_pass(
         command_buffer, *swapchain, frame_prep.instance_batches,
-        frame_prep.camera_frustum_planes, instance_cull_layout, light_manager_data,
-        camera
+        frame_prep.camera_frustum_planes, instance_cull_layout, meshlet_cull_layout,
+        light_manager_data, camera
     );
 
     record_tonemap_and_text(command_buffer, *swapchain);

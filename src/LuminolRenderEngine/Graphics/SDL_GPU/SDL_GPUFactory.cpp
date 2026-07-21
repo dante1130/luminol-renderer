@@ -72,11 +72,18 @@ auto SDL_GPUFactory::create_mesh(
     auto command_buffer = gpu_device->create_command_buffer();
     auto vertex_buffer = std::optional<Buffer>{};
     auto index_buffer = std::optional<Buffer>{};
+    auto meshlet_metadata_buffer = std::optional<Buffer>{};
+    auto meshlet_vertices_buffer = std::optional<Buffer>{};
+    auto meshlet_triangles_buffer = std::optional<Buffer>{};
     {
         auto copy_pass = command_buffer.begin_copy_pass();
 
         vertex_buffer = gpu_device->create_buffer(BufferInfo{
-            .usage = BufferUsage::Vertex,
+            // StorageRead (in addition to Vertex): also bindable as a
+            // StructuredBuffer for the main pass's meshlet vertex-pull path
+            // (pbr_vert_meshlet.hlsl), purely additive - see
+            // SDL_GPUMesh.cpp's matching vertex_buffer creation.
+            .usage = BufferUsage::Vertex | BufferUsage::StorageRead,
             .size = static_cast<uint32_t>(vertices.size_bytes()),
         });
         index_buffer = gpu_device->create_buffer(BufferInfo{
@@ -127,10 +134,112 @@ auto SDL_GPUFactory::create_mesh(
             .index_count = static_cast<uint32_t>(indices.size()),
         });
 
+        // Real meshlets are still built (not skipped/stubbed) even though
+        // this path has no LOD variety: every submesh drawn through the
+        // main color pass's Opaque/Mask buckets needs valid meshlet data,
+        // not just model-loaded ones (see SDL_GPUMeshletCullPass). All 4 LOD
+        // slots reuse the same single meshlet set, matching lod_ranges above.
+        auto combined_meshlets = std::vector<GpuMeshletMetadata>{};
+        auto combined_meshlet_vertices = std::vector<uint32_t>{};
+        auto combined_meshlet_triangles = std::vector<uint32_t>{};
+        const auto meshlet_range = build_meshlets(
+            indices,
+            vertices,
+            vertices.size() / 11U,
+            11U * sizeof(float),
+            0U,
+            combined_meshlets,
+            combined_meshlet_vertices,
+            combined_meshlet_triangles
+        );
+        auto meshlet_ranges = std::array<MeshletRange, max_lod_levels>{};
+        meshlet_ranges.fill(meshlet_range);
+
+        const auto meshlet_metadata_size = static_cast<uint32_t>(
+            combined_meshlets.size() * sizeof(GpuMeshletMetadata)
+        );
+        meshlet_metadata_buffer = gpu_device->create_buffer(BufferInfo{
+            .usage = BufferUsage::StorageRead | BufferUsage::ComputeStorageRead,
+            .size = meshlet_metadata_size,
+        });
+        {
+            auto transfer_buffer =
+                gpu_device->create_transfer_buffer(TransferBufferInfo{
+                    .usage = TransferBufferUsage::Upload,
+                    .size = meshlet_metadata_size,
+                });
+            {
+                const auto mapped = transfer_buffer.map(false);
+                std::memcpy(
+                    mapped.data(), combined_meshlets.data(), meshlet_metadata_size
+                );
+            }
+            transfer_buffer.unmap();
+            copy_pass.upload_to_buffer(
+                transfer_buffer, 0, *meshlet_metadata_buffer, 0,
+                meshlet_metadata_size, false
+            );
+        }
+
+        const auto meshlet_vertices_size = static_cast<uint32_t>(
+            combined_meshlet_vertices.size() * sizeof(uint32_t)
+        );
+        meshlet_vertices_buffer = gpu_device->create_buffer(BufferInfo{
+            .usage = BufferUsage::StorageRead,
+            .size = meshlet_vertices_size,
+        });
+        {
+            auto transfer_buffer =
+                gpu_device->create_transfer_buffer(TransferBufferInfo{
+                    .usage = TransferBufferUsage::Upload,
+                    .size = meshlet_vertices_size,
+                });
+            {
+                const auto mapped = transfer_buffer.map(false);
+                std::memcpy(
+                    mapped.data(), combined_meshlet_vertices.data(),
+                    meshlet_vertices_size
+                );
+            }
+            transfer_buffer.unmap();
+            copy_pass.upload_to_buffer(
+                transfer_buffer, 0, *meshlet_vertices_buffer, 0,
+                meshlet_vertices_size, false
+            );
+        }
+
+        const auto meshlet_triangles_size = static_cast<uint32_t>(
+            combined_meshlet_triangles.size() * sizeof(uint32_t)
+        );
+        meshlet_triangles_buffer = gpu_device->create_buffer(BufferInfo{
+            .usage = BufferUsage::StorageRead,
+            .size = meshlet_triangles_size,
+        });
+        {
+            auto transfer_buffer =
+                gpu_device->create_transfer_buffer(TransferBufferInfo{
+                    .usage = TransferBufferUsage::Upload,
+                    .size = meshlet_triangles_size,
+                });
+            {
+                const auto mapped = transfer_buffer.map(false);
+                std::memcpy(
+                    mapped.data(), combined_meshlet_triangles.data(),
+                    meshlet_triangles_size
+                );
+            }
+            transfer_buffer.unmap();
+            copy_pass.upload_to_buffer(
+                transfer_buffer, 0, *meshlet_triangles_buffer, 0,
+                meshlet_triangles_size, false
+            );
+        }
+
         meshes.emplace_back(
             *gpu_device,
             copy_pass,
             lod_ranges,
+            meshlet_ranges,
             0,
             local_bounds,
             texture_paths
@@ -149,6 +258,9 @@ auto SDL_GPUFactory::create_mesh(
     this->meshes_by_id[renderable_id] = RenderableMeshes{
         .vertex_buffer = std::move(vertex_buffer).value(),
         .index_buffer = std::move(index_buffer).value(),
+        .meshlet_metadata_buffer = std::move(meshlet_metadata_buffer).value(),
+        .meshlet_vertices_buffer = std::move(meshlet_vertices_buffer).value(),
+        .meshlet_triangles_buffer = std::move(meshlet_triangles_buffer).value(),
         .meshes = std::move(meshes),
     };
 
@@ -195,6 +307,27 @@ auto SDL_GPUFactory::get_vertex_buffer(RenderableId renderable_id) const
 auto SDL_GPUFactory::get_index_buffer(RenderableId renderable_id) const
     -> const Buffer& {
     return gsl::at(this->meshes_by_id, renderable_id).value().index_buffer;
+}
+
+auto SDL_GPUFactory::get_meshlet_metadata_buffer(RenderableId renderable_id) const
+    -> const Buffer& {
+    return gsl::at(this->meshes_by_id, renderable_id)
+        .value()
+        .meshlet_metadata_buffer;
+}
+
+auto SDL_GPUFactory::get_meshlet_vertices_buffer(RenderableId renderable_id) const
+    -> const Buffer& {
+    return gsl::at(this->meshes_by_id, renderable_id)
+        .value()
+        .meshlet_vertices_buffer;
+}
+
+auto SDL_GPUFactory::get_meshlet_triangles_buffer(RenderableId renderable_id) const
+    -> const Buffer& {
+    return gsl::at(this->meshes_by_id, renderable_id)
+        .value()
+        .meshlet_triangles_buffer;
 }
 
 auto SDL_GPUFactory::create_font(

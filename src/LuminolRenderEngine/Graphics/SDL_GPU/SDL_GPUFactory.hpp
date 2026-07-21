@@ -56,6 +56,16 @@ public:
     [[nodiscard]] auto get_index_buffer(RenderableId renderable_id) const
         -> const Buffer&;
 
+    // The renderable's shared meshlet arrays - see RenderableMeshes,
+    // SDL_GPUMeshletCullPass. Only consumed by the main color pass's
+    // meshlet culling/vertex-pull path.
+    [[nodiscard]] auto get_meshlet_metadata_buffer(RenderableId renderable_id) const
+        -> const Buffer&;
+    [[nodiscard]] auto get_meshlet_vertices_buffer(RenderableId renderable_id) const
+        -> const Buffer&;
+    [[nodiscard]] auto get_meshlet_triangles_buffer(RenderableId renderable_id) const
+        -> const Buffer&;
+
     [[nodiscard]] auto create_font(
         const std::filesystem::path& font_path, float point_size
     ) -> FontId;

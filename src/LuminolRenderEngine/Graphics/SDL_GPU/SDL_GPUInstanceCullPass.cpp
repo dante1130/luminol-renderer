@@ -116,7 +116,14 @@ auto make_instance_cull_pipeline(GPUDevice& device) -> ComputePipeline {
 auto make_indirect_command_buffer(GPUDevice& device, uint32_t command_capacity)
     -> Buffer {
     return device.create_buffer(BufferInfo{
-        .usage = BufferUsage::ComputeStorageReadWrite | BufferUsage::Indirect,
+        // ComputeStorageRead (in addition to ComputeStorageReadWrite): this
+        // buffer's num_instances counts are also read read-only by
+        // SDL_GPUMeshletCullPass's Phase B compute pass, to learn how many
+        // of Phase A's worst-case-sized dispatch lanes actually survived -
+        // purely additive, doesn't change any of Phase A's own read/write
+        // behavior.
+        .usage = BufferUsage::ComputeStorageReadWrite |
+            BufferUsage::ComputeStorageRead | BufferUsage::Indirect,
         .size = command_capacity * static_cast<uint32_t>(sizeof(IndirectDrawCommand)),
     });
 }

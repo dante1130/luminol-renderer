@@ -27,7 +27,8 @@ class Sampler;
 // Where one submesh's culled draws live, one entry per LOD level:
 // indirect_command_byte_offsets[lod] indexes into
 // get_indirect_command_buffer() (pass straight to
-// draw_indexed_primitives_indirect / SDL_GPUMesh::draw_indirect) for that
+// draw_indexed_primitives_indirect / SDL_GPUMesh::draw_indirect_geometry_only)
+// for that
 // LOD's draw call; instance_base_offsets[lod] is that LOD's slice base in
 // get_visible_instance_indices_buffer() (also readable from the matching
 // IndirectDrawCommand.first_instance after it's been written/downloaded).

@@ -97,6 +97,23 @@ auto make_mesh_shader(
     });
 }
 
+// pbr_vert_meshlet.hlsl's vertex storage buffer count (instance_models,
+// visible_meshlet_instances, meshlet_metadata, meshlet_vertices,
+// meshlet_triangles, combined_vertices) - see SDL_GPUMeshletCullPass's doc
+// comment for why this differs from mesh_vertex_shader's fixed 2.
+constexpr auto mesh_meshlet_vertex_storage_buffer_count = 6U;
+
+auto make_mesh_meshlet_vertex_shader(GPUDevice& device) -> Shader {
+    return device.create_shader(ShaderInfo{
+        .path = "res/shaders/sdl_gpu/pbr_vert_meshlet.hlsl",
+        .stage = ShaderStage::Vertex,
+        .source_language = ShaderSourceLanguage::Hlsl,
+        .sampler_count = 0U,
+        .uniform_buffer_count = 1U,
+        .storage_buffer_count = mesh_meshlet_vertex_storage_buffer_count,
+    });
+}
+
 // Mirrors cbuffer UBO in pbr_vert.hlsl.
 struct VertexUBO {
     Luminol::Maths::Matrix4x4f view_proj;
@@ -134,34 +151,6 @@ auto batch_distance_squared_to_camera(
     return (diff_x * diff_x) + (diff_y * diff_y) + (diff_z * diff_z);
 }
 
-// enable_depth_write = false: SDL_GPUMeshRenderPass::draw_depth_prepass
-// already wrote the authoritative depth value for every Opaque submesh
-// before draw() runs (see SDL_GPURenderer::record_main_pass, which runs the
-// pre-pass first and reuses its depth via LoadOp::Load) - re-writing the
-// same value here would be redundant. The depth test itself stays enabled
-// and unchanged (LESS_OR_EQUAL passes correctly against a matching value).
-auto make_mesh_pipeline(
-    GPUDevice& device,
-    const Shader& vertex_shader,
-    const Shader& fragment_shader,
-    SampleCount sample_count
-) -> GraphicsPipeline {
-    return device.create_graphics_pipeline(GraphicsPipelineInfo{
-        .vertex_shader = vertex_shader,
-        .fragment_shader = fragment_shader,
-        .color_target_format = hdr_color_texture_format,
-        .primitive_type = PrimitiveType::TriangleList,
-        .vertex_buffer_descriptions = mesh_vertex_buffer_descriptions,
-        .vertex_attributes = mesh_vertex_attributes,
-        .enable_depth_test = true,
-        .enable_depth_write = false,
-        .depth_stencil_format = depth_texture_format,
-        .cull_mode = CullMode::Back,
-        .front_face = FrontFace::Clockwise,
-        .sample_count = sample_count,
-    });
-}
-
 // Blended, depth-tested-but-not-depth-written variant of the mesh pipeline
 // for transparent meshes. Culling is disabled so both faces of thin
 // transparent geometry (e.g. glass panes, foliage cards) are visible.
@@ -188,11 +177,16 @@ auto make_mesh_transparent_pipeline(
     });
 }
 
-// Opaque-style depth test/write, no blending, but using the alpha-test
-// fragment shader (discards below the glTF-default 0.5 cutoff). Culling is
-// disabled to match the doubleSided flag on the alpha-tested materials seen
-// so far (foliage/thorn/chain cutout geometry).
-auto make_mesh_alpha_test_pipeline(
+// Vertex-pull mesh pipeline (Opaque): no bound vertex buffer (see
+// pbr_vert_meshlet.hlsl - geometry is fetched manually via SV_VertexID/
+// SV_InstanceID). enable_depth_write = false: SDL_GPUMeshRenderPass::
+// draw_depth_prepass already wrote the authoritative depth value for every
+// Opaque submesh before draw() runs (see SDL_GPURenderer::record_main_pass,
+// which runs the pre-pass first and reuses its depth via LoadOp::Load) -
+// re-writing the same value here would be redundant. The depth test itself
+// stays enabled and unchanged (LESS_OR_EQUAL passes correctly against a
+// matching value).
+auto make_mesh_meshlet_pipeline(
     GPUDevice& device,
     const Shader& vertex_shader,
     const Shader& fragment_shader,
@@ -203,8 +197,35 @@ auto make_mesh_alpha_test_pipeline(
         .fragment_shader = fragment_shader,
         .color_target_format = hdr_color_texture_format,
         .primitive_type = PrimitiveType::TriangleList,
-        .vertex_buffer_descriptions = mesh_vertex_buffer_descriptions,
-        .vertex_attributes = mesh_vertex_attributes,
+        .vertex_buffer_descriptions = {},
+        .vertex_attributes = {},
+        .enable_depth_test = true,
+        .enable_depth_write = false,
+        .depth_stencil_format = depth_texture_format,
+        .cull_mode = CullMode::Back,
+        .front_face = FrontFace::Clockwise,
+        .sample_count = sample_count,
+    });
+}
+
+// Vertex-pull mesh pipeline (Mask): opaque-style depth test/write, no
+// blending, but using the alpha-test fragment shader (discards below the
+// glTF-default 0.5 cutoff). Culling is disabled to match the doubleSided
+// flag on the alpha-tested materials seen so far (foliage/thorn/chain cutout
+// geometry).
+auto make_mesh_alpha_test_meshlet_pipeline(
+    GPUDevice& device,
+    const Shader& vertex_shader,
+    const Shader& fragment_shader,
+    SampleCount sample_count
+) -> GraphicsPipeline {
+    return device.create_graphics_pipeline(GraphicsPipelineInfo{
+        .vertex_shader = vertex_shader,
+        .fragment_shader = fragment_shader,
+        .color_target_format = hdr_color_texture_format,
+        .primitive_type = PrimitiveType::TriangleList,
+        .vertex_buffer_descriptions = {},
+        .vertex_attributes = {},
         .enable_depth_test = true,
         .depth_stencil_format = depth_texture_format,
         .cull_mode = CullMode::None,
@@ -223,6 +244,7 @@ SDL_GPUMeshRenderPass::SDL_GPUMeshRenderPass(
     : mesh_vertex_shader{make_mesh_shader(
           device, "res/shaders/sdl_gpu/pbr_vert.hlsl", ShaderStage::Vertex
       )},
+      mesh_vertex_meshlet_shader{make_mesh_meshlet_vertex_shader(device)},
       mesh_fragment_shader{make_mesh_shader(
           device, "res/shaders/sdl_gpu/pbr_frag.hlsl", ShaderStage::Fragment
       )},
@@ -234,19 +256,20 @@ SDL_GPUMeshRenderPass::SDL_GPUMeshRenderPass(
           device, "res/shaders/sdl_gpu/shadow_depth_frag.hlsl",
           ShaderStage::Fragment
       )},
-      mesh_pipeline{make_mesh_pipeline(
-          device, mesh_vertex_shader, mesh_fragment_shader, sample_count
-      )},
-      mesh_alpha_test_pipeline{make_mesh_alpha_test_pipeline(
-          device, mesh_vertex_shader, mesh_alpha_test_fragment_shader,
-          sample_count
-      )},
       mesh_transparent_pipeline{make_mesh_transparent_pipeline(
           device, mesh_vertex_shader, mesh_fragment_shader, sample_count
       )},
       depth_prepass_pipeline{make_depth_only_mesh_pipeline(
           device, mesh_vertex_shader, depth_prepass_fragment_shader,
           depth_texture_format, sample_count
+      )},
+      mesh_meshlet_pipeline{make_mesh_meshlet_pipeline(
+          device, mesh_vertex_meshlet_shader, mesh_fragment_shader,
+          sample_count
+      )},
+      mesh_alpha_test_meshlet_pipeline{make_mesh_alpha_test_meshlet_pipeline(
+          device, mesh_vertex_meshlet_shader, mesh_alpha_test_fragment_shader,
+          sample_count
       )} {}
 
 auto SDL_GPUMeshRenderPass::get_instance_buffer_cache() const
@@ -379,9 +402,9 @@ auto SDL_GPUMeshRenderPass::draw(
     const QueuedDraws& queued_draws,
     const Maths::Matrix4x4f& view_proj,
     const std::array<Maths::Vector4f, 6>& camera_frustum_planes,
-    const Buffer& indirect_command_buffer,
-    const Buffer& visible_instance_indices_buffer,
-    const InstanceCullLayout& instance_cull_layout,
+    const Buffer& meshlet_indirect_command_buffer,
+    const Buffer& visible_meshlet_instances_buffer,
+    const MeshletCullLayout& meshlet_cull_layout,
     const LightData& light_data,
     const Texture& ssao_texture,
     const Sampler& ssao_sampler,
@@ -480,44 +503,44 @@ auto SDL_GPUMeshRenderPass::draw(
         spot_shadow_matrix_buffer_slot, spot_shadow_matrix_buffer_bindings
     );
 
-    // Each submesh is drawn indirectly with a GPU-culled, per-instance-
-    // compacted num_instances (see SDL_GPUInstanceCullPass) - one indirect
-    // draw call per submesh, since each needs its own material samplers
-    // bound (SDL_GPUMesh::draw_indirect), so submeshes can't be collapsed
-    // into one indirect multi-draw call sharing a single bind state. Unlike
-    // the geometry-only passes (shadow cascades, occlusion depth, AO
-    // normal-prepass), material binding is the actual blocker here - those
-    // passes have no per-submesh state left to vary once
-    // instance_base_offset moved into IndirectDrawCommand.first_instance
-    // (see SDL_GPUInstanceCullPass::cull), so they can multi-draw.
-    const auto draw_batches_matching =
+    // Each submesh is drawn indirectly with a GPU-culled, per-instance-per-
+    // meshlet-compacted num_instances (see SDL_GPUMeshletCullPass) - one
+    // non-indexed indirect draw call per (submesh, LOD), since each needs its
+    // own material samplers bound (SDL_GPUMesh::draw_meshlet_indirect), so
+    // submeshes can't be collapsed into one indirect multi-draw call sharing
+    // a single bind state. No vertex/index buffer is bound for these draws -
+    // pbr_vert_meshlet.hlsl fetches geometry manually via SV_VertexID/
+    // SV_InstanceID (see SDL_GPUMeshletCullPass's doc comment for why: a
+    // fixed-function vertex buffer's single per-draw base_vertex can't
+    // express the different vertex ranges different meshlet-instances in the
+    // same draw need).
+    const auto draw_meshlet_batches_matching =
         [&](Utilities::ModelLoader::AlphaMode mode) {
             for (auto batch_index = std::size_t{0};
                  batch_index < instance_batches.size(); ++batch_index) {
                 const auto& batch = instance_batches[batch_index];
-                const auto& submesh_infos = instance_cull_layout[batch_index];
+                const auto& submesh_infos = meshlet_cull_layout[batch_index];
                 const auto meshes =
                     graphics_factory.get_meshes(batch.renderable_id);
 
                 const auto& instance_buffer =
                     instance_buffer_cache.get(batch.renderable_id);
                 const auto storage_buffer_bindings = std::array{
-                    &instance_buffer, &visible_instance_indices_buffer
+                    &instance_buffer,
+                    &visible_meshlet_instances_buffer,
+                    &graphics_factory.get_meshlet_metadata_buffer(
+                        batch.renderable_id
+                    ),
+                    &graphics_factory.get_meshlet_vertices_buffer(
+                        batch.renderable_id
+                    ),
+                    &graphics_factory.get_meshlet_triangles_buffer(
+                        batch.renderable_id
+                    ),
+                    &graphics_factory.get_vertex_buffer(batch.renderable_id),
                 };
                 render_pass.bind_vertex_storage_buffers(
                     0, storage_buffer_bindings
-                );
-
-                const auto vertex_bindings = std::array{VertexBufferBinding{
-                    .buffer = &graphics_factory.get_vertex_buffer(
-                        batch.renderable_id
-                    ),
-                    .offset = 0,
-                }};
-                render_pass.bind_vertex_buffers(0, vertex_bindings);
-                render_pass.bind_index_buffer(
-                    graphics_factory.get_index_buffer(batch.renderable_id),
-                    IndexElementSize::Bits32, 0
                 );
 
                 for (auto mesh_index = std::size_t{0};
@@ -541,20 +564,20 @@ auto SDL_GPUMeshRenderPass::draw(
 
                     for (auto lod = std::size_t{0}; lod < max_lod_levels;
                          ++lod) {
-                        mesh.draw_indirect(
-                            render_pass, indirect_command_buffer,
-                            info.indirect_command_byte_offsets.at(lod)
+                        mesh.draw_meshlet_indirect(
+                            render_pass, meshlet_indirect_command_buffer,
+                            info.at(lod).indirect_command_byte_offset
                         );
                     }
                 }
             }
         };
 
-    render_pass.bind_graphics_pipeline(mesh_pipeline);
-    draw_batches_matching(Utilities::ModelLoader::AlphaMode::Opaque);
+    render_pass.bind_graphics_pipeline(mesh_meshlet_pipeline);
+    draw_meshlet_batches_matching(Utilities::ModelLoader::AlphaMode::Opaque);
 
-    render_pass.bind_graphics_pipeline(mesh_alpha_test_pipeline);
-    draw_batches_matching(Utilities::ModelLoader::AlphaMode::Mask);
+    render_pass.bind_graphics_pipeline(mesh_alpha_test_meshlet_pipeline);
+    draw_meshlet_batches_matching(Utilities::ModelLoader::AlphaMode::Mask);
 
     auto transparent_items = std::vector<TransparentDrawItem>{};
 
