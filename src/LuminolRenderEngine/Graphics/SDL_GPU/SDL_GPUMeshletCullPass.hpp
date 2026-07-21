@@ -75,7 +75,8 @@ public:
         const Maths::Matrix4x4f& current_view_projection,
         const Texture& hiz_pyramid,
         const Sampler& hiz_sampler,
-        uint32_t hiz_mip_levels
+        uint32_t hiz_mip_levels,
+        const Maths::Vector3f& camera_position
     ) -> MeshletCullLayout;
 
     [[nodiscard]] auto get_indirect_command_buffer() const -> const Buffer&;

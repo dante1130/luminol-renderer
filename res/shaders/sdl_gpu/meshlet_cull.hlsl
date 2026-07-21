@@ -120,12 +120,20 @@ RWStructuredBuffer<uint2> visible_meshlet_instances : register(u1, space1);
 // same meaning as instance_cull.hlsl's InstanceCullParams. No LOD fields
 // here - LOD selection already happened in Phase A; this pass only culls
 // the LOD each surviving instance already picked, at meshlet granularity.
+// camera_world_position: used only by the occlusion test below to offset
+// each candidate meshlet's bounding-sphere center toward the camera by its
+// radius before sampling Hi-Z - paired with a trailing uint _padding to keep
+// the cbuffer's total size a 16-byte multiple, the same pairing pattern
+// instance_cull.hlsl's InstanceCullParams uses for lod_reference_position +
+// enable_lod.
 cbuffer MeshletCullParams : register(b0, space2) {
     float4 frustum_planes[6];
     row_major float4x4 current_view_projection;
     uint hiz_mip_levels;
     uint group_to_meshlet_dispatch_base;
     float2 hiz_pyramid_size;
+    float3 camera_world_position;
+    uint _padding;
 };
 
 bool sphere_in_frustum(float3 center, float radius) {
@@ -194,17 +202,27 @@ void main(uint3 group_id : SV_GroupID, uint3 group_thread_id : SV_GroupThreadID)
         // deliberate simplification given this dispatch's much higher
         // thread count (worst case, one thread per candidate meshlet per
         // instance) - conservative correctness is traded for throughput
-        // here, unlike Phase A's per-instance AABB test.
-        float4 clip = mul(float4(world_center, 1.0), current_view_projection);
+        // here, unlike Phase A's per-instance AABB test. Testing
+        // world_center directly would under-estimate visibility: in NDC-z
+        // space the center sits behind the sphere's near-facing surface by
+        // ~world_radius, so a meshlet whose front hemisphere is actually
+        // visible past an occluder but whose center projects behind it
+        // would be wrongly culled. Offset to the near point on the sphere's
+        // surface instead - the single-sample analogue of Phase A's
+        // nearest-of-26-points test.
+        float3 view_dir = normalize(camera_world_position - world_center);
+        float3 near_point = world_center + (view_dir * world_radius);
+
+        float4 clip = mul(float4(near_point, 1.0), current_view_projection);
         if (clip.w > 0.0) {
             float3 ndc = clip.xyz / clip.w;
             float2 uv = float2(ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5);
             float stored_depth = hiz_pyramid.SampleLevel(hiz_sampler, uv, 0.0).r;
 
-            // Larger bias than Phase A's 0.0005: a single center-point
-            // sample (vs. 26 surface samples) is a coarser approximation of
-            // the meshlet's true silhouette, so more slack is needed to
-            // avoid false-positive occlusion at grazing angles.
+            // Larger bias than Phase A's 0.0005: a single near-point sample
+            // (vs. 26 surface samples) is a coarser approximation of the
+            // meshlet's true silhouette, so more slack is needed to avoid
+            // false-positive occlusion at grazing angles.
             const float hiz_depth_bias = 0.0015;
             if (ndc.z > stored_depth + hiz_depth_bias) {
                 return;  // occluded

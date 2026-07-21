@@ -887,7 +887,8 @@ auto SDL_GPURenderer::draw() -> void {
         instance_cull_layout, instance_cull_pass, frame_prep.camera_frustum_planes,
         frame_prep.current_view_projection, hiz_pass.get_pyramid_texture(),
         hiz_pass.get_pyramid_sampler(),
-        debug_disable_occlusion_culling ? 0U : hiz_pass.get_mip_levels()
+        debug_disable_occlusion_culling ? 0U : hiz_pass.get_mip_levels(),
+        camera_position_3f
     );
 
     record_ao_and_ssr(command_buffer, frame_prep.instance_batches, instance_cull_layout);
