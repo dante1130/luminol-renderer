@@ -11,7 +11,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCullingUtils.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/RenderPasses/SDL_GPURenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUResourceBuilders.hpp>
 #include <LuminolRenderEngine/Utilities/Timer.hpp>
 

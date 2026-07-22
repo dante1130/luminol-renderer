@@ -8,9 +8,9 @@
 #include <gsl/gsl>
 #include <LuminolMaths/Vector.hpp>
 
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUComputePass.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCopyPass.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/RenderPasses/SDL_GPUComputePass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/RenderPasses/SDL_GPUCopyPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/RenderPasses/SDL_GPURenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
 

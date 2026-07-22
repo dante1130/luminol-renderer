@@ -4,8 +4,8 @@ add_library(Luminol.Graphics.SDL_GPU
     SDL_GPUTypeConversions.cpp
     SDL_GPUShader.cpp
     SDL_GPUCommandBuffer.cpp
-    SDL_GPURenderPass.cpp
-    SDL_GPUComputePass.cpp
+    RenderPasses/SDL_GPURenderPass.cpp
+    RenderPasses/SDL_GPUComputePass.cpp
     SDL_GPUGraphicsPipeline.cpp
     SDL_GPUComputePipeline.cpp
     SDL_GPUBuffer.cpp
@@ -13,7 +13,7 @@ add_library(Luminol.Graphics.SDL_GPU
     SDL_GPUFactory.cpp
     SDL_GPUResourceBuilders.cpp
     SDL_GPUTexture.cpp
-    SDL_GPUCopyPass.cpp
+    RenderPasses/SDL_GPUCopyPass.cpp
     SDL_GPUMesh.cpp
     SDL_GPUInstanceBufferCache.cpp
     SDL_GPUMeshRenderPass.cpp
