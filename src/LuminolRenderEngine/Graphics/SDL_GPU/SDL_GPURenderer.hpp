@@ -8,7 +8,7 @@
 #include <LuminolMaths/Vector.hpp>
 
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUAmbientOcclusionPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/PostProcess/SDL_GPUAmbientOcclusionPass.hpp>
 #include <LuminolRenderEngine/Window/Window.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUClusterPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
@@ -21,12 +21,12 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUMeshletCullPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUOcclusionDepthPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Shadows/SDL_GPUPointSpotShadowPass.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUScreenSpaceReflectionPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/PostProcess/SDL_GPUScreenSpaceReflectionPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Shadows/SDL_GPUShadowPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUSkyboxRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTextRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTonemapPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/PostProcess/SDL_GPUTonemapPass.hpp>
 #include <LuminolRenderEngine/Utilities/PerformanceLogger.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
