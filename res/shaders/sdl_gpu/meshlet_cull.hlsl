@@ -6,8 +6,8 @@
 // visible_instance_indices + IndirectDrawCommand buffers. This shader reads
 // that output read-only and adds a finer culling pass: for each surviving
 // instance, test each of its selected LOD's ~64-triangle meshlets
-// (bounding sphere, transformed by that instance's model matrix) against
-// the frustum and Hi-Z, and compact surviving (instance, meshlet) pairs
+// (local-space bounding box, transformed by that instance's model matrix)
+// against the frustum and Hi-Z, and compact surviving (instance, meshlet) pairs
 // into a new buffer for the main pass's vertex-pull draw
 // (pbr_vert_meshlet.hlsl).
 //
@@ -26,6 +26,12 @@
 
 // Must match SDL_GPUMesh.cpp's meshlet_max_triangles.
 #define MESHLET_MAX_TRIANGLES 64
+
+// Cap on the exhaustive per-texel Hi-Z scan in main()'s occlusion test, in
+// each screen axis independently (worst case 16*16 = 256 texel reads by one
+// thread). Exceeding this resolves to "assume visible" rather than a partial
+// scan - see the cap-exceeded bailout for why.
+#define HIZ_RECT_MAX_TEXELS_PER_AXIS 16
 
 // Non-indexed indirect draw command - mirrors SDL_GPUIndirectDrawCommand
 // (SDL_gpu.h) exactly. 16 bytes - already a multiple of the 16-byte
@@ -80,10 +86,18 @@ struct MeshletCullMetadata {
 
 // One meshlet cluster's data, shared across every instance/LOD that
 // references it - mirrors GpuMeshletMetadata (SDL_GPUMesh.hpp) exactly.
-// Only bounds_center/bounds_radius are read here (local-space, transformed
-// by the candidate instance's model matrix below); vertex_offset/
-// triangle_offset/vertex_count/triangle_count are for the vertex shader
-// (pbr_vert_meshlet.hlsl), not this cull pass.
+// local_bounds_min/max (local-space, transformed by the candidate
+// instance's model matrix below) are what this cull pass actually tests
+// against - see SDL_GPUMesh.hpp's doc comment on GpuMeshletMetadata for why
+// an AABB replaced the bounding sphere here (thin/elongated meshlets - a
+// curtain fold, a column edge, foliage - have a sphere radius much larger
+// than their true cross-section, letting sphere-surface sample points land
+// in occluded space next to real, visible, thinner geometry).
+// bounds_center/bounds_radius are kept (unused by this shader) only because
+// meshopt_computeMeshletBounds already computes them for free and cone data
+// may use them later (see build_meshlets' cone-weight comment).
+// vertex_offset/triangle_offset/vertex_count/triangle_count are for the
+// vertex shader (pbr_vert_meshlet.hlsl), not this cull pass.
 struct GpuMeshletMetadata {
     uint vertex_offset;
     uint triangle_offset;
@@ -91,6 +105,8 @@ struct GpuMeshletMetadata {
     uint triangle_count;
     float3 bounds_center;
     float bounds_radius;
+    float4 local_bounds_min;
+    float4 local_bounds_max;
 };
 
 // hiz_pyramid/hiz_sampler share t0/s0 to compile as one combined-image-
@@ -120,26 +136,27 @@ RWStructuredBuffer<uint2> visible_meshlet_instances : register(u1, space1);
 // same meaning as instance_cull.hlsl's InstanceCullParams. No LOD fields
 // here - LOD selection already happened in Phase A; this pass only culls
 // the LOD each surviving instance already picked, at meshlet granularity.
-// camera_world_position: used only by the occlusion test below to offset
-// each candidate meshlet's bounding-sphere center toward the camera by its
-// radius before sampling Hi-Z - paired with a trailing uint _padding to keep
-// the cbuffer's total size a 16-byte multiple, the same pairing pattern
-// instance_cull.hlsl's InstanceCullParams uses for lod_reference_position +
-// enable_lod.
 cbuffer MeshletCullParams : register(b0, space2) {
     float4 frustum_planes[6];
     row_major float4x4 current_view_projection;
     uint hiz_mip_levels;
     uint group_to_meshlet_dispatch_base;
     float2 hiz_pyramid_size;
-    float3 camera_world_position;
-    uint _padding;
 };
 
-bool sphere_in_frustum(float3 center, float radius) {
+// Mirrors instance_cull.hlsl's aabb_in_frustum exactly (same scale-invariant
+// sign test - immune to frustum_planes being unnormalized, unlike a sphere
+// test would be).
+bool aabb_in_frustum(float3 box_min, float3 box_max) {
     for (uint i = 0; i < 6; ++i) {
         float4 plane = frustum_planes[i];
-        if (dot(plane.xyz, center) + plane.w < -radius) {
+        float3 positive_vertex = float3(
+            plane.x >= 0.0 ? box_max.x : box_min.x,
+            plane.y >= 0.0 ? box_max.y : box_min.y,
+            plane.z >= 0.0 ? box_max.z : box_min.z
+        );
+        float distance = dot(plane.xyz, positive_vertex) + plane.w;
+        if (distance < 0.0) {
             return false;
         }
     }
@@ -182,50 +199,131 @@ void main(uint3 group_id : SV_GroupID, uint3 group_thread_id : SV_GroupThreadID)
     uint meshlet_index = metadata.meshlet_first + meshlet_slot;
     GpuMeshletMetadata meshlet = mesh_meshlet_metadata[meshlet_index];
 
-    // Conservative (never-under-culls) uniform-scale approximation for a
-    // sphere radius under a possibly non-uniformly-scaled model matrix -
-    // take the largest of the three basis column lengths.
-    float3 scale = float3(
-        length(model[0].xyz), length(model[1].xyz), length(model[2].xyz)
-    );
-    float max_scale = max(scale.x, max(scale.y, scale.z));
+    float3 local_bounds_min = meshlet.local_bounds_min.xyz;
+    float3 local_bounds_max = meshlet.local_bounds_max.xyz;
 
-    float3 world_center = mul(float4(meshlet.bounds_center, 1.0), model).xyz;
-    float world_radius = meshlet.bounds_radius * max_scale;
+    // Only the 8 true AABB corners are needed - view-space Z is linear, so
+    // its minimum over a convex box occurs at a vertex (giving the exact
+    // nearest depth, not an approximation), and a convex box's projected
+    // screen footprint's convex hull equals the hull of its projected
+    // vertices (given none are behind the camera, guarded by the
+    // behind_camera bailout below) - so these 8 corners exactly bound both
+    // the frustum test and (see below) the occlusion test's screen rect. No
+    // face-center/edge-midpoint samples needed - those only existed to feed
+    // point sampling, which this occlusion test no longer does (see below).
+    float3 corners[8] = {
+        float3(local_bounds_min.x, local_bounds_min.y, local_bounds_min.z),
+        float3(local_bounds_max.x, local_bounds_min.y, local_bounds_min.z),
+        float3(local_bounds_min.x, local_bounds_max.y, local_bounds_min.z),
+        float3(local_bounds_max.x, local_bounds_max.y, local_bounds_min.z),
+        float3(local_bounds_min.x, local_bounds_min.y, local_bounds_max.z),
+        float3(local_bounds_max.x, local_bounds_min.y, local_bounds_max.z),
+        float3(local_bounds_min.x, local_bounds_max.y, local_bounds_max.z),
+        float3(local_bounds_max.x, local_bounds_max.y, local_bounds_max.z),
+    };
 
-    if (!sphere_in_frustum(world_center, world_radius)) {
+    float3 world_corners[8];
+    for (int i = 0; i < 8; ++i) {
+        world_corners[i] = mul(float4(corners[i], 1.0), model).xyz;
+    }
+
+    float3 world_min = world_corners[0];
+    float3 world_max = world_corners[0];
+    for (int i = 1; i < 8; ++i) {
+        world_min = min(world_min, world_corners[i]);
+        world_max = max(world_max, world_corners[i]);
+    }
+
+    if (!aabb_in_frustum(world_min, world_max)) {
         return;
     }
 
     if (hiz_mip_levels > 0) {
-        // Single-point (not Phase A's 26-sample) occlusion test: a
-        // deliberate simplification given this dispatch's much higher
-        // thread count (worst case, one thread per candidate meshlet per
-        // instance) - conservative correctness is traded for throughput
-        // here, unlike Phase A's per-instance AABB test. Testing
-        // world_center directly would under-estimate visibility: in NDC-z
-        // space the center sits behind the sphere's near-facing surface by
-        // ~world_radius, so a meshlet whose front hemisphere is actually
-        // visible past an occluder but whose center projects behind it
-        // would be wrongly culled. Offset to the near point on the sphere's
-        // surface instead - the single-sample analogue of Phase A's
-        // nearest-of-26-points test.
-        float3 view_dir = normalize(camera_world_position - world_center);
-        float3 near_point = world_center + (view_dir * world_radius);
-
-        float4 clip = mul(float4(near_point, 1.0), current_view_projection);
-        if (clip.w > 0.0) {
+        // Exact screen-space rectangle coverage, not point sampling: earlier
+        // rounds went from 1 -> 5 -> 9 -> 26 discrete sample points, but no
+        // fixed point count can guarantee catching every possible thin,
+        // unluckily-angled visible sliver between occluders - a gap can
+        // always fall between samples. Instead, reproject the 8 corners to
+        // get the meshlet's exact nearest depth and exact screen-space UV
+        // rect (both provably vertex-extremal for a convex box - see the
+        // comment above), then scan EVERY Hi-Z texel in that rect below, so
+        // no pixel of the footprint goes unchecked.
+        float nearest_ndc_z = 1e30;
+        float2 uv_min = float2(1e30, 1e30);
+        float2 uv_max = float2(-1e30, -1e30);
+        bool behind_camera = false;
+        for (int j = 0; j < 8; ++j) {
+            float4 clip = mul(
+                float4(world_corners[j], 1.0), current_view_projection
+            );
+            if (clip.w <= 0.0) {
+                behind_camera = true;
+                break;
+            }
             float3 ndc = clip.xyz / clip.w;
+            nearest_ndc_z = min(nearest_ndc_z, ndc.z);
             float2 uv = float2(ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5);
-            float stored_depth = hiz_pyramid.SampleLevel(hiz_sampler, uv, 0.0).r;
+            uv_min = min(uv_min, uv);
+            uv_max = max(uv_max, uv);
+        }
 
-            // Larger bias than Phase A's 0.0005: a single near-point sample
-            // (vs. 26 surface samples) is a coarser approximation of the
-            // meshlet's true silhouette, so more slack is needed to avoid
-            // false-positive occlusion at grazing angles.
-            const float hiz_depth_bias = 0.0015;
-            if (ndc.z > stored_depth + hiz_depth_bias) {
-                return;  // occluded
+        if (!behind_camera) {
+            // A corner can legitimately project outside [0,1] for a meshlet
+            // straddling the frustum edge (aabb_in_frustum above only
+            // rejects it if EVERY plane fully excludes the box) - clamp to
+            // the visible screen before converting to texel coordinates.
+            uv_min = saturate(uv_min);
+            uv_max = saturate(uv_max);
+
+            int2 pyramid_size_i = int2(hiz_pyramid_size);
+            int2 texel_min = clamp(
+                int2(floor(uv_min * hiz_pyramid_size)), int2(0, 0),
+                pyramid_size_i - int2(1, 1)
+            );
+            int2 texel_max = clamp(
+                int2(floor(uv_max * hiz_pyramid_size)), int2(0, 0),
+                pyramid_size_i - int2(1, 1)
+            );
+            int2 rect_texels = texel_max - texel_min + int2(1, 1);
+
+            // Capped so one thread can't stall its warp/wavefront on an
+            // unbounded, data-dependent loop for a meshlet very close to the
+            // camera. Past the cap, skip the test and assume visible rather
+            // than cull from a partial scan - a fully-occluded CHECKED
+            // subset can't soundly prove the whole footprint occluded, so
+            // only skipping the test entirely stays conservative (same
+            // policy as the behind_camera bailout above).
+            if (rect_texels.x <= HIZ_RECT_MAX_TEXELS_PER_AXIS &&
+                rect_texels.y <= HIZ_RECT_MAX_TEXELS_PER_AXIS) {
+                float stored_depth = -1e30;
+                [loop]
+                for (int y = texel_min.y; y <= texel_max.y; ++y) {
+                    [loop]
+                    for (int x = texel_min.x; x <= texel_max.x; ++x) {
+                        // Sample (not Load) at each texel's exact center via
+                        // the existing Nearest/ClampToEdge hiz_sampler - this
+                        // file's hiz_pyramid/hiz_sampler must be used
+                        // together to compile as one combined-image-sampler
+                        // descriptor (see the register-binding comment
+                        // above), so this keeps the same compile path
+                        // functionally equivalent to Load given Nearest
+                        // filtering.
+                        float2 texel_uv =
+                            (float2(x, y) + 0.5) / hiz_pyramid_size;
+                        stored_depth = max(
+                            stored_depth,
+                            hiz_pyramid.SampleLevel(hiz_sampler, texel_uv, 0.0).r
+                        );
+                    }
+                }
+
+                // Same bias as before: absorbs floating-point noise between
+                // the rasterizer's depth write and this shader's independent
+                // reprojection of the same geometry.
+                const float hiz_depth_bias = 0.0015;
+                if (nearest_ndc_z > stored_depth + hiz_depth_bias) {
+                    return;  // occluded
+                }
             }
         }
     }

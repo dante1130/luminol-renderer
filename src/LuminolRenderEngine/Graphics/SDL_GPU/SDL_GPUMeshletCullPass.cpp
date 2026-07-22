@@ -49,8 +49,6 @@ struct MeshletCullParams {
     uint32_t hiz_mip_levels;
     uint32_t group_to_meshlet_dispatch_base;
     std::array<float, 2> hiz_pyramid_size;
-    Vector3f camera_world_position;
-    uint32_t _padding;
 };
 
 // One (submesh, LOD)'s Phase B dispatch inputs. Mirrors struct
@@ -166,8 +164,7 @@ auto SDL_GPUMeshletCullPass::cull(
     const Matrix4x4f& current_view_projection,
     const Texture& hiz_pyramid,
     const Sampler& hiz_sampler,
-    uint32_t hiz_mip_levels,
-    const Vector3f& camera_position
+    uint32_t hiz_mip_levels
 ) -> MeshletCullLayout {
     auto layout = MeshletCullLayout{};
     layout.reserve(instance_batches.size());
@@ -417,8 +414,6 @@ auto SDL_GPUMeshletCullPass::cull(
                 .group_to_meshlet_dispatch_base =
                     info.group_to_meshlet_dispatch_base,
                 .hiz_pyramid_size = hiz_pyramid_size,
-                .camera_world_position = camera_position,
-                ._padding = 0U,
             };
             command_buffer.push_compute_uniform_data(
                 0,

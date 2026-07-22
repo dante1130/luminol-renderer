@@ -27,7 +27,11 @@ StructuredBuffer<row_major float4x4> instance_models : register(t0, space0);
 // as pbr_vert.hlsl's visible_instance_indices.
 StructuredBuffer<uint2> visible_meshlet_instances : register(t1, space0);
 
-// Mirrors GpuMeshletMetadata (SDL_GPUMesh.hpp) exactly.
+// Mirrors GpuMeshletMetadata (SDL_GPUMesh.hpp) exactly - including the
+// trailing local_bounds_min/max fields this shader never reads, since the
+// StructuredBuffer's per-element stride must match meshlet_cull.hlsl's copy
+// of this struct (both read the SAME meshlet_metadata buffer); a shorter
+// struct here would desync every element past index 0.
 struct GpuMeshletMetadata {
     uint vertex_offset;
     uint triangle_offset;
@@ -35,6 +39,8 @@ struct GpuMeshletMetadata {
     uint triangle_count;
     float3 bounds_center;
     float bounds_radius;
+    float4 local_bounds_min;
+    float4 local_bounds_max;
 };
 StructuredBuffer<GpuMeshletMetadata> meshlet_metadata : register(t2, space0);
 // Per (meshlet, local vertex slot 0..vertex_count-1): absolute index into

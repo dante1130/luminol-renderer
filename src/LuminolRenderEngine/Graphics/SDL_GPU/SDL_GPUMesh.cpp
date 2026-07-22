@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <limits>
 #include <optional>
 #include <stdexcept>
 
@@ -315,6 +316,42 @@ auto build_meshlets(
             vertex_positions_stride
         );
 
+        auto local_min = Luminol::Maths::Vector3f{
+            std::numeric_limits<float>::max(),
+            std::numeric_limits<float>::max(),
+            std::numeric_limits<float>::max(),
+        };
+        auto local_max = Luminol::Maths::Vector3f{
+            std::numeric_limits<float>::lowest(),
+            std::numeric_limits<float>::lowest(),
+            std::numeric_limits<float>::lowest(),
+        };
+
+        for (uint32_t vertex_slot = 0; vertex_slot < meshlet.vertex_count;
+             ++vertex_slot) {
+            const auto vertex_index =
+                raw_meshlet_vertices[meshlet.vertex_offset + vertex_slot];
+            const auto float_offset =
+                (static_cast<size_t>(vertex_index) * vertex_positions_stride)
+                / sizeof(float);
+            const auto position = Luminol::Maths::Vector3f{
+                vertex_positions[float_offset],
+                vertex_positions[float_offset + 1],
+                vertex_positions[float_offset + 2],
+            };
+
+            local_min = Luminol::Maths::Vector3f{
+                std::min(local_min.x(), position.x()),
+                std::min(local_min.y(), position.y()),
+                std::min(local_min.z(), position.z()),
+            };
+            local_max = Luminol::Maths::Vector3f{
+                std::max(local_max.x(), position.x()),
+                std::max(local_max.y(), position.y()),
+                std::max(local_max.z(), position.z()),
+            };
+        }
+
         combined_meshlets.push_back(GpuMeshletMetadata{
             .vertex_offset =
                 static_cast<uint32_t>(combined_meshlet_vertices.size()),
@@ -325,6 +362,10 @@ auto build_meshlets(
             .bounds_center =
                 {bounds.center[0], bounds.center[1], bounds.center[2]},
             .bounds_radius = bounds.radius,
+            .local_bounds_min =
+                {local_min.x(), local_min.y(), local_min.z(), 0.0F},
+            .local_bounds_max =
+                {local_max.x(), local_max.y(), local_max.z(), 0.0F},
         });
 
         for (auto local_vertex = uint32_t{0}; local_vertex < meshlet.vertex_count;

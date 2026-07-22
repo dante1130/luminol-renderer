@@ -868,12 +868,27 @@ auto SDL_GPURenderer::draw() -> void {
 
     // Phase 2 cull: the final, always-correct visible set, consumed by every
     // downstream pass below exactly as the single-phase design did before.
+    // Occlusion is intentionally disabled here (hiz_mip_levels = 0U, always -
+    // not gated on debug_disable_occlusion_culling): this pass's occlusion
+    // test samples 26 points across the WHOLE SUBMESH's local-space AABB
+    // (instance_cull.hlsl), far coarser than any individual meshlet, so it
+    // can decide an entire instance is occluded from a box test even when a
+    // meshlet inside it is genuinely visible through a tight/diagonal gap -
+    // and once this pass drops an instance, meshlet_cull_pass below never
+    // sees it at all, no matter how precise its own per-meshlet occlusion
+    // test is. Frustum culling + LOD selection here are unaffected and still
+    // correct (frustum tests don't have this granularity problem). Occlusion
+    // for the color pass is now decided entirely by meshlet_cull_pass just
+    // below, at meshlet granularity; AO/SSR and the depth prepass (which
+    // consume this pass's output directly, with no finer re-test) lose this
+    // pass's occlusion pre-filter as a result - a performance cost only,
+    // since anything this test previously (wrongly-or-rightly) culled is
+    // simply drawn instead.
     const auto instance_cull_layout = instance_cull_pass.cull(
         *this->sdl_gpu_factory, command_buffer,
         mesh_render_pass.get_instance_buffer_cache(), frame_prep.instance_batches,
         frame_prep.camera_frustum_planes, frame_prep.current_view_projection,
-        hiz_pass.get_pyramid_texture(), hiz_pass.get_pyramid_sampler(),
-        debug_disable_occlusion_culling ? 0U : hiz_pass.get_mip_levels(),
+        hiz_pass.get_pyramid_texture(), hiz_pass.get_pyramid_sampler(), 0U,
         camera_position_3f, true
     );
 
@@ -887,8 +902,7 @@ auto SDL_GPURenderer::draw() -> void {
         instance_cull_layout, instance_cull_pass, frame_prep.camera_frustum_planes,
         frame_prep.current_view_projection, hiz_pass.get_pyramid_texture(),
         hiz_pass.get_pyramid_sampler(),
-        debug_disable_occlusion_culling ? 0U : hiz_pass.get_mip_levels(),
-        camera_position_3f
+        debug_disable_occlusion_culling ? 0U : hiz_pass.get_mip_levels()
     );
 
     record_ao_and_ssr(command_buffer, frame_prep.instance_batches, instance_cull_layout);

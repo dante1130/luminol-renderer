@@ -125,20 +125,32 @@ auto SDL_GPUOcclusionDepthPass::draw(
             IndexElementSize::Bits32, 0
         );
 
-        // Every submesh in this batch's IndirectDrawCommand slice is
-        // contiguous (SDL_GPUInstanceCullPass::cull builds them that way,
-        // max_lod_levels commands per submesh), and each carries its own
-        // visible_instance_indices base offset via first_instance, so one
-        // multi-draw call covers the whole batch instead of one draw per
-        // submesh/LOD. LOD-disabled cull passes (see cull()'s enable_lod)
-        // leave every non-LOD0 command's num_instances at 0, so those extra
-        // draws are no-ops.
-        render_pass.draw_indexed_primitives_indirect(
-            indirect_command_buffer,
-            submesh_infos.front().indirect_command_byte_offsets[0],
-            static_cast<uint32_t>(submesh_infos.size()) *
-                static_cast<uint32_t>(max_lod_levels)
-        );
+        // Per-submesh (not one multi-draw covering the whole batch): a
+        // Mask/Blend submesh writing full, unconditional depth here (this
+        // pipeline's fragment shader has no alpha test/discard) would make a
+        // glass pane, sheer curtain, or foliage card act as a solid Hi-Z
+        // occluder, wrongly culling real geometry visible behind or through
+        // it - the same reason SDL_GPUMeshRenderPass::draw_depth_prepass
+        // restricts itself to Opaque-only. Submeshes aren't grouped by alpha
+        // mode in the indirect command buffer (built in mesh order - see
+        // SDL_GPUInstanceCullPass::cull), so this can't be done with a
+        // single multi-draw call skipping the interleaved Mask/Blend ones.
+        const auto meshes = graphics_factory.get_meshes(batch.renderable_id);
+        for (auto mesh_index = std::size_t{0}; mesh_index < meshes.size();
+             ++mesh_index) {
+            const auto& mesh = meshes[mesh_index];
+            if (mesh.alpha_mode() != Utilities::ModelLoader::AlphaMode::Opaque) {
+                continue;
+            }
+
+            const auto& info = submesh_infos[mesh_index];
+            for (auto lod = std::size_t{0}; lod < max_lod_levels; ++lod) {
+                mesh.draw_indirect_geometry_only(
+                    render_pass, indirect_command_buffer,
+                    info.indirect_command_byte_offsets.at(lod)
+                );
+            }
+        }
     }
 }
 
