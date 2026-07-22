@@ -419,6 +419,89 @@ auto build_indirect_commands(
 // Phase 2a: point-light cube-face shadow tiles. Each tile does at most one
 // bind + one indirect draw call per batch (skipped entirely if that batch's
 // range is empty), instead of one draw call per surviving mesh.
+// Records one shadow-atlas tile: viewport/scissor, the tile's view-
+// projection UBO, and every batch whose range for this tile is non-empty.
+// No-op if every batch's range is empty (nothing to draw, and setting the
+// viewport for an unused tile would be wasted state). tile_ranges must have
+// exactly instance_batches.size() entries, index-aligned with
+// instance_batches - callers own how those ranges were laid out (per-face
+// for point lights, one range per light for spot lights).
+auto record_shadow_tile(
+    CommandBuffer& command_buffer,
+    RenderPass& render_pass,
+    const SDL_GPUFactory& graphics_factory,
+    const SDL_GPUInstanceBufferCache& instance_buffer_cache,
+    gsl::span<const InstanceBatch> instance_batches,
+    gsl::span<const IndirectDrawRange> tile_ranges,
+    const Buffer& indirect_draw_buffer,
+    const AtlasTileRect& tile,
+    const Matrix4x4f& view_projection
+) -> void {
+    auto tile_has_draws = false;
+    for (const auto& range : tile_ranges) {
+        if (range.count > 0) {
+            tile_has_draws = true;
+            break;
+        }
+    }
+    if (!tile_has_draws) {
+        return;
+    }
+
+    render_pass.set_viewport(
+        static_cast<float>(tile.x), static_cast<float>(tile.y),
+        static_cast<float>(tile.size), static_cast<float>(tile.size)
+    );
+    render_pass.set_scissor(
+        static_cast<int32_t>(tile.x), static_cast<int32_t>(tile.y),
+        static_cast<int32_t>(tile.size), static_cast<int32_t>(tile.size)
+    );
+    const auto vertex_ubo = VertexUBO{
+        .view_projection = view_projection,
+        .instance_base_offset = {0, 0, 0, 0},
+    };
+    command_buffer.push_vertex_uniform_data(
+        0,
+        gsl::span{
+            reinterpret_cast<const std::byte*>(&vertex_ubo), sizeof(vertex_ubo)
+        }
+    );
+
+    for (auto batch_index = std::size_t{0}; batch_index < instance_batches.size();
+         ++batch_index) {
+        const auto& range = tile_ranges[batch_index];
+        if (range.count == 0) {
+            continue;
+        }
+
+        const auto& batch = instance_batches[batch_index];
+        const auto vertex_bindings = std::array{VertexBufferBinding{
+            .buffer = &graphics_factory.get_vertex_buffer(batch.renderable_id),
+            .offset = 0,
+        }};
+        render_pass.bind_vertex_buffers(0, vertex_bindings);
+        render_pass.bind_index_buffer(
+            graphics_factory.get_index_buffer(batch.renderable_id),
+            IndexElementSize::Bits32, 0
+        );
+
+        const auto& instance_buffer =
+            instance_buffer_cache.get(batch.renderable_id);
+        const auto& identity_indices_buffer =
+            instance_buffer_cache.get_identity_indices_buffer();
+        const auto storage_buffer_bindings = std::array{
+            &instance_buffer, &identity_indices_buffer
+        };
+        render_pass.bind_vertex_storage_buffers(0, storage_buffer_bindings);
+
+        render_pass.draw_indexed_primitives_indirect(
+            indirect_draw_buffer,
+            range.offset * static_cast<uint32_t>(sizeof(IndirectDrawCommand)),
+            range.count
+        );
+    }
+}
+
 auto record_point_shadow_pass(
     CommandBuffer& command_buffer,
     const SDL_GPUFactory& graphics_factory,
@@ -452,79 +535,15 @@ auto record_point_shadow_pass(
             const auto view_projection = point_light_face_view_projection(
                 point_light.position, point_light.far_plane, face
             );
-
             const auto tile = point_atlas_tile_rect(point_light.slot, face);
+            const auto tile_ranges =
+                point_ranges.subspan(point_range_index, instance_batches.size());
 
-            auto tile_has_draws = false;
-            for (auto batch_index = std::size_t{0};
-                 batch_index < instance_batches.size(); ++batch_index) {
-                if (point_ranges[point_range_index + batch_index].count > 0) {
-                    tile_has_draws = true;
-                    break;
-                }
-            }
-
-            if (tile_has_draws) {
-                render_pass.set_viewport(
-                    static_cast<float>(tile.x), static_cast<float>(tile.y),
-                    static_cast<float>(tile.size), static_cast<float>(tile.size)
-                );
-                render_pass.set_scissor(
-                    static_cast<int32_t>(tile.x), static_cast<int32_t>(tile.y),
-                    static_cast<int32_t>(tile.size),
-                    static_cast<int32_t>(tile.size)
-                );
-                const auto vertex_ubo = VertexUBO{
-                    .view_projection = view_projection,
-                    .instance_base_offset = {0, 0, 0, 0},
-                };
-                command_buffer.push_vertex_uniform_data(
-                    0,
-                    gsl::span{
-                        reinterpret_cast<const std::byte*>(&vertex_ubo),
-                        sizeof(vertex_ubo)
-                    }
-                );
-
-                for (auto batch_index = std::size_t{0};
-                     batch_index < instance_batches.size(); ++batch_index) {
-                    const auto& range =
-                        point_ranges[point_range_index + batch_index];
-                    if (range.count == 0) {
-                        continue;
-                    }
-
-                    const auto& batch = instance_batches[batch_index];
-                    const auto vertex_bindings = std::array{VertexBufferBinding{
-                        .buffer =
-                            &graphics_factory.get_vertex_buffer(batch.renderable_id),
-                        .offset = 0,
-                    }};
-                    render_pass.bind_vertex_buffers(0, vertex_bindings);
-                    render_pass.bind_index_buffer(
-                        graphics_factory.get_index_buffer(batch.renderable_id),
-                        IndexElementSize::Bits32, 0
-                    );
-
-                    const auto& instance_buffer =
-                        instance_buffer_cache.get(batch.renderable_id);
-                    const auto& identity_indices_buffer =
-                        instance_buffer_cache.get_identity_indices_buffer();
-                    const auto storage_buffer_bindings = std::array{
-                        &instance_buffer, &identity_indices_buffer
-                    };
-                    render_pass.bind_vertex_storage_buffers(
-                        0, storage_buffer_bindings
-                    );
-
-                    render_pass.draw_indexed_primitives_indirect(
-                        indirect_draw_buffer,
-                        range.offset *
-                            static_cast<uint32_t>(sizeof(IndirectDrawCommand)),
-                        range.count
-                    );
-                }
-            }
+            record_shadow_tile(
+                command_buffer, render_pass, graphics_factory,
+                instance_buffer_cache, instance_batches, tile_ranges,
+                indirect_draw_buffer, tile, view_projection
+            );
 
             point_range_index += instance_batches.size();
         }
@@ -564,75 +583,14 @@ auto record_spot_shadow_pass(
         }
 
         const auto tile = spot_atlas_tile_rect(spot_light.slot);
+        const auto tile_ranges =
+            spot_ranges.subspan(spot_range_index, instance_batches.size());
 
-        auto tile_has_draws = false;
-        for (auto batch_index = std::size_t{0};
-             batch_index < instance_batches.size(); ++batch_index) {
-            if (spot_ranges[spot_range_index + batch_index].count > 0) {
-                tile_has_draws = true;
-                break;
-            }
-        }
-
-        if (tile_has_draws) {
-            render_pass.set_viewport(
-                static_cast<float>(tile.x), static_cast<float>(tile.y),
-                static_cast<float>(tile.size), static_cast<float>(tile.size)
-            );
-            render_pass.set_scissor(
-                static_cast<int32_t>(tile.x), static_cast<int32_t>(tile.y),
-                static_cast<int32_t>(tile.size), static_cast<int32_t>(tile.size)
-            );
-            const auto vertex_ubo = VertexUBO{
-                .view_projection = spot_shadow_matrices[spot_light.slot],
-                .instance_base_offset = {0, 0, 0, 0},
-            };
-            command_buffer.push_vertex_uniform_data(
-                0,
-                gsl::span{
-                    reinterpret_cast<const std::byte*>(&vertex_ubo),
-                    sizeof(vertex_ubo)
-                }
-            );
-
-            for (auto batch_index = std::size_t{0};
-                 batch_index < instance_batches.size(); ++batch_index) {
-                const auto& range = spot_ranges[spot_range_index + batch_index];
-                if (range.count == 0) {
-                    continue;
-                }
-
-                const auto& batch = instance_batches[batch_index];
-                const auto vertex_bindings = std::array{VertexBufferBinding{
-                    .buffer =
-                        &graphics_factory.get_vertex_buffer(batch.renderable_id),
-                    .offset = 0,
-                }};
-                render_pass.bind_vertex_buffers(0, vertex_bindings);
-                render_pass.bind_index_buffer(
-                    graphics_factory.get_index_buffer(batch.renderable_id),
-                    IndexElementSize::Bits32, 0
-                );
-
-                const auto& instance_buffer =
-                    instance_buffer_cache.get(batch.renderable_id);
-                const auto& identity_indices_buffer =
-                    instance_buffer_cache.get_identity_indices_buffer();
-                const auto storage_buffer_bindings = std::array{
-                    &instance_buffer, &identity_indices_buffer
-                };
-                render_pass.bind_vertex_storage_buffers(
-                    0, storage_buffer_bindings
-                );
-
-                render_pass.draw_indexed_primitives_indirect(
-                    indirect_draw_buffer,
-                    range.offset *
-                        static_cast<uint32_t>(sizeof(IndirectDrawCommand)),
-                    range.count
-                );
-            }
-        }
+        record_shadow_tile(
+            command_buffer, render_pass, graphics_factory, instance_buffer_cache,
+            instance_batches, tile_ranges, indirect_draw_buffer, tile,
+            spot_shadow_matrices[spot_light.slot]
+        );
 
         spot_range_index += instance_batches.size();
     }
