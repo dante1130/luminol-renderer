@@ -282,58 +282,76 @@ auto SDL_GPUMeshletCullPass::cull(
     const auto required_command_size = static_cast<uint32_t>(
         commands.size() * sizeof(MeshletIndirectDrawCommand)
     );
-    if (indirect_command_buffer.get_size() < required_command_size) {
-        indirect_command_buffer = make_indirect_command_buffer(
-            *device, static_cast<uint32_t>(commands.size())
-        );
-    }
-    if (indirect_command_transfer_buffer.get_size() < required_command_size) {
-        indirect_command_transfer_buffer = device->create_transfer_buffer(TransferBufferInfo{
-            .usage = TransferBufferUsage::Upload,
-            .size = required_command_size,
-        });
-    }
+    ensure_buffer_capacity(
+        indirect_command_buffer, required_command_size,
+        [&] {
+            return make_indirect_command_buffer(
+                *device, static_cast<uint32_t>(commands.size())
+            );
+        }
+    );
+    ensure_buffer_capacity(
+        indirect_command_transfer_buffer, required_command_size,
+        [&] {
+            return device->create_transfer_buffer(TransferBufferInfo{
+                .usage = TransferBufferUsage::Upload,
+                .size = required_command_size,
+            });
+        }
+    );
 
     const auto required_visible_instance_size = running_output_index_base *
         static_cast<uint32_t>(sizeof(std::array<uint32_t, 2>));
-    if (visible_meshlet_instances_buffer.get_size() <
-        required_visible_instance_size) {
-        visible_meshlet_instances_buffer = make_visible_meshlet_instances_buffer(
-            *device, running_output_index_base
-        );
-    }
+    ensure_buffer_capacity(
+        visible_meshlet_instances_buffer, required_visible_instance_size,
+        [&] {
+            return make_visible_meshlet_instances_buffer(
+                *device, running_output_index_base
+            );
+        }
+    );
 
     const auto required_metadata_size = static_cast<uint32_t>(
         metadata_entries.size() * sizeof(MeshletCullMetadata)
     );
-    if (meshlet_cull_metadata_buffer.get_size() < required_metadata_size) {
-        meshlet_cull_metadata_buffer = make_meshlet_cull_metadata_buffer(
-            *device, static_cast<uint32_t>(metadata_entries.size())
-        );
-    }
-    if (meshlet_cull_metadata_transfer_buffer.get_size() < required_metadata_size) {
-        meshlet_cull_metadata_transfer_buffer =
-            device->create_transfer_buffer(TransferBufferInfo{
+    ensure_buffer_capacity(
+        meshlet_cull_metadata_buffer, required_metadata_size,
+        [&] {
+            return make_meshlet_cull_metadata_buffer(
+                *device, static_cast<uint32_t>(metadata_entries.size())
+            );
+        }
+    );
+    ensure_buffer_capacity(
+        meshlet_cull_metadata_transfer_buffer, required_metadata_size,
+        [&] {
+            return device->create_transfer_buffer(TransferBufferInfo{
                 .usage = TransferBufferUsage::Upload,
                 .size = required_metadata_size,
             });
-    }
+        }
+    );
 
     const auto required_group_size = static_cast<uint32_t>(
         group_to_meshlet_dispatch.size() * sizeof(uint32_t)
     );
-    if (group_to_meshlet_dispatch_buffer.get_size() < required_group_size) {
-        group_to_meshlet_dispatch_buffer = make_group_to_meshlet_dispatch_buffer(
-            *device, static_cast<uint32_t>(group_to_meshlet_dispatch.size())
-        );
-    }
-    if (group_to_meshlet_dispatch_transfer_buffer.get_size() < required_group_size) {
-        group_to_meshlet_dispatch_transfer_buffer =
-            device->create_transfer_buffer(TransferBufferInfo{
+    ensure_buffer_capacity(
+        group_to_meshlet_dispatch_buffer, required_group_size,
+        [&] {
+            return make_group_to_meshlet_dispatch_buffer(
+                *device, static_cast<uint32_t>(group_to_meshlet_dispatch.size())
+            );
+        }
+    );
+    ensure_buffer_capacity(
+        group_to_meshlet_dispatch_transfer_buffer, required_group_size,
+        [&] {
+            return device->create_transfer_buffer(TransferBufferInfo{
                 .usage = TransferBufferUsage::Upload,
                 .size = required_group_size,
             });
-    }
+        }
+    );
 
     if (!commands.empty()) {
         auto copy_pass = command_buffer.begin_copy_pass();

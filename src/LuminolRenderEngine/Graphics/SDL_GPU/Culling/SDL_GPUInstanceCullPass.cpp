@@ -306,61 +306,85 @@ auto SDL_GPUInstanceCullPass::cull(
     const auto required_command_size = static_cast<uint32_t>(
         commands.size() * sizeof(IndirectDrawCommand)
     );
-    if (indirect_command_buffer.get_size() < required_command_size) {
-        indirect_command_buffer = make_indirect_command_buffer(
-            *graphics_factory.get_gpu_device(),
-            static_cast<uint32_t>(commands.size())
-        );
-    }
-    if (indirect_command_transfer_buffer.get_size() < required_command_size) {
-        indirect_command_transfer_buffer =
-            graphics_factory.get_gpu_device()->create_transfer_buffer(TransferBufferInfo{
-                .usage = TransferBufferUsage::Upload,
-                .size = required_command_size,
-            });
-    }
+    ensure_buffer_capacity(
+        indirect_command_buffer, required_command_size,
+        [&] {
+            return make_indirect_command_buffer(
+                *graphics_factory.get_gpu_device(),
+                static_cast<uint32_t>(commands.size())
+            );
+        }
+    );
+    ensure_buffer_capacity(
+        indirect_command_transfer_buffer, required_command_size,
+        [&] {
+            return graphics_factory.get_gpu_device()->create_transfer_buffer(
+                TransferBufferInfo{
+                    .usage = TransferBufferUsage::Upload,
+                    .size = required_command_size,
+                }
+            );
+        }
+    );
 
     const auto required_index_size =
         running_index_base * static_cast<uint32_t>(sizeof(uint32_t));
-    if (visible_instance_indices_buffer.get_size() < required_index_size) {
-        visible_instance_indices_buffer = make_visible_instance_indices_buffer(
-            *graphics_factory.get_gpu_device(), running_index_base
-        );
-    }
+    ensure_buffer_capacity(
+        visible_instance_indices_buffer, required_index_size,
+        [&] {
+            return make_visible_instance_indices_buffer(
+                *graphics_factory.get_gpu_device(), running_index_base
+            );
+        }
+    );
 
     const auto required_metadata_size = static_cast<uint32_t>(
         submesh_metadata.size() * sizeof(SubmeshCullMetadata)
     );
-    if (submesh_metadata_buffer.get_size() < required_metadata_size) {
-        submesh_metadata_buffer = make_submesh_metadata_buffer(
-            *graphics_factory.get_gpu_device(),
-            static_cast<uint32_t>(submesh_metadata.size())
-        );
-    }
-    if (submesh_metadata_transfer_buffer.get_size() < required_metadata_size) {
-        submesh_metadata_transfer_buffer =
-            graphics_factory.get_gpu_device()->create_transfer_buffer(TransferBufferInfo{
-                .usage = TransferBufferUsage::Upload,
-                .size = required_metadata_size,
-            });
-    }
+    ensure_buffer_capacity(
+        submesh_metadata_buffer, required_metadata_size,
+        [&] {
+            return make_submesh_metadata_buffer(
+                *graphics_factory.get_gpu_device(),
+                static_cast<uint32_t>(submesh_metadata.size())
+            );
+        }
+    );
+    ensure_buffer_capacity(
+        submesh_metadata_transfer_buffer, required_metadata_size,
+        [&] {
+            return graphics_factory.get_gpu_device()->create_transfer_buffer(
+                TransferBufferInfo{
+                    .usage = TransferBufferUsage::Upload,
+                    .size = required_metadata_size,
+                }
+            );
+        }
+    );
 
     const auto required_group_size = static_cast<uint32_t>(
         group_to_submesh.size() * sizeof(uint32_t)
     );
-    if (group_to_submesh_buffer.get_size() < required_group_size) {
-        group_to_submesh_buffer = make_group_to_submesh_buffer(
-            *graphics_factory.get_gpu_device(),
-            static_cast<uint32_t>(group_to_submesh.size())
-        );
-    }
-    if (group_to_submesh_transfer_buffer.get_size() < required_group_size) {
-        group_to_submesh_transfer_buffer =
-            graphics_factory.get_gpu_device()->create_transfer_buffer(TransferBufferInfo{
-                .usage = TransferBufferUsage::Upload,
-                .size = required_group_size,
-            });
-    }
+    ensure_buffer_capacity(
+        group_to_submesh_buffer, required_group_size,
+        [&] {
+            return make_group_to_submesh_buffer(
+                *graphics_factory.get_gpu_device(),
+                static_cast<uint32_t>(group_to_submesh.size())
+            );
+        }
+    );
+    ensure_buffer_capacity(
+        group_to_submesh_transfer_buffer, required_group_size,
+        [&] {
+            return graphics_factory.get_gpu_device()->create_transfer_buffer(
+                TransferBufferInfo{
+                    .usage = TransferBufferUsage::Upload,
+                    .size = required_group_size,
+                }
+            );
+        }
+    );
 
     if (!commands.empty()) {
         auto copy_pass = command_buffer.begin_copy_pass();

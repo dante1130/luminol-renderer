@@ -2,6 +2,7 @@
 
 #include <array>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include <gsl/gsl>
@@ -71,5 +72,21 @@ auto append_batch_indirect_commands(
     std::optional<Utilities::ModelLoader::AlphaMode> alpha_mode_filter,
     std::vector<IndirectDrawCommand>& out_commands
 ) -> IndirectDrawRange;
+
+// Grows a GPU-side buffer (or its upload transfer buffer) in place by
+// replacing it with one made by make_buffer, but only when its current byte
+// size can't hold required_size - otherwise leaves it untouched. Each call
+// site computes its own required_size and factory independently, so a
+// buffer and its paired transfer buffer (which can have different growth
+// thresholds - element count vs. byte size) are never assumed to resize
+// together.
+template <typename BufferT, typename Factory>
+auto ensure_buffer_capacity(
+    BufferT& buffer, uint32_t required_size, Factory&& make_buffer
+) -> void {
+    if (buffer.get_size() < required_size) {
+        buffer = std::forward<Factory>(make_buffer)();
+    }
+}
 
 }  // namespace Luminol::Graphics::SDL_GPU
