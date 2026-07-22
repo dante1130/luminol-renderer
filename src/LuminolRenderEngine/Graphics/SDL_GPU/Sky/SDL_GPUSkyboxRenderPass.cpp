@@ -10,6 +10,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/RenderPasses/SDL_GPUCopyPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/RenderPasses/SDL_GPURenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUResourceBuilders.hpp>
 
 namespace {
 
@@ -18,23 +19,6 @@ using namespace Luminol::Maths;
 
 constexpr auto depth_texture_format = TextureFormat::D24_Unorm;
 constexpr auto hdr_color_texture_format = TextureFormat::R16G16B16A16_Float;
-
-auto make_shader(
-    GPUDevice& device,
-    const std::filesystem::path& path,
-    ShaderStage stage,
-    uint32_t sampler_count,
-    uint32_t uniform_buffer_count
-) -> Shader {
-    return device.create_shader(ShaderInfo{
-        .path = path,
-        .stage = stage,
-        .source_language = ShaderSourceLanguage::Hlsl,
-        .sampler_count = sampler_count,
-        .uniform_buffer_count = uniform_buffer_count,
-        .storage_buffer_count = 0U,
-    });
-}
 
 auto make_skybox_pipeline(
     GPUDevice& device,
@@ -103,14 +87,14 @@ namespace Luminol::Graphics::SDL_GPU {
 SDL_GPUSkyboxRenderPass::SDL_GPUSkyboxRenderPass(
     GPUDevice& device, SampleCount sample_count
 )
-    : skybox_vertex_shader{make_shader(
+    : skybox_vertex_shader{make_hlsl_shader(
           device,
           "res/shaders/sdl_gpu/skybox_vert.hlsl",
           ShaderStage::Vertex,
           0U,
           1U
       )},
-      skybox_fragment_shader{make_shader(
+      skybox_fragment_shader{make_hlsl_shader(
           device,
           "res/shaders/sdl_gpu/skybox_frag.hlsl",
           ShaderStage::Fragment,

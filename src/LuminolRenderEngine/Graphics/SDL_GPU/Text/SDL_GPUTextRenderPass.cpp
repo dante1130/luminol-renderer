@@ -2,7 +2,6 @@
 
 #include <array>
 #include <cstring>
-#include <filesystem>
 
 #include <gsl/gsl>
 
@@ -10,6 +9,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/RenderPasses/SDL_GPUCopyPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/RenderPasses/SDL_GPURenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUResourceBuilders.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTransferBuffer.hpp>
 
 namespace {
@@ -50,23 +50,6 @@ constexpr auto text_vertex_attributes = std::array{
     },
 };
 
-auto make_shader(
-    GPUDevice& device,
-    const std::filesystem::path& path,
-    ShaderStage stage,
-    uint32_t sampler_count,
-    uint32_t uniform_buffer_count
-) -> Shader {
-    return device.create_shader(ShaderInfo{
-        .path = path,
-        .stage = stage,
-        .source_language = ShaderSourceLanguage::Hlsl,
-        .sampler_count = sampler_count,
-        .uniform_buffer_count = uniform_buffer_count,
-        .storage_buffer_count = 0U,
-    });
-}
-
 auto make_text_pipeline(
     GPUDevice& device,
     SDL_Window* window,
@@ -91,14 +74,14 @@ auto make_text_pipeline(
 namespace Luminol::Graphics::SDL_GPU {
 
 SDL_GPUTextRenderPass::SDL_GPUTextRenderPass(GPUDevice& device, SDL_Window* window)
-    : text_vertex_shader{make_shader(
+    : text_vertex_shader{make_hlsl_shader(
           device,
           "res/shaders/sdl_gpu/text_vert.hlsl",
           ShaderStage::Vertex,
           0U,
           1U
       )},
-      text_fragment_shader{make_shader(
+      text_fragment_shader{make_hlsl_shader(
           device,
           "res/shaders/sdl_gpu/text_frag.hlsl",
           ShaderStage::Fragment,
