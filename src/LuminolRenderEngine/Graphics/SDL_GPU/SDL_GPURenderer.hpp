@@ -20,9 +20,9 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUMeshletCullPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUOcclusionDepthPass.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUPointSpotShadowPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Shadows/SDL_GPUPointSpotShadowPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUScreenSpaceReflectionPass.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShadowPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Shadows/SDL_GPUShadowPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUSkyboxRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTextRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>

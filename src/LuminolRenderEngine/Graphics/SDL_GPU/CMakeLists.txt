@@ -24,9 +24,9 @@ add_library(Luminol.Graphics.SDL_GPU
     Culling/SDL_GPUMeshletCullPass.cpp
     Culling/SDL_GPUHiZPass.cpp
     Culling/SDL_GPUOcclusionDepthPass.cpp
-    SDL_GPUShadowPass.cpp
+    Shadows/SDL_GPUShadowPass.cpp
     Culling/SDL_GPUCullingUtils.cpp
-    SDL_GPUPointSpotShadowPass.cpp
+    Shadows/SDL_GPUPointSpotShadowPass.cpp
     SDL_GPUTonemapPass.cpp
     SDL_GPUSkybox.cpp
     SDL_GPUSkyboxRenderPass.cpp
