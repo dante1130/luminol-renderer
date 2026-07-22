@@ -19,7 +19,7 @@ add_library(Luminol.Graphics.SDL_GPU
     SDL_GPUMeshRenderPass.cpp
     PostProcess/SDL_GPUAmbientOcclusionPass.cpp
     PostProcess/SDL_GPUScreenSpaceReflectionPass.cpp
-    SDL_GPUClusterPass.cpp
+    Lighting/SDL_GPUClusterPass.cpp
     Culling/SDL_GPUInstanceCullPass.cpp
     Culling/SDL_GPUMeshletCullPass.cpp
     Culling/SDL_GPUHiZPass.cpp
@@ -30,7 +30,7 @@ add_library(Luminol.Graphics.SDL_GPU
     PostProcess/SDL_GPUTonemapPass.cpp
     SDL_GPUSkybox.cpp
     SDL_GPUSkyboxRenderPass.cpp
-    SDL_GPUIBLRenderPass.cpp
+    Lighting/SDL_GPUIBLRenderPass.cpp
     SDL_GPUFont.cpp
     SDL_GPUTextRenderPass.cpp
 )

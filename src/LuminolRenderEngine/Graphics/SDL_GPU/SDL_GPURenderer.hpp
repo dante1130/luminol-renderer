@@ -10,12 +10,12 @@
 #include <LuminolRenderEngine/Graphics/Renderer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/PostProcess/SDL_GPUAmbientOcclusionPass.hpp>
 #include <LuminolRenderEngine/Window/Window.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUClusterPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Lighting/SDL_GPUClusterPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFont.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUHiZPass.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUIBLRenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Lighting/SDL_GPUIBLRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUInstanceCullPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUMeshletCullPass.hpp>
