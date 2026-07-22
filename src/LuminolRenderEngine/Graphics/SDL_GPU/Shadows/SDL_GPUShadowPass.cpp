@@ -251,12 +251,9 @@ SDL_GPUShadowPass::SDL_GPUShadowPass(GPUDevice& device)
           shadow_map_format
       )},
       shadow_map_texture{make_shadow_map_texture(device)},
-      shadow_map_sampler{device.create_sampler(SamplerInfo{
-          .filter = SamplerFilter::Linear,
-          .address_mode_u = SamplerAddressMode::ClampToEdge,
-          .address_mode_v = SamplerAddressMode::ClampToEdge,
-          .enable_compare = true,
-      })},
+      shadow_map_sampler{make_clamp_linear_sampler(
+          device, /*enable_compare=*/true
+      )},
       cascade_cull_passes{
           SDL_GPUInstanceCullPass{device}, SDL_GPUInstanceCullPass{device},
           SDL_GPUInstanceCullPass{device}, SDL_GPUInstanceCullPass{device}

@@ -35,11 +35,9 @@ SDL_GPUTonemapPass::SDL_GPUTonemapPass(GPUDevice& device, SDL_Window* window)
           device, fullscreen_vertex_shader, tonemap_fragment_shader,
           device.get_swapchain_texture_format(window)
       )},
-      clamp_sampler{device.create_sampler(SamplerInfo{
-          .filter = SamplerFilter::Linear,
-          .address_mode_u = SamplerAddressMode::ClampToEdge,
-          .address_mode_v = SamplerAddressMode::ClampToEdge,
-      })} {}
+      clamp_sampler{make_clamp_linear_sampler(
+          device, /*enable_compare=*/false
+      )} {}
 
 auto SDL_GPUTonemapPass::draw(
     CommandBuffer& command_buffer,

@@ -76,16 +76,6 @@ auto make_cube_texture(GPUDevice& device, uint32_t size, uint32_t mip_levels)
     });
 }
 
-auto make_clamp_sampler(GPUDevice& device, bool enable_mipmap_filtering)
-    -> Sampler {
-    return device.create_sampler(SamplerInfo{
-        .filter = SamplerFilter::Linear,
-        .address_mode_u = SamplerAddressMode::ClampToEdge,
-        .address_mode_v = SamplerAddressMode::ClampToEdge,
-        .enable_mipmap_filtering = enable_mipmap_filtering,
-    });
-}
-
 }  // namespace
 
 namespace Luminol::Graphics::SDL_GPU {
@@ -137,11 +127,15 @@ SDL_GPUIBLRenderPass::SDL_GPUIBLRenderPass(
           ibl_texture_format
       )},
       irradiance_texture{make_cube_texture(device, irradiance_size, 1U)},
-      irradiance_sampler{make_clamp_sampler(device, false)},
+      irradiance_sampler{make_clamp_linear_sampler(
+          device, /*enable_compare=*/false, /*enable_mipmap_filtering=*/false
+      )},
       prefiltered_texture{make_cube_texture(
           device, prefiltered_base_size, default_prefiltered_mip_count
       )},
-      prefiltered_sampler{make_clamp_sampler(device, true)},
+      prefiltered_sampler{make_clamp_linear_sampler(
+          device, /*enable_compare=*/false, /*enable_mipmap_filtering=*/true
+      )},
       prefiltered_mip_count{default_prefiltered_mip_count},
       brdf_lut_texture{device.create_texture(TextureInfo{
           .width = brdf_lut_size,
@@ -149,7 +143,9 @@ SDL_GPUIBLRenderPass::SDL_GPUIBLRenderPass(
           .format = ibl_texture_format,
           .usage = TextureUsage::ColorTarget | TextureUsage::Sampler,
       })},
-      brdf_lut_sampler{make_clamp_sampler(device, false)} {
+      brdf_lut_sampler{make_clamp_linear_sampler(
+          device, /*enable_compare=*/false, /*enable_mipmap_filtering=*/false
+      )} {
     const auto irradiance_texture_view =
         TextureView{irradiance_texture.native_handle()};
     const auto prefiltered_texture_view =

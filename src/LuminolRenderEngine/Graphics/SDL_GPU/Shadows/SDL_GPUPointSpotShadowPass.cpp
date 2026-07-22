@@ -235,15 +235,6 @@ auto make_spot_shadow_texture(GPUDevice& device) -> Texture {
     });
 }
 
-auto make_shadow_map_sampler(GPUDevice& device) -> Sampler {
-    return device.create_sampler(SamplerInfo{
-        .filter = SamplerFilter::Linear,
-        .address_mode_u = SamplerAddressMode::ClampToEdge,
-        .address_mode_v = SamplerAddressMode::ClampToEdge,
-        .enable_compare = true,
-    });
-}
-
 struct SelectedPointLight {
     uint32_t slot;
     Vector3f position;
@@ -666,9 +657,13 @@ SDL_GPUPointSpotShadowPass::SDL_GPUPointSpotShadowPass(GPUDevice& device)
           shadow_map_format
       )},
       point_shadow_texture{make_point_shadow_texture(device)},
-      point_shadow_sampler{make_shadow_map_sampler(device)},
+      point_shadow_sampler{make_clamp_linear_sampler(
+          device, /*enable_compare=*/true
+      )},
       spot_shadow_texture{make_spot_shadow_texture(device)},
-      spot_shadow_sampler{make_shadow_map_sampler(device)},
+      spot_shadow_sampler{make_clamp_linear_sampler(
+          device, /*enable_compare=*/true
+      )},
       spot_shadow_matrix_buffer{device.create_buffer(BufferInfo{
           .usage = BufferUsage::StorageRead,
           .size = spot_shadow_matrix_buffer_size,

@@ -149,11 +149,9 @@ SDL_GPUAmbientOcclusionPass::SDL_GPUAmbientOcclusionPass(
       normal_texture{make_ao_texture(device, window)},
       ssao_raw_texture{make_half_res_ao_texture(device, window)},
       ssao_texture{make_half_res_ao_texture(device, window)},
-      clamp_sampler{device.create_sampler(SamplerInfo{
-          .filter = SamplerFilter::Linear,
-          .address_mode_u = SamplerAddressMode::ClampToEdge,
-          .address_mode_v = SamplerAddressMode::ClampToEdge,
-      })} {}
+      clamp_sampler{make_clamp_linear_sampler(
+          device, /*enable_compare=*/false
+      )} {}
 
 auto SDL_GPUAmbientOcclusionPass::resize(
     GPUDevice& device, uint32_t width, uint32_t height

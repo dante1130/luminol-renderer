@@ -77,4 +77,16 @@ auto make_depth_only_mesh_pipeline(
     });
 }
 
+auto make_clamp_linear_sampler(
+    GPUDevice& device, bool enable_compare, bool enable_mipmap_filtering
+) -> Sampler {
+    return device.create_sampler(SamplerInfo{
+        .filter = SamplerFilter::Linear,
+        .address_mode_u = SamplerAddressMode::ClampToEdge,
+        .address_mode_v = SamplerAddressMode::ClampToEdge,
+        .enable_compare = enable_compare,
+        .enable_mipmap_filtering = enable_mipmap_filtering,
+    });
+}
+
 }  // namespace Luminol::Graphics::SDL_GPU

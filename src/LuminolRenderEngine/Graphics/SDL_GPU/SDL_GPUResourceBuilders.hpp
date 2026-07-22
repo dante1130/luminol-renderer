@@ -7,6 +7,7 @@
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
 
 struct SDL_Window;
@@ -90,5 +91,15 @@ constexpr auto mesh_vertex_attributes = std::array{
     TextureFormat depth_stencil_format,
     SampleCount sample_count = SampleCount::x1
 ) -> GraphicsPipeline;
+
+// Clamp-to-edge, linear-filtered sampler shape shared by most fullscreen
+// passes. enable_compare has no default: it must be passed explicitly
+// because SDL silently accepts a sampler with the wrong compare setting
+// (no compile error), which would break shadow PCF sampling.
+[[nodiscard]] auto make_clamp_linear_sampler(
+    GPUDevice& device,
+    bool enable_compare,
+    bool enable_mipmap_filtering = false
+) -> Sampler;
 
 }  // namespace Luminol::Graphics::SDL_GPU
