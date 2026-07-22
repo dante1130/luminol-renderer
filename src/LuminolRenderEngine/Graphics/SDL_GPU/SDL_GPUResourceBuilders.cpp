@@ -1,5 +1,6 @@
 #include "SDL_GPUResourceBuilders.hpp"
 
+#include <cstring>
 #include <optional>
 
 #include <SDL3/SDL_video.h>
@@ -87,6 +88,20 @@ auto make_clamp_linear_sampler(
         .enable_compare = enable_compare,
         .enable_mipmap_filtering = enable_mipmap_filtering,
     });
+}
+
+auto upload_via_transfer(
+    CopyPass& copy_pass,
+    TransferBuffer& transfer_buffer,
+    const Buffer& buffer,
+    gsl::span<const std::byte> data
+) -> void {
+    const auto mapped = transfer_buffer.map(true);
+    std::memcpy(mapped.data(), data.data(), data.size());
+    transfer_buffer.unmap();
+    copy_pass.upload_to_buffer(
+        transfer_buffer, 0, buffer, 0, static_cast<uint32_t>(data.size()), true
+    );
 }
 
 }  // namespace Luminol::Graphics::SDL_GPU

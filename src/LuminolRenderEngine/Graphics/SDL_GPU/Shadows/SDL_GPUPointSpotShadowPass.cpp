@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cstring>
 #include <numbers>
 #include <vector>
 
@@ -326,13 +325,13 @@ auto build_and_upload_spot_shadow_matrices(
 
     {
         auto copy_pass = command_buffer.begin_copy_pass();
-        const auto size = spot_shadow_matrix_buffer_size;
-        const auto mapped = spot_shadow_matrix_transfer_buffer.map(true);
-        std::memcpy(mapped.data(), spot_shadow_matrices.data(), size);
-        spot_shadow_matrix_transfer_buffer.unmap();
-        copy_pass.upload_to_buffer(
-            spot_shadow_matrix_transfer_buffer, 0, spot_shadow_matrix_buffer, 0,
-            size, true
+        upload_via_transfer(
+            copy_pass, spot_shadow_matrix_transfer_buffer,
+            spot_shadow_matrix_buffer,
+            gsl::span{
+                reinterpret_cast<const std::byte*>(spot_shadow_matrices.data()),
+                spot_shadow_matrix_buffer_size
+            }
         );
     }
 }
@@ -729,12 +728,12 @@ auto SDL_GPUPointSpotShadowPass::draw(
         const auto size = static_cast<uint32_t>(
             indirect_commands.size() * sizeof(IndirectDrawCommand)
         );
-        const auto mapped = indirect_draw_transfer_buffer.map(true);
-        std::memcpy(mapped.data(), indirect_commands.data(), size);
-        indirect_draw_transfer_buffer.unmap();
-        copy_pass.upload_to_buffer(
-            indirect_draw_transfer_buffer, 0, indirect_draw_buffer, 0, size,
-            true
+        upload_via_transfer(
+            copy_pass, indirect_draw_transfer_buffer, indirect_draw_buffer,
+            gsl::span{
+                reinterpret_cast<const std::byte*>(indirect_commands.data()),
+                size
+            }
         );
     }
 

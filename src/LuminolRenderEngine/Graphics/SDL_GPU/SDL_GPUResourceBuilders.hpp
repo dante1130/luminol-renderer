@@ -1,13 +1,19 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <utility>
 
+#include <gsl/gsl>
+
+#include <LuminolRenderEngine/Graphics/SDL_GPU/RenderPasses/SDL_GPUCopyPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTransferBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
 
 struct SDL_Window;
@@ -101,5 +107,15 @@ constexpr auto mesh_vertex_attributes = std::array{
     bool enable_compare,
     bool enable_mipmap_filtering = false
 ) -> Sampler;
+
+// Maps transfer_buffer, copies data into it, unmaps, then uploads it into
+// buffer via copy_pass. Caller owns sizing/growing both buffers beforehand -
+// this only performs the CPU-to-GPU staging copy.
+auto upload_via_transfer(
+    CopyPass& copy_pass,
+    TransferBuffer& transfer_buffer,
+    const Buffer& buffer,
+    gsl::span<const std::byte> data
+) -> void;
 
 }  // namespace Luminol::Graphics::SDL_GPU

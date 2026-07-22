@@ -1,7 +1,5 @@
 #include "SDL_GPUInstanceCullPass.hpp"
 
-#include <cstring>
-
 #include <gsl/gsl>
 
 #include <LuminolRenderEngine/Graphics/BoundingBox.hpp>
@@ -13,6 +11,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBufferCache.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMesh.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUResourceBuilders.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
@@ -365,38 +364,37 @@ auto SDL_GPUInstanceCullPass::cull(
 
     if (!commands.empty()) {
         auto copy_pass = command_buffer.begin_copy_pass();
-        const auto mapped = indirect_command_transfer_buffer.map(true);
-        std::memcpy(mapped.data(), commands.data(), required_command_size);
-        indirect_command_transfer_buffer.unmap();
-        copy_pass.upload_to_buffer(
-            indirect_command_transfer_buffer, 0, indirect_command_buffer, 0,
-            required_command_size, true
+        upload_via_transfer(
+            copy_pass, indirect_command_transfer_buffer,
+            indirect_command_buffer,
+            gsl::span{
+                reinterpret_cast<const std::byte*>(commands.data()),
+                required_command_size
+            }
         );
     }
 
     if (!submesh_metadata.empty()) {
         auto copy_pass = command_buffer.begin_copy_pass();
-        const auto mapped = submesh_metadata_transfer_buffer.map(true);
-        std::memcpy(
-            mapped.data(), submesh_metadata.data(), required_metadata_size
-        );
-        submesh_metadata_transfer_buffer.unmap();
-        copy_pass.upload_to_buffer(
-            submesh_metadata_transfer_buffer, 0, submesh_metadata_buffer, 0,
-            required_metadata_size, true
+        upload_via_transfer(
+            copy_pass, submesh_metadata_transfer_buffer,
+            submesh_metadata_buffer,
+            gsl::span{
+                reinterpret_cast<const std::byte*>(submesh_metadata.data()),
+                required_metadata_size
+            }
         );
     }
 
     if (!group_to_submesh.empty()) {
         auto copy_pass = command_buffer.begin_copy_pass();
-        const auto mapped = group_to_submesh_transfer_buffer.map(true);
-        std::memcpy(
-            mapped.data(), group_to_submesh.data(), required_group_size
-        );
-        group_to_submesh_transfer_buffer.unmap();
-        copy_pass.upload_to_buffer(
-            group_to_submesh_transfer_buffer, 0, group_to_submesh_buffer, 0,
-            required_group_size, true
+        upload_via_transfer(
+            copy_pass, group_to_submesh_transfer_buffer,
+            group_to_submesh_buffer,
+            gsl::span{
+                reinterpret_cast<const std::byte*>(group_to_submesh.data()),
+                required_group_size
+            }
         );
     }
 
