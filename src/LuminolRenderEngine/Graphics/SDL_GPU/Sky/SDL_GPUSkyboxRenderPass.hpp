@@ -4,7 +4,7 @@
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUSkybox.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Sky/SDL_GPUSkybox.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {
 

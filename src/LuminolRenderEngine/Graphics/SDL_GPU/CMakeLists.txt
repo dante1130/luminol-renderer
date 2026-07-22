@@ -28,8 +28,8 @@ add_library(Luminol.Graphics.SDL_GPU
     Culling/SDL_GPUCullingUtils.cpp
     Shadows/SDL_GPUPointSpotShadowPass.cpp
     PostProcess/SDL_GPUTonemapPass.cpp
-    SDL_GPUSkybox.cpp
-    SDL_GPUSkyboxRenderPass.cpp
+    Sky/SDL_GPUSkybox.cpp
+    Sky/SDL_GPUSkyboxRenderPass.cpp
     Lighting/SDL_GPUIBLRenderPass.cpp
     SDL_GPUFont.cpp
     SDL_GPUTextRenderPass.cpp

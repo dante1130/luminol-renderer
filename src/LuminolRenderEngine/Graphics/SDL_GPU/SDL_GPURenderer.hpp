@@ -23,7 +23,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Shadows/SDL_GPUPointSpotShadowPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/PostProcess/SDL_GPUScreenSpaceReflectionPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Shadows/SDL_GPUShadowPass.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUSkyboxRenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Sky/SDL_GPUSkyboxRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTextRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/PostProcess/SDL_GPUTonemapPass.hpp>
