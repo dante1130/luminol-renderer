@@ -5,6 +5,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPURenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUResourceBuilders.hpp>
 
 namespace {
 
@@ -14,62 +15,25 @@ struct TonemapUniforms {
     float exposure;
 };
 
-auto make_shader(
-    GPUDevice& device,
-    const std::filesystem::path& path,
-    ShaderStage stage,
-    uint32_t sampler_count,
-    uint32_t uniform_buffer_count
-) -> Shader {
-    return device.create_shader(ShaderInfo{
-        .path = path,
-        .stage = stage,
-        .source_language = ShaderSourceLanguage::Hlsl,
-        .sampler_count = sampler_count,
-        .uniform_buffer_count = uniform_buffer_count,
-        .storage_buffer_count = 0U,
-    });
-}
-
-auto make_tonemap_pipeline(
-    GPUDevice& device,
-    SDL_Window* window,
-    const Shader& vertex_shader,
-    const Shader& fragment_shader
-) -> GraphicsPipeline {
-    return device.create_graphics_pipeline(GraphicsPipelineInfo{
-        .vertex_shader = vertex_shader,
-        .fragment_shader = fragment_shader,
-        .color_target_format = device.get_swapchain_texture_format(window),
-        .primitive_type = PrimitiveType::TriangleList,
-        .vertex_buffer_descriptions = {},
-        .vertex_attributes = {},
-        .enable_depth_test = false,
-        .cull_mode = CullMode::None,
-    });
-}
-
 }  // namespace
 
 namespace Luminol::Graphics::SDL_GPU {
 
 SDL_GPUTonemapPass::SDL_GPUTonemapPass(GPUDevice& device, SDL_Window* window)
-    : fullscreen_vertex_shader{make_shader(
-          device,
-          "res/shaders/sdl_gpu/fullscreen_vert.hlsl",
-          ShaderStage::Vertex,
-          0U,
-          0U
+    : fullscreen_vertex_shader{make_hlsl_shader(
+          device, "res/shaders/sdl_gpu/fullscreen_vert.hlsl",
+          ShaderStage::Vertex
       )},
-      tonemap_fragment_shader{make_shader(
+      tonemap_fragment_shader{make_hlsl_shader(
           device,
           "res/shaders/sdl_gpu/tonemap_frag.hlsl",
           ShaderStage::Fragment,
           1U,
           1U
       )},
-      tonemap_pipeline{make_tonemap_pipeline(
-          device, window, fullscreen_vertex_shader, tonemap_fragment_shader
+      tonemap_pipeline{make_fullscreen_pipeline(
+          device, fullscreen_vertex_shader, tonemap_fragment_shader,
+          device.get_swapchain_texture_format(window)
       )},
       clamp_sampler{device.create_sampler(SamplerInfo{
           .filter = SamplerFilter::Linear,
