@@ -20,12 +20,12 @@ add_library(Luminol.Graphics.SDL_GPU
     SDL_GPUAmbientOcclusionPass.cpp
     SDL_GPUScreenSpaceReflectionPass.cpp
     SDL_GPUClusterPass.cpp
-    SDL_GPUInstanceCullPass.cpp
-    SDL_GPUMeshletCullPass.cpp
-    SDL_GPUHiZPass.cpp
-    SDL_GPUOcclusionDepthPass.cpp
+    Culling/SDL_GPUInstanceCullPass.cpp
+    Culling/SDL_GPUMeshletCullPass.cpp
+    Culling/SDL_GPUHiZPass.cpp
+    Culling/SDL_GPUOcclusionDepthPass.cpp
     SDL_GPUShadowPass.cpp
-    SDL_GPUCullingUtils.cpp
+    Culling/SDL_GPUCullingUtils.cpp
     SDL_GPUPointSpotShadowPass.cpp
     SDL_GPUTonemapPass.cpp
     SDL_GPUSkybox.cpp

@@ -11,7 +11,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUComputePipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBatch.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceCullPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUInstanceCullPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTransferBuffer.hpp>
 
 namespace Luminol::Graphics::SDL_GPU {

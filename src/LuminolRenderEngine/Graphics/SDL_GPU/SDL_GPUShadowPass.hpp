@@ -9,7 +9,7 @@
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBufferCache.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceCullPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUInstanceCullPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>

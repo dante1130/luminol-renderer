@@ -8,7 +8,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/RenderPasses/SDL_GPUComputePass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/RenderPasses/SDL_GPUCopyPass.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCullingUtils.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUCullingUtils.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFactory.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceBufferCache.hpp>

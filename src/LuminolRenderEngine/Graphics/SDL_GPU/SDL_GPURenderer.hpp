@@ -14,12 +14,12 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFont.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUHiZPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUHiZPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUIBLRenderPass.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUInstanceCullPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUInstanceCullPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshRenderPass.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMeshletCullPass.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUOcclusionDepthPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUMeshletCullPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUOcclusionDepthPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUPointSpotShadowPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUScreenSpaceReflectionPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShadowPass.hpp>
