@@ -13,7 +13,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Lighting/SDL_GPUClusterPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUCommandBuffer.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUDevice.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFont.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Text/SDL_GPUFont.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUHiZPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Lighting/SDL_GPUIBLRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Culling/SDL_GPUInstanceCullPass.hpp>
@@ -24,7 +24,7 @@
 #include <LuminolRenderEngine/Graphics/SDL_GPU/PostProcess/SDL_GPUScreenSpaceReflectionPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Shadows/SDL_GPUShadowPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/Sky/SDL_GPUSkyboxRenderPass.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTextRenderPass.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Text/SDL_GPUTextRenderPass.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTexture.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/PostProcess/SDL_GPUTonemapPass.hpp>
 #include <LuminolRenderEngine/Utilities/PerformanceLogger.hpp>

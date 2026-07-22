@@ -31,8 +31,8 @@ add_library(Luminol.Graphics.SDL_GPU
     Sky/SDL_GPUSkybox.cpp
     Sky/SDL_GPUSkyboxRenderPass.cpp
     Lighting/SDL_GPUIBLRenderPass.cpp
-    SDL_GPUFont.cpp
-    SDL_GPUTextRenderPass.cpp
+    Text/SDL_GPUFont.cpp
+    Text/SDL_GPUTextRenderPass.cpp
 )
 
 target_compile_features(Luminol.Graphics.SDL_GPU PRIVATE cxx_std_20)

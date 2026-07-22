@@ -10,7 +10,7 @@
 
 #include <LuminolRenderEngine/Graphics/RenderableManager.hpp>
 #include <LuminolRenderEngine/Graphics/TexturePaths.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFont.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Text/SDL_GPUFont.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUMesh.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUTypes.hpp>
 #include <LuminolRenderEngine/Window/Window.hpp>

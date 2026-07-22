@@ -7,7 +7,7 @@
 #include <LuminolMaths/Vector.hpp>
 
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUBuffer.hpp>
-#include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUFont.hpp>
+#include <LuminolRenderEngine/Graphics/SDL_GPU/Text/SDL_GPUFont.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUGraphicsPipeline.hpp>
 #include <LuminolRenderEngine/Graphics/SDL_GPU/SDL_GPUShader.hpp>
 
