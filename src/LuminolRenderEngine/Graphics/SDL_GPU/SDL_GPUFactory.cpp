@@ -31,45 +31,22 @@ auto to_sample_count(uint32_t msaa_sample_count) -> SampleCount {
     return SampleCount::x1;
 }
 
-}  // namespace
-
-namespace Luminol::Graphics::SDL_GPU {
-
-SDL_GPUFactory::SDL_GPUFactory(uint32_t msaa_sample_count)
-    : requested_msaa_sample_count{to_sample_count(msaa_sample_count)} {
-    Expects(TTF_Init());
-}
-
-SDL_GPUFactory::~SDL_GPUFactory() {
-    fonts_by_id.clear();
-    TTF_Quit();
-}
-
-auto SDL_GPUFactory::create_renderer(Window& window)
-    -> std::unique_ptr<SDL_GPURenderer> {
-    auto* sdl_window = static_cast<SDL_Window*>(window.get_window_handle());
-    gpu_device = std::make_shared<GPUDevice>(sdl_window);
-    return std::make_unique<SDL_GPURenderer>(
-        window, shared_from_this(), gpu_device, requested_msaa_sample_count
-    );
-}
-
-auto SDL_GPUFactory::get_gpu_device() const -> std::shared_ptr<GPUDevice> {
-    return gpu_device;
-}
-
-auto SDL_GPUFactory::create_mesh(
+// Shared body of SDL_GPUFactory::create_mesh's two overloads (TexturePaths /
+// TextureImages) - identical buffer/meshlet construction regardless of how
+// the material textures are sourced; only the final SDL_GPUMesh constructor
+// call's overload resolution differs based on TextureInfo. Only instantiated
+// from within this translation unit (both create_mesh overloads below), so
+// no header declaration is needed.
+template <typename TextureInfo>
+auto build_procedural_renderable(
+    GPUDevice& gpu_device,
     gsl::span<const float> vertices,
     gsl::span<const uint32_t> indices,
-    const TexturePaths& texture_paths
-) -> RenderableId {
-    Expects(gpu_device != nullptr);
-
-    const auto renderable_id = this->renderable_manager.allocate_id();
-
+    const TextureInfo& texture_info
+) -> RenderableMeshes {
     auto meshes = std::vector<SDL_GPUMesh>{};
 
-    auto command_buffer = gpu_device->create_command_buffer();
+    auto command_buffer = gpu_device.create_command_buffer();
     auto vertex_buffer = std::optional<Buffer>{};
     auto index_buffer = std::optional<Buffer>{};
     auto meshlet_metadata_buffer = std::optional<Buffer>{};
@@ -78,7 +55,7 @@ auto SDL_GPUFactory::create_mesh(
     {
         auto copy_pass = command_buffer.begin_copy_pass();
 
-        vertex_buffer = gpu_device->create_buffer(BufferInfo{
+        vertex_buffer = gpu_device.create_buffer(BufferInfo{
             // StorageRead (in addition to Vertex): also bindable as a
             // StructuredBuffer for the main pass's meshlet vertex-pull path
             // (pbr_vert_meshlet.hlsl), purely additive - see
@@ -86,13 +63,13 @@ auto SDL_GPUFactory::create_mesh(
             .usage = BufferUsage::Vertex | BufferUsage::StorageRead,
             .size = static_cast<uint32_t>(vertices.size_bytes()),
         });
-        index_buffer = gpu_device->create_buffer(BufferInfo{
+        index_buffer = gpu_device.create_buffer(BufferInfo{
             .usage = BufferUsage::Index,
             .size = static_cast<uint32_t>(indices.size_bytes()),
         });
 
         auto vertex_transfer_buffer =
-            gpu_device->create_transfer_buffer(TransferBufferInfo{
+            gpu_device.create_transfer_buffer(TransferBufferInfo{
                 .usage = TransferBufferUsage::Upload,
                 .size = static_cast<uint32_t>(vertices.size_bytes()),
             });
@@ -109,7 +86,7 @@ auto SDL_GPUFactory::create_mesh(
         );
 
         auto index_transfer_buffer =
-            gpu_device->create_transfer_buffer(TransferBufferInfo{
+            gpu_device.create_transfer_buffer(TransferBufferInfo{
                 .usage = TransferBufferUsage::Upload,
                 .size = static_cast<uint32_t>(indices.size_bytes()),
             });
@@ -158,13 +135,13 @@ auto SDL_GPUFactory::create_mesh(
         const auto meshlet_metadata_size = static_cast<uint32_t>(
             combined_meshlets.size() * sizeof(GpuMeshletMetadata)
         );
-        meshlet_metadata_buffer = gpu_device->create_buffer(BufferInfo{
+        meshlet_metadata_buffer = gpu_device.create_buffer(BufferInfo{
             .usage = BufferUsage::StorageRead | BufferUsage::ComputeStorageRead,
             .size = meshlet_metadata_size,
         });
         {
             auto transfer_buffer =
-                gpu_device->create_transfer_buffer(TransferBufferInfo{
+                gpu_device.create_transfer_buffer(TransferBufferInfo{
                     .usage = TransferBufferUsage::Upload,
                     .size = meshlet_metadata_size,
                 });
@@ -184,13 +161,13 @@ auto SDL_GPUFactory::create_mesh(
         const auto meshlet_vertices_size = static_cast<uint32_t>(
             combined_meshlet_vertices.size() * sizeof(uint32_t)
         );
-        meshlet_vertices_buffer = gpu_device->create_buffer(BufferInfo{
+        meshlet_vertices_buffer = gpu_device.create_buffer(BufferInfo{
             .usage = BufferUsage::StorageRead,
             .size = meshlet_vertices_size,
         });
         {
             auto transfer_buffer =
-                gpu_device->create_transfer_buffer(TransferBufferInfo{
+                gpu_device.create_transfer_buffer(TransferBufferInfo{
                     .usage = TransferBufferUsage::Upload,
                     .size = meshlet_vertices_size,
                 });
@@ -211,13 +188,13 @@ auto SDL_GPUFactory::create_mesh(
         const auto meshlet_triangles_size = static_cast<uint32_t>(
             combined_meshlet_triangles.size() * sizeof(uint32_t)
         );
-        meshlet_triangles_buffer = gpu_device->create_buffer(BufferInfo{
+        meshlet_triangles_buffer = gpu_device.create_buffer(BufferInfo{
             .usage = BufferUsage::StorageRead,
             .size = meshlet_triangles_size,
         });
         {
             auto transfer_buffer =
-                gpu_device->create_transfer_buffer(TransferBufferInfo{
+                gpu_device.create_transfer_buffer(TransferBufferInfo{
                     .usage = TransferBufferUsage::Upload,
                     .size = meshlet_triangles_size,
                 });
@@ -236,13 +213,13 @@ auto SDL_GPUFactory::create_mesh(
         }
 
         meshes.emplace_back(
-            *gpu_device,
+            gpu_device,
             copy_pass,
             lod_ranges,
             meshlet_ranges,
             0,
             local_bounds,
-            texture_paths
+            texture_info
         );
     }
 
@@ -252,10 +229,7 @@ auto SDL_GPUFactory::create_mesh(
 
     command_buffer.submit();
 
-    if (renderable_id >= this->meshes_by_id.size()) {
-        this->meshes_by_id.resize(renderable_id + 1);
-    }
-    this->meshes_by_id[renderable_id] = RenderableMeshes{
+    return RenderableMeshes{
         .vertex_buffer = std::move(vertex_buffer).value(),
         .index_buffer = std::move(index_buffer).value(),
         .meshlet_metadata_buffer = std::move(meshlet_metadata_buffer).value(),
@@ -263,6 +237,73 @@ auto SDL_GPUFactory::create_mesh(
         .meshlet_triangles_buffer = std::move(meshlet_triangles_buffer).value(),
         .meshes = std::move(meshes),
     };
+}
+
+}  // namespace
+
+namespace Luminol::Graphics::SDL_GPU {
+
+SDL_GPUFactory::SDL_GPUFactory(uint32_t msaa_sample_count)
+    : requested_msaa_sample_count{to_sample_count(msaa_sample_count)} {
+    Expects(TTF_Init());
+}
+
+SDL_GPUFactory::~SDL_GPUFactory() {
+    fonts_by_id.clear();
+    TTF_Quit();
+}
+
+auto SDL_GPUFactory::create_renderer(Window& window)
+    -> std::unique_ptr<SDL_GPURenderer> {
+    auto* sdl_window = static_cast<SDL_Window*>(window.get_window_handle());
+    gpu_device = std::make_shared<GPUDevice>(sdl_window);
+    return std::make_unique<SDL_GPURenderer>(
+        window, shared_from_this(), gpu_device, requested_msaa_sample_count
+    );
+}
+
+auto SDL_GPUFactory::get_gpu_device() const -> std::shared_ptr<GPUDevice> {
+    return gpu_device;
+}
+
+auto SDL_GPUFactory::create_mesh(
+    gsl::span<const float> vertices,
+    gsl::span<const uint32_t> indices,
+    const TexturePaths& texture_paths
+) -> RenderableId {
+    Expects(gpu_device != nullptr);
+
+    const auto renderable_id = this->renderable_manager.allocate_id();
+
+    auto renderable_meshes = build_procedural_renderable(
+        *gpu_device, vertices, indices, texture_paths
+    );
+
+    if (renderable_id >= this->meshes_by_id.size()) {
+        this->meshes_by_id.resize(renderable_id + 1);
+    }
+    this->meshes_by_id[renderable_id] = std::move(renderable_meshes);
+
+    return renderable_id;
+}
+
+auto SDL_GPUFactory::create_mesh(
+    gsl::span<const float> vertices,
+    gsl::span<const uint32_t> indices,
+    const TextureImages& texture_images
+) -> RenderableId {
+    Expects(gpu_device != nullptr);
+
+    const auto renderable_id = this->renderable_manager.allocate_id();
+
+    auto renderable_meshes = build_procedural_renderable(
+        *gpu_device, vertices, indices, texture_images
+    );
+
+    if (renderable_id >= this->meshes_by_id.size()) {
+        this->meshes_by_id.resize(renderable_id + 1);
+    }
+    this->meshes_by_id[renderable_id] = std::move(renderable_meshes);
 
     return renderable_id;
 }

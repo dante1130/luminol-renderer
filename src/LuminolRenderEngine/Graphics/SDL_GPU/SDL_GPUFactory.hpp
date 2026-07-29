@@ -39,6 +39,12 @@ public:
         const TexturePaths& texture_paths
     ) -> RenderableId;
 
+    [[nodiscard]] auto create_mesh(
+        gsl::span<const float> vertices,
+        gsl::span<const uint32_t> indices,
+        const TextureImages& texture_images
+    ) -> RenderableId;
+
     [[nodiscard]] auto create_model(const std::filesystem::path& model_path)
         -> RenderableId;
 

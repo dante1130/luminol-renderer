@@ -11,6 +11,7 @@
 
 namespace Luminol::Graphics::SDL_GPU {
 class SDL_GPUFactory;
+struct TextureImages;
 }  // namespace Luminol::Graphics::SDL_GPU
 
 namespace Luminol::Graphics {
@@ -32,6 +33,12 @@ public:
         gsl::span<const float> vertices,
         gsl::span<const uint32_t> indices,
         const TexturePaths& texture_paths
+    ) -> RenderableId;
+
+    [[nodiscard]] auto create_renderable(
+        gsl::span<const float> vertices,
+        gsl::span<const uint32_t> indices,
+        const SDL_GPU::TextureImages& texture_images
     ) -> RenderableId;
 
     [[nodiscard]] auto create_renderable(

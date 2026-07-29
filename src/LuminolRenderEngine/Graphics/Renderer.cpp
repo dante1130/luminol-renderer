@@ -15,6 +15,14 @@ auto Renderer::create_renderable(
     return this->graphics_factory->create_mesh(vertices, indices, texture_paths);
 }
 
+auto Renderer::create_renderable(
+    gsl::span<const float> vertices,
+    gsl::span<const uint32_t> indices,
+    const SDL_GPU::TextureImages& texture_images
+) -> RenderableId {
+    return this->graphics_factory->create_mesh(vertices, indices, texture_images);
+}
+
 auto Renderer::create_renderable(const std::filesystem::path& model_path)
     -> RenderableId {
     return this->graphics_factory->create_model(model_path);
